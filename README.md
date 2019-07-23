@@ -13,7 +13,7 @@
 -----------
 Чтобы запустить HookLib и пример к ней в IDE, необходимо дописать в VM arguments: 
 ```
--Dfml.coreMods.load=gloomyfolken.hooklib.example.ExampleHookLoader
+-Dfml.coreMods.load=gloomyfolken.hooklib.minecraft.MainHookLoader
 ```
 В IntelliJ IDEA: Run -> Edit configurations
 
@@ -39,16 +39,6 @@ allprojects {
     }
 }
 
-project.ext.hooklibVersion = "master-SNAPSHOT"
-
-shadowJar {
-    classifier = ''
-
-    dependencies {
-        include(dependency("com.github.hohserg1:HookLib:$hooklibVersion"))
-    }
-}
-
 dependencies {
 	...
     compile "com.github.hohserg1:HookLib:$hooklibVersion"
@@ -56,15 +46,16 @@ dependencies {
 ```
 Выполнить Gradle refresh в ide, либо пересобрать проект
 
-Сборка при помощи `gradlew build shadowJar`
-
 Пример использования
 -------------------
 Полный код и больше примеров есть в gloomyfolken.hooklib.example
 ```java
-@Hook(at = @At(point = InjectionPoint.RETURN), returnCondition = ReturnCondition.ALWAYS)
-public static int getTotalArmorValue(ForgeHooks fh, EntityPlayer player, @ReturnValue int returnValue) {
-    return returnValue/2;
+@HookContainer
+public class TestHooks {
+    @Hook(at = @At(point = InjectionPoint.RETURN), returnCondition = ReturnCondition.ALWAYS)
+    public static int getTotalArmorValue(ForgeHooks fh, EntityPlayer player, @ReturnValue int returnValue) {
+        return returnValue/2;
+    }
 }
 ```
 
