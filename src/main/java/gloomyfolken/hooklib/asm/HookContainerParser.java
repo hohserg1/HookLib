@@ -38,16 +38,28 @@ public class HookContainerParser {
     }
 
     protected void parseHooks(String className) {
+        logHookParsing(() -> transformer.classMetadataReader.acceptVisitor(className, new HookClassVisitor()), className);
+    }
+
+    protected void parseHooks(byte[] classData) {
+        logHookParsing(() -> transformer.classMetadataReader.acceptVisitor("", new HookClassVisitor()), "");
+    }
+
+    protected void parseHooks(String className, byte[] classData) {
+        logHookParsing(() -> transformer.classMetadataReader.acceptVisitor(classData, new HookClassVisitor()), className);
+    }
+
+    private void logHookParsing(ThrowingRunnable<IOException> parse, String className) {
         transformer.logger.debug("Parsing hooks container " + className);
         try {
-            transformer.classMetadataReader.acceptVisitor(className, new HookClassVisitor());
+            parse.run();
         } catch (IOException e) {
             transformer.logger.severe("Can not parse hooks container " + className, e);
         }
     }
 
-    protected void parseHooks(byte[] classData) {
-
+    private interface ThrowingRunnable<E extends Exception> {
+        void run() throws E;
     }
 
     private void invalidHook(String message) {

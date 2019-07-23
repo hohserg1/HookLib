@@ -47,6 +47,9 @@ public abstract class HookLoader implements IFMLLoadingPlugin {
     public static void registerHookContainer(String className) {
         getTransformer().registerHookContainer(className);
     }
+    public static void registerHookContainer(String className,byte[] classData) {
+        getTransformer().registerHookContainer(className,classData);
+    }
 
     public static ClassMetadataReader getDeobfuscationMetadataReader() {
         return deobfuscationMetadataReader;

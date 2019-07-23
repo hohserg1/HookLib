@@ -12,7 +12,7 @@ import java.util.List;
 public class HookClassTransformer {
 
     public static HookLogger logger = new SystemOutLogger();
-    protected HashMap<String, List<AsmHook>> hooksMap = new HashMap<String, List<AsmHook>>();
+    protected HashMap<String, List<AsmHook>> hooksMap = new HashMap<>();
     private HookContainerParser containerParser = new HookContainerParser(this);
     protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
@@ -30,6 +30,9 @@ public class HookClassTransformer {
         containerParser.parseHooks(className);
     }
 
+    public void registerHookContainer(String className,byte[] classData) {
+        containerParser.parseHooks(className,classData);
+    }
     public void registerHookContainer(byte[] classData) {
         containerParser.parseHooks(classData);
     }
