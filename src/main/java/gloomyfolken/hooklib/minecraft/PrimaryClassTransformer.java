@@ -76,12 +76,12 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
         if (type.getSort() < 9) return type;
 
         //array
-        if (type.getSort() == 9) {
+        if (type.getSort() == 9) {//check for equals
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < type.getDimensions(); i++) {
                 sb.append("[");
             }
-            boolean isPrimitiveArray = type.getSort() < 9;
+            boolean isPrimitiveArray = type.getSort() < 9;//check for leaser. may be error?
             if (!isPrimitiveArray) sb.append("L");
             sb.append(map(type.getElementType()).getInternalName());
             if (!isPrimitiveArray) sb.append(";");

@@ -1,1 +1,1 @@
-gradlew build -Xlint:deprecation
+gradlew build
