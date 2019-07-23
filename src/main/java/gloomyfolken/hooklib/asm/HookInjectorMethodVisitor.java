@@ -65,7 +65,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
             String targetName =
-                    HookLibPlugin.getObfuscated()
+                    HookLibPlugin.isObfuscated()
                             ? MinecraftClassTransformer.instance.getMethodNames().getOrDefault(MinecraftClassTransformer.getMethodId(name), name)
                             : name;
             if (hook.getAnchorPoint() == METHOD_CALL && hook.getAnchorTarget().equals(targetName))

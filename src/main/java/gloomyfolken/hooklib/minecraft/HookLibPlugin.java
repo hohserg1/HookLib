@@ -40,7 +40,7 @@ public class HookLibPlugin implements IFMLLoadingPlugin {
     @Override
     public void injectData(Map<String, Object> data) {}
 
-    public static boolean getObfuscated() {
+    public static boolean isObfuscated() {
         if (!checked) {
             try {
                 Field deobfField = CoreModManager.class.getDeclaredField("deobfuscatedEnvironment");
