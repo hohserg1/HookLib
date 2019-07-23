@@ -17,7 +17,7 @@ public abstract class HookLoader implements IFMLLoadingPlugin {
     private static Optional<DeobfuscationTransformer> deobfuscationTransformer=Optional.empty();
 
     static Optional<DeobfuscationTransformer> deobfuscationTransformer(){
-        if (HookLibPlugin.getObfuscated() && !deobfuscationTransformer.isPresent()) {
+        if (HookLibPlugin.isObfuscated() && !deobfuscationTransformer.isPresent()) {
             deobfuscationTransformer = Optional.of(new DeobfuscationTransformer());
         }
         return deobfuscationTransformer;

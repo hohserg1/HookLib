@@ -57,7 +57,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
     }
 
     static String mapDesc(String desc) {
-        if (!HookLibPlugin.getObfuscated()) return desc;
+        if (!HookLibPlugin.isObfuscated()) return desc;
 
         Type methodType = Type.getMethodType(desc);
         Type mappedReturnType = map(methodType.getReturnType());
@@ -70,7 +70,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
     }
 
     static Type map(Type type) {
-        if (!HookLibPlugin.getObfuscated()) return type;
+        if (!HookLibPlugin.isObfuscated()) return type;
 
         // void or primitive
         if (type.getSort() < 9) return type;

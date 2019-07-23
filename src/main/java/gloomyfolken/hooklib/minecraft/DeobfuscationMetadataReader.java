@@ -69,14 +69,14 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
 
     // возвращает из необфусцированного названия типа обфусцированное
     private static String unmap(String type) {
-        if (HookLibPlugin.getObfuscated()) {
+        if (HookLibPlugin.isObfuscated()) {
             return FMLDeobfuscatingRemapper.INSTANCE.unmap(type);
         }
         return type;
     }
 
     private static boolean checkSameMethod(String srgName, String mcpName) {
-        if (HookLibPlugin.getObfuscated() && MinecraftClassTransformer.instance != null) {
+        if (HookLibPlugin.isObfuscated() && MinecraftClassTransformer.instance != null) {
             int methodId = MinecraftClassTransformer.getMethodId(srgName);
             String remappedName = MinecraftClassTransformer.instance.getMethodNames().get(methodId);
             if (remappedName != null && remappedName.equals(mcpName)) {

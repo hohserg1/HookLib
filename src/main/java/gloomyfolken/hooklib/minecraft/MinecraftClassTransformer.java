@@ -29,7 +29,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     public MinecraftClassTransformer() {
         instance = this;
 
-        if (HookLibPlugin.getObfuscated()) {
+        if (HookLibPlugin.isObfuscated()) {
             try {
                 long timeStart = System.currentTimeMillis();
                 methodNames = loadMethodNames();
@@ -74,7 +74,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
         return new HookInjectorClassVisitor(this, cw, hooks) {
             @Override
             protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
-                if (HookLibPlugin.getObfuscated()) {
+                if (HookLibPlugin.isObfuscated()) {
                     String mcpName = methodNames.get(getMethodId(name));
                     if (mcpName != null && super.isTargetMethod(hook, mcpName, desc)) {
                         return true;
