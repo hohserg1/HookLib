@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.asm.HookCheckClassVisitor;
+import gloomyfolken.hooklib.config.Config;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModClassLoader;
 import org.apache.commons.io.FileUtils;
@@ -35,9 +36,11 @@ public class MainHookLoader extends HookLoader {
         List<File> classCandidates = new ArrayList<>(100);
         List<Pair<String, byte[]>> result = new ArrayList<>(1);
 
-        addFromModsDir(jarCandidates);
+        if (Config.useModsDirCandidates())
+            addFromModsDir(jarCandidates);
 
-        addFromClasspath(jarCandidates, classCandidates);
+        if (Config.useClasspathCandidates())
+            addFromClasspath(jarCandidates, classCandidates);
 
         for (File jar : jarCandidates)
             try {
