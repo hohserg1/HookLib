@@ -253,7 +253,7 @@ public class HookContainerParser {
         @Override
         public void visitEnd() {
             String currentSide = FMLLaunchHandler.side().toString();
-            if (!annotationValues.isEmpty() && sideOnlyValues.getOrDefault("value", currentSide) == currentSide)
+            if (!annotationValues.isEmpty() && sideOnlyValues.getOrDefault("value", currentSide).equals(currentSide))
                 createHook();
 
             annotationValues.clear();
