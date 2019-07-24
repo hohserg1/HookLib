@@ -2,6 +2,8 @@ package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.asm.Hook.LocalVariable;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.objectweb.asm.*;
 
 import java.io.IOException;
@@ -19,7 +21,8 @@ public class HookContainerParser {
     /*
     Ключ - название значения аннотации
      */
-    private HashMap<String, Object> annotationValues;
+    private HashMap<String, Object> annotationValues = new HashMap<>();
+    private HashMap<String, Object> sideOnlyValues = new HashMap<>();
 
     /*
     Ключ - номер параметра, значение - номер локальной переменной для перехвата
@@ -27,11 +30,10 @@ public class HookContainerParser {
      */
     private HashMap<Integer, Integer> parameterAnnotations = new HashMap<>();
 
-    private boolean inHookAnnotation;
-
-    private static final String HOOK_DESC = Type.getDescriptor(Hook.class);
-    private static final String LOCAL_DESC = Type.getDescriptor(LocalVariable.class);
-    private static final String RETURN_DESC = Type.getDescriptor(ReturnValue.class);
+    public static final String HOOK_DESC = Type.getDescriptor(Hook.class);
+    public static final String SIDE_ONLY_DESC = Type.getDescriptor(SideOnly.class);
+    public static final String LOCAL_DESC = Type.getDescriptor(LocalVariable.class);
+    public static final String RETURN_DESC = Type.getDescriptor(ReturnValue.class);
 
     public HookContainerParser(HookClassTransformer transformer) {
         this.transformer = transformer;
@@ -223,11 +225,13 @@ public class HookContainerParser {
 
         @Override
         public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-            if (HOOK_DESC.equals(desc)) {
-                annotationValues = new HashMap<>();
-                inHookAnnotation = true;
-            }
-            return new HookAnnotationVisitor();
+            if (HOOK_DESC.equals(desc))
+                return new HookAnnotationVisitor(annotationValues);
+
+            if (SIDE_ONLY_DESC.equals(desc))
+                return new HookAnnotationVisitor(sideOnlyValues);
+
+            return super.visitAnnotation(desc, visible);
         }
 
         @Override
@@ -248,27 +252,30 @@ public class HookContainerParser {
 
         @Override
         public void visitEnd() {
-            if (annotationValues != null) {
+            String currentSide = FMLLaunchHandler.side().toString();
+            if (annotationValues != null && sideOnlyValues.getOrDefault("value", currentSide) == currentSide) {
                 createHook();
             }
+            annotationValues.clear();
+            sideOnlyValues.clear();
             parameterAnnotations.clear();
             currentMethodName = currentMethodDesc = null;
             currentMethodPublicStatic = false;
-            annotationValues = null;
         }
     }
 
-    private class HookAnnotationVisitor extends AnnotationVisitor {
+    public static class HookAnnotationVisitor extends AnnotationVisitor {
 
-        public HookAnnotationVisitor() {
+        private final HashMap<String, Object> map;
+
+        public HookAnnotationVisitor(HashMap<String, Object> map) {
             super(Opcodes.ASM5);
+            this.map = map;
         }
 
         @Override
         public void visit(String name, Object value) {
-            if (inHookAnnotation) {
-                annotationValues.put(name, value);
-            }
+            map.put(name, value);
         }
 
         /**
@@ -277,31 +284,23 @@ public class HookContainerParser {
 
         @Override
         public AnnotationVisitor visitAnnotation(String name, String desc) {
-            if (inHookAnnotation) {
-                annotationValues.put(name, new HashMap<String, Object>());
-                return new AnnotationVisitor(Opcodes.ASM5) {
-                    @Override
-                    public void visit(String name1, Object value) {
-                        ((HashMap<String, Object>) annotationValues.get(name)).put(name1, value);
-                    }
+            map.put(name, new HashMap<String, Object>());
+            return new AnnotationVisitor(Opcodes.ASM5) {
+                @Override
+                public void visit(String name1, Object value) {
+                    ((HashMap<String, Object>) map.get(name)).put(name1, value);
+                }
 
-                    @Override
-                    public void visitEnum(String name1, String desc, String value) {
-                        ((HashMap<String, Object>) annotationValues.get(name)).put(name1, value);
-                    }
-                };
-            } else
-                return null;
+                @Override
+                public void visitEnum(String name1, String desc, String value) {
+                    ((HashMap<String, Object>) map.get(name)).put(name1, value);
+                }
+            };
         }
 
         @Override
         public void visitEnum(String name, String desc, String value) {
             visit(name, value);
-        }
-
-        @Override
-        public void visitEnd() {
-            inHookAnnotation = false;
         }
     }
 }

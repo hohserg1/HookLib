@@ -11,10 +11,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityHopper;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 @HookContainer
 public class TestHooks {
 
+    @SideOnly(Side.CLIENT)
     @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "setInventorySlotContents", shift = Shift.INSTEAD))
     public static void insertStack(TileEntityHopper tile, IInventory source, IInventory destination, ItemStack stack, int index, EnumFacing direction) {
         System.out.println("test");
