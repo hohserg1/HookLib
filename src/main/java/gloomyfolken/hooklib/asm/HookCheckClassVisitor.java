@@ -44,7 +44,7 @@ public class HookCheckClassVisitor extends ClassVisitor {
     @Override
     public void visitEnd() {
         String currentSide = FMLLaunchHandler.side().toString();
-        if (hookContainerFound && sideOnlyValues.getOrDefault("value", currentSide) == currentSide)
+        if (hookContainerFound && sideOnlyValues.getOrDefault("value", currentSide).equals(currentSide))
             addFoundClass.accept(currentClassName);
         super.visitEnd();
     }
