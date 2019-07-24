@@ -27,7 +27,12 @@ public class MainHookLoader extends HookLoader {
 
     @Override
     public void registerHooks() {
-        findHookContainers().forEach(i -> registerHookContainer(i.getLeft(), i.getRight()));
+        Config.loadConfig();
+        findHookContainers().forEach(i -> {
+            String containerName = i.getLeft();
+            if (Config.enableTestHooks || !containerName.equals("gloomyfolken.hooklib.example.TestHooks"))
+                registerHookContainer(containerName, i.getRight());
+        });
     }
 
     private List<Pair<String, byte[]>> findHookContainers() {
@@ -36,10 +41,10 @@ public class MainHookLoader extends HookLoader {
         List<File> classCandidates = new ArrayList<>(100);
         List<Pair<String, byte[]>> result = new ArrayList<>(1);
 
-        if (Config.useModsDirCandidates())
+        if (Config.useModsDirCandidates)
             addFromModsDir(jarCandidates);
 
-        if (Config.useClasspathCandidates())
+        if (Config.useClasspathCandidates)
             addFromClasspath(jarCandidates, classCandidates);
 
         for (File jar : jarCandidates)
