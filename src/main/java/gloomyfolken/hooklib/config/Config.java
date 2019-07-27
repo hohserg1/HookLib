@@ -55,14 +55,13 @@ public class Config {
     }
 
     private static void writeDefaultConfig() throws IOException {
-        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-        writer.write("# Find hook-containers in classpath\n");
-        writer.write("B:useClasspathCandidates=true\n\n");
-        writer.write("# Find hook-containers in mods\n");
-        writer.write("B:useModsDirCandidates=true\n\n");
-        writer.write("# Enable hook-container gloomyfolken.hooklib.example.TestHooks\n");
-        writer.write("B:enableTestHooks=false\n\n");
-
-        writer.close();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            writer.write("# Find hook-containers in classpath\n");
+            writer.write("B:useClasspathCandidates=true\n\n");
+            writer.write("# Find hook-containers in mods\n");
+            writer.write("B:useModsDirCandidates=true\n\n");
+            writer.write("# Enable hook-container gloomyfolken.hooklib.example.TestHooks\n");
+            writer.write("B:enableTestHooks=false\n\n");
+        }
     }
 }
