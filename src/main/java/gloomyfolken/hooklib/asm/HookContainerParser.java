@@ -103,8 +103,6 @@ public class HookContainerParser {
         builder.setHookMethod(currentMethodName);
         builder.addThisToHookMethodParameters();
 
-        boolean injectOnExit = Boolean.TRUE.equals(annotationValues.get("injectOnExit"));
-
         int currentParameterId = 1;
         for (int i = 1; i < argumentTypes.length; i++) {
             Type argType = argumentTypes[i];
@@ -123,7 +121,6 @@ public class HookContainerParser {
             }
         }
 
-        if (injectOnExit) builder.setInjectorFactory(AsmHook.ON_EXIT_FACTORY);
 
         if (annotationValues.containsKey("injectOnLine")) {
             int line = (Integer) annotationValues.get("injectOnLine");

@@ -78,12 +78,6 @@ public @interface Hook {
      */
     boolean isMandatory() default false;
 
-    /**
-     * По умолчанию хук вставляется в начало целевого метода.
-     * Если указать здесь true, то он будет вставлен в конце и перед каждым вызовом return.
-     * Используйте @At вместо этого
-     */
-    @Deprecated boolean injectOnExit() default false;
 
     /**
      * По умолчанию хук вставляется в начало целевого метода.
