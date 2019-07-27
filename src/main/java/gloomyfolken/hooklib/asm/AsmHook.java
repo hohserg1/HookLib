@@ -1,7 +1,5 @@
 package gloomyfolken.hooklib.asm;
 
-import gloomyfolken.hooklib.asm.HookInjectorFactory.MethodEnter;
-import gloomyfolken.hooklib.asm.HookInjectorFactory.MethodExit;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -25,7 +23,18 @@ import static org.objectweb.asm.Type.*;
  */
 public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
-    private HashMap<String, Object> anchor = new HashMap<>();
+    private Anchor anchor1 = new Anchor();
+
+    public static class Anchor {
+        InjectionPoint point = InjectionPoint.HEAD;
+
+        Shift shift = Shift.AFTER;
+
+        String target = "";
+
+        int ordinal = -1;
+    }
+
     private String targetClassName; // через точки
     private String targetMethodName;
     private List<Type> targetMethodParameters = new ArrayList<>(2);
@@ -43,13 +52,10 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private ReturnValue returnValue = ReturnValue.VOID;
     private Object primitiveConstant;
 
-    private HookInjectorFactory injectorFactory = ON_ENTER_FACTORY;
+    private HookInjectorFactory injectorFactory = BY_ANCHOR_FACTORY;
     private HookPriority priority = HookPriority.NORMAL;
 
     public static final HookInjectorFactory BY_ANCHOR_FACTORY = HookInjectorFactory.ByAnchor.INSTANCE;
-    public static final HookInjectorFactory ON_ENTER_FACTORY = MethodEnter.INSTANCE;
-    public static final HookInjectorFactory ON_EXIT_FACTORY = MethodExit.INSTANCE;
-
     // может быть без возвращаемого типа
     private String targetMethodDescription;
     private String hookMethodDescription;
@@ -61,19 +67,19 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private boolean isMandatory;
 
     public InjectionPoint getAnchorPoint() {
-        return InjectionPoint.valueOf((String) anchor.get("point"));
+        return anchor1.point;
     }
 
     public String getAnchorTarget() {
-        return (String) anchor.get("target");
+        return anchor1.target;
     }
 
     public Shift getShift() {
-        return Shift.valueOfNullable((String) anchor.get("shift"));
+        return anchor1.shift;
     }
 
     public Integer getAnchorOrdinal() {
-        return (Integer) anchor.getOrDefault("ordinal", -1);
+        return anchor1.ordinal;
     }
 
     protected String getTargetClassName() {
@@ -340,7 +346,10 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
 
         public Builder setAnchorForInject(HashMap<String, Object> anchor) {
-            AsmHook.this.anchor = anchor;
+            AsmHook.this.anchor1.ordinal = (Integer) anchor.getOrDefault("ordinal", -1);
+            AsmHook.this.anchor1.point = InjectionPoint.valueOf((String) anchor.get("point"));
+            AsmHook.this.anchor1.shift = Shift.valueOfNullable((String) anchor.get("shift"));
+            AsmHook.this.anchor1.target = (String) anchor.get("target");
             setInjectorFactory(AsmHook.BY_ANCHOR_FACTORY);
             return this;
         }
@@ -838,8 +847,8 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
 
         private boolean isReturnHook(AsmHook hook) {
-            return (hook.injectorFactory instanceof MethodExit) ||
-                    ((hook.injectorFactory instanceof HookInjectorFactory.ByAnchor) && hook.getAnchorPoint() == InjectionPoint.RETURN);
+            return ((hook.injectorFactory instanceof HookInjectorFactory.ByAnchor) &&
+                    hook.getAnchorPoint() == InjectionPoint.RETURN);
         }
 
     }
