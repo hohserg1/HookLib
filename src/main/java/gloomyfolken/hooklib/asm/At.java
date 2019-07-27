@@ -8,7 +8,7 @@ public @interface At {
     /**
      * Тип точки инъекции
      */
-    public InjectionPoint point();
+    public InjectionPoint point() default InjectionPoint.HEAD;
 
     /**
      * Сдвиг относительно точки инъекции
