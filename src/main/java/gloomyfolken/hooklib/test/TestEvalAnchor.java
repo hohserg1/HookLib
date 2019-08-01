@@ -1,5 +1,7 @@
 package gloomyfolken.hooklib.test;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -13,21 +15,26 @@ import org.objectweb.asm.util.Printer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.objectweb.asm.Opcodes.*;
 
 public class TestEvalAnchor {
     public static void main(String[] args) throws IOException {
-        byte[] hook = identity(IOUtils.toByteArray(new FileInputStream(new File("./hook.class"))));
-        byte[] test = identity(IOUtils.toByteArray(new FileInputStream(new File("./Test.class"))));
+        //testMap();
+        if (true) {
+            byte[] hook = identity(IOUtils.toByteArray(new FileInputStream(new File("./hook.class"))));
+            byte[] test = identity(IOUtils.toByteArray(new FileInputStream(new File("./Test.class"))));
 
-        System.out.println(Arrays.equals(test, identity(test)));
-        Optional<List<AbstractInsnNode>> evaluation = analiseEvaluation(hook, "evaluation");
-        Optional<List<AbstractInsnNode>> test2test = analiseEvaluation(test, "test");
-        if (evaluation.isPresent() && evaluation.get().size() > 0) {
-            List<AbstractInsnNode> nodeList = evaluation.get();
+            System.out.println(Arrays.equals(test, identity(test)));
+            Optional<List<AbstractInsnNode>> evaluation = analiseEvaluation(hook, "evaluation");
+            Optional<List<AbstractInsnNode>> test2test = analiseEvaluation(test, "test");
+            if (evaluation.isPresent() && evaluation.get().size() > 0) {
+                List<AbstractInsnNode> nodeList = evaluation.get();
 
 /*
             nodeList
@@ -42,15 +49,25 @@ public class TestEvalAnchor {
                     .map(TestEvalAnchor::nodeToString)
                     .forEach(System.out::println);*/
 
-            findSimilarCode(test, "test", "()V", nodeList);
+                findSimilarCode(test, "test", "()V", nodeList);
+            }
         }
+    }
+
+    private static void testMap() {
+        BiMap<Integer, Integer> map = HashBiMap.create();
+        map.put(0, 1);
+        map.put(0, 2);
+        System.out.println(map);
+
+        System.out.println(map.get(1));
     }
 
     private static void findSimilarCode(byte[] a, String methodName, String desc, List<AbstractInsnNode> nodeList) {
         ClassReader cr = new ClassReader(a);
         ClassNode cn = new ClassNode(Opcodes.ASM5);
         cr.accept(cn, ClassReader.SKIP_FRAMES);
-        Map<Integer, Integer> colorCompliance = new HashMap<>();
+        BiMap<Integer, Integer> colorCompliance = HashBiMap.create();
         cn.methods
                 .stream()
                 .filter(m -> m.name.equals(methodName) && m.desc.equals(desc)).findAny()
@@ -78,10 +95,25 @@ public class TestEvalAnchor {
                 });
     }
 
-    private static boolean equalsWithVarColor(AbstractInsnNode current, AbstractInsnNode currentExpectation, Map<Integer, Integer> colorCompliance) {
+    private static boolean equalsWithVarColor(AbstractInsnNode current, AbstractInsnNode currentExpectation, BiMap<Integer, Integer> colorCompliance) {
         if (current instanceof VarInsnNode && currentExpectation instanceof VarInsnNode) {
-            return current.getOpcode() == currentExpectation.getOpcode() &&
-                    colorCompliance.computeIfAbsent(((VarInsnNode) currentExpectation).var, __ -> ((VarInsnNode) current).var) == ((VarInsnNode) current).var;
+            if (current.getOpcode() == currentExpectation.getOpcode()) {
+                VarInsnNode currentExpectation1 = (VarInsnNode) currentExpectation;
+                VarInsnNode current1 = (VarInsnNode) current;
+
+                Integer ePair = colorCompliance.get(currentExpectation1.var);
+                boolean colorEquals;
+                if (ePair == null) {
+                    if (!colorCompliance.values().contains(current1.var)) {
+                        colorCompliance.put(currentExpectation1.var, current1.var);
+                        colorEquals = true;
+                    } else
+                        colorEquals = false;
+                } else
+                    colorEquals = ePair == current1.var;
+                return colorEquals;
+            } else
+                return false;
         } else {
             return current.getType() == currentExpectation.getType() &&
                     EqualsBuilder.reflectionEquals(current, currentExpectation, "prev", "next", "index");
