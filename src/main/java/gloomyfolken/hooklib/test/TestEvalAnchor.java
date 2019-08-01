@@ -29,12 +29,6 @@ public class TestEvalAnchor {
         if (evaluation.isPresent() && evaluation.get().size() > 0) {
             List<AbstractInsnNode> nodeList = evaluation.get();
 
-            int minVarNumber = nodeList.stream().filter(n -> n instanceof VarInsnNode).map(n -> ((VarInsnNode) n).var).min(Comparator.naturalOrder()).get();
-            nodeList.forEach(n -> {
-                if (n instanceof VarInsnNode)
-                    ((VarInsnNode) n).var -= minVarNumber;
-            });
-
 /*
             nodeList
                     .stream()
