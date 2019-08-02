@@ -1,5 +1,5 @@
 public class hook {
-    public static int evaluation(int a) {
-        return a * 111;
+    public static int evaluation(int a, int b) {
+        return a * a * 111;
     }
 }
