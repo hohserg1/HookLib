@@ -25,7 +25,6 @@ import static org.objectweb.asm.Opcodes.*;
 
 public class TestEvalAnchor {
     public static void main(String[] args) throws IOException {
-        //testMap();
         if (true) {
             byte[] hook = identity(IOUtils.toByteArray(new FileInputStream(new File("./hook.class"))));
             byte[] test = identity(IOUtils.toByteArray(new FileInputStream(new File("./Test.class"))));
@@ -52,15 +51,6 @@ public class TestEvalAnchor {
                 findSimilarCode(test, "test", "()V", nodeList);
             }
         }
-    }
-
-    private static void testMap() {
-        BiMap<Integer, Integer> map = HashBiMap.create();
-        map.put(0, 1);
-        map.put(0, 2);
-        System.out.println(map);
-
-        System.out.println(map.get(1));
     }
 
     private static void findSimilarCode(byte[] a, String methodName, String desc, List<AbstractInsnNode> nodeList) {
