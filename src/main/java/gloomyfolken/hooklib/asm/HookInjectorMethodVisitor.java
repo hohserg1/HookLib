@@ -56,10 +56,6 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         return false;
     }
 
-    MethodVisitor getBasicVisitor() {
-        return mv;
-    }
-
     /**
      * Вставляет хук в произвольном методе
      */
