@@ -23,7 +23,7 @@ import static org.objectweb.asm.Type.*;
  */
 public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
-    private Anchor anchor1 = new Anchor();
+    private Anchor anchor = new Anchor();
 
     public static class Anchor {
         InjectionPoint point = InjectionPoint.HEAD;
@@ -65,19 +65,19 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private boolean isMandatory;
 
     public InjectionPoint getAnchorPoint() {
-        return anchor1.point;
+        return anchor.point;
     }
 
     public String getAnchorTarget() {
-        return anchor1.target;
+        return anchor.target;
     }
 
     public Shift getShift() {
-        return anchor1.shift;
+        return anchor.shift;
     }
 
     public Integer getAnchorOrdinal() {
-        return anchor1.ordinal;
+        return anchor.ordinal;
     }
 
     protected String getTargetClassName() {
@@ -340,10 +340,10 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
 
         public Builder setAnchorForInject(HashMap<String, Object> anchor) {
-            AsmHook.this.anchor1.ordinal = (Integer) anchor.getOrDefault("ordinal", -1);
-            AsmHook.this.anchor1.point = InjectionPoint.valueOf((String) anchor.get("point"));
-            AsmHook.this.anchor1.shift = Shift.valueOfNullable((String) anchor.get("shift"));
-            AsmHook.this.anchor1.target = (String) anchor.get("target");
+            AsmHook.this.anchor.ordinal = (Integer) anchor.getOrDefault("ordinal", -1);
+            AsmHook.this.anchor.point = InjectionPoint.valueOf((String) anchor.get("point"));
+            AsmHook.this.anchor.shift = Shift.valueOfNullable((String) anchor.get("shift"));
+            AsmHook.this.anchor.target = (String) anchor.get("target");
             return this;
         }
 
