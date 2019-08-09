@@ -52,10 +52,8 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private ReturnValue returnValue = ReturnValue.VOID;
     private Object primitiveConstant;
 
-    private HookInjectorFactory injectorFactory = BY_ANCHOR_FACTORY;
     private HookPriority priority = HookPriority.NORMAL;
 
-    public static final HookInjectorFactory BY_ANCHOR_FACTORY = HookInjectorFactory.ByAnchor.INSTANCE;
     // может быть без возвращаемого типа
     private String targetMethodDescription;
     private String hookMethodDescription;
@@ -105,10 +103,6 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
     protected boolean isMandatory() {
         return isMandatory;
-    }
-
-    protected HookInjectorFactory getInjectorFactory() {
-        return injectorFactory;
     }
 
     private boolean hasHookMethod() {
@@ -318,7 +312,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         sb.append(", ReturnCondition=" + returnCondition);
         sb.append(", ReturnValue=" + returnValue);
         if (returnValue == ReturnValue.PRIMITIVE_CONSTANT) sb.append(", Constant=" + primitiveConstant);
-        sb.append(", InjectorFactory: " + injectorFactory.getClass().getName());
+        sb.append(", InjectorFactory: " + getAnchorPoint().factory);
         sb.append(", CreateMethod = " + createMethod);
 
         return sb.toString();
@@ -326,12 +320,12 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
     @Override
     public int compareTo(AsmHook o) {
-        if (injectorFactory.isPriorityInverted && o.injectorFactory.isPriorityInverted) {
+        if (getAnchorPoint().isPriorityInverted && o.getAnchorPoint().isPriorityInverted) {
             return priority.ordinal() > o.priority.ordinal() ? -1 : 1;
-        } else if (!injectorFactory.isPriorityInverted && !o.injectorFactory.isPriorityInverted) {
+        } else if (!getAnchorPoint().isPriorityInverted && !o.getAnchorPoint().isPriorityInverted) {
             return priority.ordinal() > o.priority.ordinal() ? 1 : -1;
         } else {
-            return injectorFactory.isPriorityInverted ? 1 : -1;
+            return getAnchorPoint().isPriorityInverted ? 1 : -1;
         }
     }
 
@@ -350,7 +344,6 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             AsmHook.this.anchor1.point = InjectionPoint.valueOf((String) anchor.get("point"));
             AsmHook.this.anchor1.shift = Shift.valueOfNullable((String) anchor.get("shift"));
             AsmHook.this.anchor1.target = (String) anchor.get("target");
-            setInjectorFactory(AsmHook.BY_ANCHOR_FACTORY);
             return this;
         }
 
@@ -733,21 +726,6 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
 
         /**
-         * Задает фабрику, которая создаст инжектор для этого хука.
-         * Если говорить более человеческим языком, то этот метод определяет, где будет вставлен хук:
-         * в начале метода, в конце или где-то ещё.
-         * Если не создавать своих инжекторов, то можно использовать две фабрики:
-         * AsmHook.ON_ENTER_FACTORY (вставляет хук на входе в метод, используется по умолчанию)
-         * AsmHook.ON_EXIT_FACTORY (вставляет хук на выходе из метода)
-         *
-         * @param factory Фабрика, создающая инжектор для этого хука
-         */
-        public Builder setInjectorFactory(HookInjectorFactory factory) {
-            AsmHook.this.injectorFactory = factory;
-            return this;
-        }
-
-        /**
          * Задает приоритет хука.
          * Хуки с большим приоритетом вызаваются раньше.
          */
@@ -847,8 +825,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
 
         private boolean isReturnHook(AsmHook hook) {
-            return ((hook.injectorFactory instanceof HookInjectorFactory.ByAnchor) &&
-                    hook.getAnchorPoint() == InjectionPoint.RETURN);
+            return hook.getAnchorPoint() == InjectionPoint.RETURN;
         }
 
     }
