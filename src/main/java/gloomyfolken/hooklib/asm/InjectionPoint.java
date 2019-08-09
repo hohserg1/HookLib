@@ -7,17 +7,17 @@ public enum InjectionPoint {
     /**
      * Начало метода
      */
-    HEAD(false, HookInjectorMethodVisitor.ByAnchor::new),
+    HEAD(false, HookInjectorMethodVisitor.Headinjector::new),
 
     /**
      * Конец метода
      */
-    RETURN(true, HookInjectorMethodVisitor.ByAnchor::new),
+    RETURN(true, HookInjectorMethodVisitor.ReturnInjector::new),
 
     /**
      * Когда происходит вызов другого метода где-то в теле хукнутого
      */
-    METHOD_CALL(false, HookInjectorMethodVisitor.ByAnchor::new);
+    METHOD_CALL(false, HookInjectorMethodVisitor.MethodCallInjector::new);
 
     public final boolean isPriorityInverted;
     public final HookInjectorFactory factory;

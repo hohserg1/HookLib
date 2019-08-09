@@ -174,7 +174,7 @@ public class HookContainerParser {
 
         try {
             transformer.registerHook(builder.build());
-        }catch (Exception e){
+        } catch (Exception e) {
             invalidHook(e.getMessage());
         }
     }
