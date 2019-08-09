@@ -155,14 +155,9 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     /**
      * Вставляет хук по номеру строки.
      */
-    public static class LineNumber extends HookInjectorMethodVisitor {
 
         private int lineNumber;
 
-        public LineNumber(MethodVisitor mv, int access, String name, String desc,
-                          AsmHook hook, HookInjectorClassVisitor cv, int lineNumber) {
-            super(mv, access, name, desc, hook, cv);
-            this.lineNumber = lineNumber;
         }
 
         @Override

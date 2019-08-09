@@ -33,19 +33,6 @@ public abstract class HookInjectorFactory {
 
     }
 
-    static class LineNumber extends HookInjectorFactory {
-
-        private int lineNumber;
-
-        public LineNumber(int lineNumber) {
-            this.lineNumber = lineNumber;
-        }
-
-        @Override
-        public HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc,
-                                                            AsmHook hook, HookInjectorClassVisitor cv) {
-            return new HookInjectorMethodVisitor.LineNumber(mv, access, name, desc, hook, cv, lineNumber);
-        }
     }
 
 }
