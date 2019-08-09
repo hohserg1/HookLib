@@ -119,6 +119,11 @@ public class HookContainerParser {
         }
 
 
+        if (annotationValues.containsKey("injectOnLine")) {
+            int line = (Integer) annotationValues.get("injectOnLine");
+            builder.setInjectorFactory(new HookInjectorFactory.LineNumber(line));
+        }
+
         if (annotationValues.containsKey("at")) {
             builder.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
         }
