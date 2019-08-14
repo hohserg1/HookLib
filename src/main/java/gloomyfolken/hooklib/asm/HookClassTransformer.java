@@ -56,8 +56,10 @@ public class HookClassTransformer {
 
                 ClassReader cr = new ClassReader(bytecode);
                 ClassWriter cw = createClassWriter(java7 ? ClassWriter.COMPUTE_FRAMES : ClassWriter.COMPUTE_MAXS);
+
                 HookInjectorClassVisitor hooksWriter = createInjectorClassVisitor(cw, hooks);
                 cr.accept(hooksWriter, java7 ? ClassReader.SKIP_FRAMES : ClassReader.EXPAND_FRAMES);
+
                 bytecode = cw.toByteArray();
                 for (AsmHook hook : hooksWriter.injectedHooks) {
                     logger.debug("Patching method " + hook.getPatchedMethodName());
