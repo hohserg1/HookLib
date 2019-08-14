@@ -16,8 +16,6 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     boolean visitingHook;
     HookClassTransformer transformer;
 
-    String superName;
-
     public HookInjectorClassVisitor(HookClassTransformer transformer, ClassWriter cv, List<AsmHook> hooks) {
         super(Opcodes.ASM5, cv);
         this.hooks = hooks;
@@ -27,7 +25,6 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name,
                       String signature, String superName, String[] interfaces) {
-        this.superName = superName;
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
