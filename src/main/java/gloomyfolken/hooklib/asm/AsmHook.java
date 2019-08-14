@@ -23,7 +23,7 @@ import static org.objectweb.asm.Type.*;
  */
 public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
-    private Anchor anchor = new Anchor();
+    public Anchor anchor = new Anchor();
 
     public static class Anchor {
         InjectionPoint point = InjectionPoint.HEAD;
@@ -35,34 +35,34 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         int ordinal = -1;
     }
 
-    private String targetClassName; // через точки
-    private String targetMethodName;
-    private List<Type> targetMethodParameters = new ArrayList<>(2);
-    private Type targetMethodReturnType; //если не задано, то не проверяется
+    public String targetClassName; // через точки
+    public String targetMethodName;
+    public List<Type> targetMethodParameters = new ArrayList<>(2);
+    public Type targetMethodReturnType; //если не задано, то не проверяется
 
-    private String hooksClassName; // через точки
-    private String hookMethodName;
+    public String hooksClassName; // через точки
+    public String hookMethodName;
     // -1 - значение return
-    private List<Integer> transmittableVariableIds = new ArrayList<>(2);
-    private List<Type> hookMethodParameters = new ArrayList<>(2);
-    private Type hookMethodReturnType = Type.VOID_TYPE;
-    private boolean hasReturnValueParameter; // если в хук-метод передается значение из return
+    public List<Integer> transmittableVariableIds = new ArrayList<>(2);
+    public List<Type> hookMethodParameters = new ArrayList<>(2);
+    public Type hookMethodReturnType = Type.VOID_TYPE;
+    public boolean hasReturnValueParameter; // если в хук-метод передается значение из return
 
-    private ReturnCondition returnCondition = ReturnCondition.NEVER;
-    private ReturnValue returnValue = ReturnValue.VOID;
-    private Object primitiveConstant;
+    public ReturnCondition returnCondition = ReturnCondition.NEVER;
+    public ReturnValue returnValue = ReturnValue.VOID;
+    public Object primitiveConstant;
 
-    private HookPriority priority = HookPriority.NORMAL;
+    public HookPriority priority = HookPriority.NORMAL;
 
     // может быть без возвращаемого типа
-    private String targetMethodDescription;
-    private String hookMethodDescription;
-    private String returnMethodName;
+    public String targetMethodDescription;
+    public String hookMethodDescription;
+    public String returnMethodName;
     // может быть без возвращаемого типа
-    private String returnMethodDescription;
+    public String returnMethodDescription;
 
-    private boolean createMethod;
-    private boolean isMandatory;
+    public boolean createMethod;
+    public boolean isMandatory;
 
     public InjectionPoint getAnchorPoint() {
         return anchor.point;
@@ -84,11 +84,11 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         return targetClassName;
     }
 
-    private String getTargetClassInternalName() {
+    public String getTargetClassInternalName() {
         return targetClassName.replace('.', '/');
     }
 
-    private String getHookClassInternalName() {
+    public String getHookClassInternalName() {
         return hooksClassName.replace('.', '/');
     }
 
@@ -105,7 +105,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         return isMandatory;
     }
 
-    private boolean hasHookMethod() {
+    public boolean hasHookMethod() {
         return hookMethodName != null && hooksClassName != null;
     }
 
@@ -199,7 +199,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
     }
 
-    private void injectLoad(HookInjectorMethodVisitor inj, Type parameterType, int variableId) {
+    public void injectLoad(HookInjectorMethodVisitor inj, Type parameterType, int variableId) {
         int opcode;
         if (parameterType == INT_TYPE || parameterType == BYTE_TYPE || parameterType == CHAR_TYPE ||
                 parameterType == BOOLEAN_TYPE || parameterType == SHORT_TYPE) {
@@ -216,7 +216,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         inj.visitVarInsn(opcode, variableId);
     }
 
-    private void injectSuperCall(HookInjectorMethodVisitor inj, ClassMetadataReader.MethodReference method) {
+    public void injectSuperCall(HookInjectorMethodVisitor inj, ClassMetadataReader.MethodReference method) {
         int variableId = 0;
         for (int i = 0; i <= targetMethodParameters.size(); i++) {
             Type parameterType = i == 0 ? TypeHelper.getType(targetClassName) : targetMethodParameters.get(i - 1);
@@ -230,7 +230,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         inj.visitMethodInsn(INVOKESPECIAL, method.owner, method.name, method.desc, false);
     }
 
-    private void injectDefaultValue(HookInjectorMethodVisitor inj, Type targetMethodReturnType) {
+    public void injectDefaultValue(HookInjectorMethodVisitor inj, Type targetMethodReturnType) {
         switch (targetMethodReturnType.getSort()) {
             case Type.VOID:
                 break;
@@ -256,7 +256,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
     }
 
-    private void injectReturn(HookInjectorMethodVisitor inj, Type targetMethodReturnType) {
+    public void injectReturn(HookInjectorMethodVisitor inj, Type targetMethodReturnType) {
         if (targetMethodReturnType == INT_TYPE || targetMethodReturnType == SHORT_TYPE ||
                 targetMethodReturnType == BOOLEAN_TYPE || targetMethodReturnType == BYTE_TYPE
                 || targetMethodReturnType == CHAR_TYPE) {
@@ -274,7 +274,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         }
     }
 
-    private void injectInvokeStatic(HookInjectorMethodVisitor inj, int returnLocalId, String name, String desc) {
+    public void injectInvokeStatic(HookInjectorMethodVisitor inj, int returnLocalId, String name, String desc) {
         for (int i = 0; i < hookMethodParameters.size(); i++) {
             Type parameterType = hookMethodParameters.get(i);
             int variableId = transmittableVariableIds.get(i);
@@ -335,7 +335,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
     public class Builder extends AsmHook {
 
-        private Builder() {
+        public Builder() {
 
         }
 
@@ -670,7 +670,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             AsmHook.this.hookMethodReturnType = type;
         }
 
-        private boolean isPrimitive(Type type) {
+        public boolean isPrimitive(Type type) {
             return type.getSort() > 0 && type.getSort() < 9;
         }
 
@@ -754,7 +754,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             return this;
         }
 
-        private String getMethodDesc(Type returnType, List<Type> paramTypes) {
+        public String getMethodDesc(Type returnType, List<Type> paramTypes) {
             Type[] paramTypesArray = paramTypes.toArray(new Type[0]);
             if (returnType == null) {
                 String voidDesc = Type.getMethodDescriptor(Type.VOID_TYPE, paramTypesArray);
@@ -824,7 +824,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             return hook;
         }
 
-        private boolean isReturnHook(AsmHook hook) {
+        public boolean isReturnHook(AsmHook hook) {
             return hook.getAnchorPoint() == InjectionPoint.RETURN;
         }
 
