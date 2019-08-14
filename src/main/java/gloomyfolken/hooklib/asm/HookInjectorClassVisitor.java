@@ -36,7 +36,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
         for (AsmHook hook : hooks) {
             if (isTargetMethod(hook, name, desc) && !injectedHooks.contains(hook)) {
                 // добавляет MethodVisitor в цепочку
-                mv = hook.getAnchorPoint().factory.createHookInjector(mv, access, name, desc, hook, this);
+                //mv = hook.getAnchorPoint().factory.createHookInjector(mv, access, name, desc, hook, this);
                 injectedHooks.add(hook);
             }
         }
