@@ -1,11 +1,10 @@
 package gloomyfolken.hooklib.asm;
 
-import gloomyfolken.hooklib.minecraft.HookLibPlugin;
-import gloomyfolken.hooklib.minecraft.MinecraftClassTransformer;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
+import org.objectweb.asm.tree.InsnList;
 
 /**
  * Класс, непосредственно вставляющий хук в метод.
@@ -60,75 +59,24 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
      * Вставляет хук в произвольном методе
      */
 
-    public static class MethodCallInjector extends HookInjectorMethodVisitor {
-
-        public MethodCallInjector(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor cv) {
-            super(mv, access, name, desc, hook, cv);
-        }
-
-        @Override
-        public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            String targetName =
-                    HookLibPlugin.isObfuscated()
-                            ? MinecraftClassTransformer.instance.getMethodNames().getOrDefault(MinecraftClassTransformer.getMethodId(name), name)
-                            : name;
-            if (hook.getAnchorTarget().equals(targetName))
-                switch (hook.getShift()) {
-
-                    case BEFORE:
-                        visitOrderedHook();
-                        super.visitMethodInsn(opcode, owner, name, desc, itf);
-                        break;
-                    case AFTER:
-                        super.visitMethodInsn(opcode, owner, name, desc, itf);
-                        visitOrderedHook();
-                        break;
-                    case INSTEAD:
-                        if (visitOrderedHook())
-                            for (int i = 0; i < Type.getArgumentTypes(desc).length + 1; i++)
-                                visitInsn(Opcodes.POP);
-                        else
-                            super.visitMethodInsn(opcode, owner, name, desc, itf);
-                        break;
-                }
-            else
-                super.visitMethodInsn(opcode, owner, name, desc, itf);
-
-        }
-    }
+    public static InjectionPoint.HookInjectorFactory MethodCallInjector = (asmHook, methodNode) -> {
+    };
 
     /**
      * Вставляет хук в начале метода.
      */
-    public static class Headinjector extends HookInjectorMethodVisitor {
+    public static InjectionPoint.HookInjectorFactory HeadInjector = (asmHook, methodNode) -> {
+        InsnList r=new InsnList();
 
-        public Headinjector(MethodVisitor mv, int access, String name, String desc,
-                            AsmHook hook, HookInjectorClassVisitor cv) {
-            super(mv, access, name, desc, hook, cv);
-        }
 
-        @Override
-        protected void onMethodEnter() {
-            visitHook();
-        }
+        methodNode.instructions.insertBefore(methodNode.instructions.getFirst(),r);
 
-    }
+    };
 
     /**
      * Вставляет хук на каждом выходе из метода, кроме выходов через throw.
      */
-    public static class ReturnInjector extends HookInjectorMethodVisitor {
-
-        public ReturnInjector(MethodVisitor mv, int access, String name, String desc,
-                              AsmHook hook, HookInjectorClassVisitor cv) {
-            super(mv, access, name, desc, hook, cv);
-        }
-
-        @Override
-        protected void onMethodExit(int opcode) {
-            if (opcode != Opcodes.ATHROW)
-                visitOrderedHook();
-        }
-    }
+    public static InjectionPoint.HookInjectorFactory ReturnInjector = (asmHook, methodNode) -> {
+    };
 
 }

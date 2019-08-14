@@ -1,23 +1,23 @@
 package gloomyfolken.hooklib.asm;
 
-import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.tree.MethodNode;
 
 public enum InjectionPoint {
 
     /**
      * Начало метода
      */
-    HEAD(false, HookInjectorMethodVisitor.Headinjector::new),
+    HEAD(false, HookInjectorMethodVisitor.HeadInjector),
 
     /**
      * Конец метода
      */
-    RETURN(true, HookInjectorMethodVisitor.ReturnInjector::new),
+    RETURN(true, HookInjectorMethodVisitor.ReturnInjector),
 
     /**
      * Когда происходит вызов другого метода где-то в теле хукнутого
      */
-    METHOD_CALL(false, HookInjectorMethodVisitor.MethodCallInjector::new);
+    METHOD_CALL(false, HookInjectorMethodVisitor.MethodCallInjector);
 
     public final boolean isPriorityInverted;
     public final HookInjectorFactory factory;
@@ -29,6 +29,6 @@ public enum InjectionPoint {
     }
 
     interface HookInjectorFactory {
-        public MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor hookInjectorClassVisitor);
+        public void apply(AsmHook asmHook, MethodNode methodNode);
     }
 }
