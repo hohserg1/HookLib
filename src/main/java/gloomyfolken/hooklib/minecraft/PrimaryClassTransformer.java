@@ -7,6 +7,7 @@ import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.MethodNode;
 
 import java.util.HashMap;
 import java.util.List;
@@ -30,7 +31,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
             this.hooksMap.putAll(PrimaryClassTransformer.instance.getHooksMap());
             PrimaryClassTransformer.instance.getHooksMap().clear();
         } else {
-            registerHookContainer(SecondaryTransformerHook.class.getName());
+            registerHookContainer("gloomyfolken.hooklib.minecraft.SecondaryTransformerHook");
         }
         instance = this;
     }
@@ -41,15 +42,8 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
     }
 
     @Override
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassWriter cw, List<AsmHook> hooks) {
-        // Если ничего не сломается, то никакие майновские классы не должны грузиться этим трансформером -
-        // соответственно, и костыли для деобфускации названий методов тут не нужны.
-        return new HookInjectorClassVisitor(this, cw, hooks) {
-            @Override
-            protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
-                return super.isTargetMethod(hook, name, mapDesc(desc));
-            }
-        };
+    protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
+        return super.isTargetMethod(ah, name, mapDesc(desc));
     }
 
     HashMap<String, List<AsmHook>> getHooksMap() {

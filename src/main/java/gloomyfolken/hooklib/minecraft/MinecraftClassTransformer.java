@@ -2,9 +2,7 @@ package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
-import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import net.minecraft.launchwrapper.IClassTransformer;
-import org.objectweb.asm.ClassWriter;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -24,7 +22,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     public static MinecraftClassTransformer instance;
     private Map<Integer, String> methodNames;
 
-    private static List<IClassTransformer> postTransformers = new ArrayList<IClassTransformer>();
+    private static List<IClassTransformer> postTransformers = new ArrayList<>();
 
     public MinecraftClassTransformer() {
         instance = this;
@@ -40,9 +38,9 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
             }
         }
 
-        this.classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
+        classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
 
-        this.hooksMap.putAll(PrimaryClassTransformer.instance.getHooksMap());
+        hooksMap.putAll(PrimaryClassTransformer.instance.getHooksMap());
         PrimaryClassTransformer.instance.getHooksMap().clear();
         PrimaryClassTransformer.instance.registeredSecondTransformer = true;
     }
@@ -52,7 +50,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
         if (resourceStream == null) throw new IOException("Methods dictionary not found");
         DataInputStream input = new DataInputStream(new BufferedInputStream(resourceStream));
         int numMethods = input.readInt();
-        HashMap<Integer, String> map = new HashMap<Integer, String>(numMethods);
+        HashMap<Integer, String> map = new HashMap<>(numMethods);
         for (int i = 0; i < numMethods; i++) {
             map.put(input.readInt(), input.readUTF());
         }
@@ -70,19 +68,14 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     }
 
     @Override
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassWriter cw, List<AsmHook> hooks) {
-        return new HookInjectorClassVisitor(this, cw, hooks) {
-            @Override
-            protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
-                if (HookLibPlugin.isObfuscated()) {
-                    String mcpName = methodNames.get(getMethodId(name));
-                    if (mcpName != null && super.isTargetMethod(hook, mcpName, desc)) {
-                        return true;
-                    }
-                }
-                return super.isTargetMethod(hook, name, desc);
+    protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
+        if (HookLibPlugin.isObfuscated()) {
+            String mcpName = methodNames.get(getMethodId(name));
+            if (mcpName != null && super.isTargetMethod(ah, mcpName, desc)) {
+                return true;
             }
-        };
+        }
+        return super.isTargetMethod(ah, name, desc);
     }
 
     public Map<Integer, String> getMethodNames() {

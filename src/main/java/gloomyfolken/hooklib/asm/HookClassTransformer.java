@@ -1,13 +1,17 @@
 package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.asm.HookLogger.SystemOutLogger;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.*;
+import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.objectweb.asm.Opcodes.ASM5;
 
 public class HookClassTransformer {
 
@@ -57,14 +61,25 @@ public class HookClassTransformer {
                 ClassReader cr = new ClassReader(bytecode);
                 ClassWriter cw = createClassWriter(java7 ? ClassWriter.COMPUTE_FRAMES : ClassWriter.COMPUTE_MAXS);
 
-                HookInjectorClassVisitor hooksWriter = createInjectorClassVisitor(cw, hooks);
-                cr.accept(hooksWriter, java7 ? ClassReader.SKIP_FRAMES : ClassReader.EXPAND_FRAMES);
+                ClassNode classNode=new ClassNode(ASM5);
+                cr.accept(classNode,java7 ? ClassReader.SKIP_FRAMES : ClassReader.EXPAND_FRAMES);
+
+                for (MethodNode methodNode : classNode.methods)
+                    if (!hooks.isEmpty()) {
+                        List<AsmHook> forCurrentMethod = hooks.stream().filter(ah -> isTargetMethod(ah, methodNode.name, methodNode.desc)).collect(Collectors.toList());
+                        hooks.removeAll(forCurrentMethod);
+                        forCurrentMethod.forEach(ah -> applyHook(ah, methodNode));
+                        forCurrentMethod.forEach(ah -> logger.debug("Patching method " + ah.getPatchedMethodName()));
+                    }
+
+                hooks.stream().filter(AsmHook::getCreateMethod).forEach(ah->createMethod(ah,classNode));
+
+                classNode.accept(cw);
+
+                //HookInjectorClassVisitor hooksWriter = createInjectorClassVisitor(cw, hooks);
+                //cr.accept(hooksWriter, java7 ? ClassReader.SKIP_FRAMES : ClassReader.EXPAND_FRAMES);
 
                 bytecode = cw.toByteArray();
-                for (AsmHook hook : hooksWriter.injectedHooks) {
-                    logger.debug("Patching method " + hook.getPatchedMethodName());
-                }
-                hooks.removeAll(hooksWriter.injectedHooks);
             } catch (Exception e) {
                 logger.severe("A problem has occurred during transformation of class " + className + ".");
                 logger.severe("Attached hooks:");
@@ -83,6 +98,17 @@ public class HookClassTransformer {
             }
         }
         return bytecode;
+    }
+
+    private void createMethod(AsmHook ah, ClassNode classNode) {
+    }
+
+    private void applyHook(AsmHook ah, MethodNode methodNode) {
+        ah.getAnchorPoint().factory.apply(ah,methodNode);
+    }
+
+    protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
+        return ah.isTargetMethod(name, desc);
     }
 
     /**
