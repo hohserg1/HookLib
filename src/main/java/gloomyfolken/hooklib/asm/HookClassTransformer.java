@@ -131,8 +131,10 @@ public class HookClassTransformer {
             case NEVER:
                 if (ah.getHookMethodReturnType() != VOID_TYPE)
                     r.add(new InsnNode(POP));
+                break;
             case ALWAYS:
                 r.add(new InsnNode(ah.getHookMethodReturnType().getOpcode(IRETURN)));
+                break;
         }
         return r;
     }
