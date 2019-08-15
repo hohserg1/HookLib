@@ -341,7 +341,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
         public Builder setAnchorForInject(HashMap<String, Object> anchor) {
             AsmHook.this.anchor.ordinal = (Integer) anchor.getOrDefault("ordinal", -1);
-            AsmHook.this.anchor.point = InjectionPoint.valueOf((String) anchor.get("point"));
+            AsmHook.this.anchor.point = InjectionPoint.valueOfNullable((String) anchor.get("point"));
             AsmHook.this.anchor.shift = Shift.valueOfNullable((String) anchor.get("shift"));
             AsmHook.this.anchor.target = (String) anchor.get("target");
             return this;

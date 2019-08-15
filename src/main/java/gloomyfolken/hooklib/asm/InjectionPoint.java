@@ -31,4 +31,8 @@ public enum InjectionPoint {
     interface HookInjectorFactory {
         public MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor hookInjectorClassVisitor);
     }
+
+    public static InjectionPoint valueOfNullable(String point) {
+        return point == null ? InjectionPoint.HEAD : valueOf(point);
+    }
 }

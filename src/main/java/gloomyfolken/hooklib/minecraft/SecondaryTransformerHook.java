@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.minecraft;
 
+import gloomyfolken.hooklib.asm.At;
 import net.minecraftforge.fml.common.Loader;
 import gloomyfolken.hooklib.asm.Hook;
 import net.minecraft.launchwrapper.LaunchClassLoader;
@@ -9,7 +10,7 @@ public class SecondaryTransformerHook {
     /**
      * Регистрирует хук-трансформер последним.
      */
-    @Hook
+    @Hook(at=@At)
     public static void injectData(Loader loader, Object... data) {
         ClassLoader classLoader = SecondaryTransformerHook.class.getClassLoader();
         if (classLoader instanceof LaunchClassLoader) {
