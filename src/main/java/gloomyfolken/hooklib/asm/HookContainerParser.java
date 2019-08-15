@@ -96,6 +96,7 @@ public class HookContainerParser {
         builder.setTargetMethod((String) annotationValues.getOrDefault("targetMethod", currentMethodName));
 
 
+        System.out.println(currentClassName);
         builder.setHookClass(currentClassName);
         builder.setHookMethod(currentMethodName);
         builder.addThisToHookMethodParameters();

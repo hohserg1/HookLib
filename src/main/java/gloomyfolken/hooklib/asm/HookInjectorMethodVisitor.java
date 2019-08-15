@@ -4,7 +4,9 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
-import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.*;
+
+import static org.objectweb.asm.Type.*;
 
 /**
  * Класс, непосредственно вставляющий хук в метод.
@@ -66,10 +68,6 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
      * Вставляет хук в начале метода.
      */
     public static InjectionPoint.HookInjectorFactory HeadInjector = (asmHook, methodNode) -> {
-        InsnList r=new InsnList();
-
-
-        methodNode.instructions.insertBefore(methodNode.instructions.getFirst(),r);
 
     };
 

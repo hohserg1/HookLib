@@ -69,13 +69,17 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
 
     @Override
     protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
-        if (HookLibPlugin.isObfuscated()) {
-            String mcpName = methodNames.get(getMethodId(name));
-            if (mcpName != null && super.isTargetMethod(ah, mcpName, desc)) {
-                return true;
-            }
-        }
-        return super.isTargetMethod(ah, name, desc);
+        return super.isTargetMethod(ah, deobfNameOfMethod(name), desc);
+    }
+
+    private String deobfNameOfMethod(String name) {
+        return HookLibPlugin.isObfuscated()
+                ? MinecraftClassTransformer.instance.getMethodNames().getOrDefault(MinecraftClassTransformer.getMethodId(name), name)
+                : name;
+    }
+
+    protected boolean areMethodNamesEquals(String name1, String name2) {
+        return deobfNameOfMethod(name1).equals(deobfNameOfMethod(name2));
     }
 
     public Map<Integer, String> getMethodNames() {

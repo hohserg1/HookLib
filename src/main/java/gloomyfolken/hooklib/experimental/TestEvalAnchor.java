@@ -1,8 +1,9 @@
-package gloomyfolken.hooklib.test;
+package gloomyfolken.hooklib.experimental;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.objectweb.asm.ClassReader;
@@ -29,6 +30,28 @@ public class TestEvalAnchor {
             byte[] hook = identity(IOUtils.toByteArray(new FileInputStream(new File("./hook.class"))));
             byte[] test = identity(IOUtils.toByteArray(new FileInputStream(new File("./Test.class"))));
 
+
+            ClassReader cr = new ClassReader(hook);
+
+            ClassNode cn = new ClassNode(ASM5);
+            cr.accept(cn, 0);
+            cn.methods.stream().filter(m->m.name.equals("evaluation"))
+                    .forEach(m->{
+                        InsnList l1=new InsnList();
+                        l1.add(new InsnNode(LCONST_1));
+                        l1.add(new VarInsnNode(ISTORE,2));
+                        m.instructions.insertBefore(m.instructions.getFirst(),l1);
+                    });
+
+            ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+            cn.accept(cw);
+
+            FileUtils.writeByteArrayToFile(new File("./hook.class"), cw.toByteArray());
+
+
+
+            /*
+
             System.out.println(Arrays.equals(test, identity(test)));
             Optional<List<AbstractInsnNode>> evaluation = analiseEvaluation(hook, "evaluation");
             Optional<List<AbstractInsnNode>> test2test = analiseEvaluation(test, "test");
@@ -46,10 +69,10 @@ public class TestEvalAnchor {
             test2test.get()
                     .stream()
                     .map(TestEvalAnchor::nodeToString)
-                    .forEach(System.out::println);*/
+                    .forEach(System.out::println);
 
                 findSimilarCode(test, "test", "()V", nodeList);
-            }
+            }*/
         }
     }
 

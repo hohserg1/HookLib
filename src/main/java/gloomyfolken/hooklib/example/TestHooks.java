@@ -17,6 +17,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 @HookContainer
 public class TestHooks {
 
+    /*
     @SideOnly(Side.CLIENT)
     @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "setInventorySlotContents", shift = Shift.INSTEAD))
     public static void insertStack(TileEntityHopper tile, IInventory source, IInventory destination, ItemStack stack, int index, EnumFacing direction) {
@@ -26,7 +27,7 @@ public class TestHooks {
     @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "getSlotsForFace"), returnCondition = ReturnCondition.ON_TRUE, booleanReturnConstant = true)
     public static boolean isInventoryFull(TileEntityHopper tile, IInventory inventoryIn, EnumFacing side) {
         return ((ISidedInventory) inventoryIn).getSlotsForFace(side) == null;
-    }
+    }*/
 
     /**
      * Цель: при каждом ресайзе окна выводить в консоль новый размер, а также похерит ресайз:D
@@ -42,8 +43,8 @@ public class TestHooks {
      * P.S: фордж перехватывает получение показателя брони, ну а мы перехватим перехватчик :D
      */
     @Hook(at = @At(point = InjectionPoint.RETURN), returnCondition = ReturnCondition.ALWAYS)
-    public static int getTotalArmorValue(ForgeHooks fh, EntityPlayer player, @ReturnValue int returnValue) {
-        return returnValue / 2;
+    public static int getTotalArmorValue(ForgeHooks fh, EntityPlayer player/*, @ReturnValue int returnValue*/) {
+        return 1;
     }
 
     /**
