@@ -6,6 +6,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 import java.util.ListIterator;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.*;
@@ -25,6 +27,7 @@ public class HookApplier {
 
     protected void applyHook(AsmHook ah, MethodNode methodNode) {
         String anchorTarget = ah.getAnchorTarget();
+        Integer ordinal = ah.getAnchorOrdinal();
 
         InsnList instructions = methodNode.instructions;
         InsnList addition = determineAddition(ah, methodNode);
@@ -64,7 +67,6 @@ public class HookApplier {
                                 }
                                 break;
                             }
-
                         }
                     }
                 }
@@ -75,11 +77,16 @@ public class HookApplier {
             }
             break;
             case RETURN: {
-                ListIterator<AbstractInsnNode> iterator = instructions.iterator();
-                while (iterator.hasNext()) {
-                    AbstractInsnNode node = iterator.next();
-                    if (returnOpcodes.contains(node.getOpcode()))
-                        instructions.insertBefore(node, addition);
+                Stream<AbstractInsnNode> returnNodes = streamOfInsnList(instructions).filter(n -> returnOpcodes.contains(n.getOpcode()));
+                if (ordinal == -1)
+                    returnNodes.forEach(n -> instructions.insertBefore(n, addition));
+                else {
+                    Optional<AbstractInsnNode> target = returnNodes.limit(ordinal+1).skip(ordinal).findFirst();
+
+                    if (target.isPresent())
+                        instructions.insertBefore(target.get(), addition);
+                    else
+                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
                 }
             }
             break;
@@ -99,6 +106,10 @@ public class HookApplier {
             im.insert(methodNode.instructions, target.get(ordinal), addition);
         else
             HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");*/
+    }
+
+    private Stream<AbstractInsnNode> streamOfInsnList(InsnList instructions) {
+        return Stream.iterate(instructions.getFirst(), AbstractInsnNode::getNext).limit(instructions.size());
     }
 
     private InsnList determineAddition(AsmHook ah, MethodNode methodNode) {
