@@ -23,6 +23,10 @@ import static org.objectweb.asm.Type.*;
  */
 public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
+    public Anchor getAnchor() {
+        return anchor;
+    }
+
     private Anchor anchor = new Anchor();
 
     public static class Anchor {
@@ -352,7 +356,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         sb.append(", ReturnCondition=" + returnCondition);
         sb.append(", ReturnValue=" + returnValue);
         if (returnValue == ReturnValue.PRIMITIVE_CONSTANT) sb.append(", Constant=" + primitiveConstant);
-        sb.append(", InjectorFactory: " + getAnchorPoint().factory);
+        //sb.append(", InjectorFactory: " + getAnchorPoint().factory);
         sb.append(", CreateMethod = " + createMethod);
 
         return sb.toString();

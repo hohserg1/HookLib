@@ -57,24 +57,4 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         return false;
     }
 
-    /**
-     * Вставляет хук в произвольном методе
-     */
-
-    public static InjectionPoint.HookInjectorFactory MethodCallInjector = (asmHook, methodNode) -> {
-    };
-
-    /**
-     * Вставляет хук в начале метода.
-     */
-    public static InjectionPoint.HookInjectorFactory HeadInjector = (asmHook, methodNode) -> {
-
-    };
-
-    /**
-     * Вставляет хук на каждом выходе из метода, кроме выходов через throw.
-     */
-    public static InjectionPoint.HookInjectorFactory ReturnInjector = (asmHook, methodNode) -> {
-    };
-
 }
