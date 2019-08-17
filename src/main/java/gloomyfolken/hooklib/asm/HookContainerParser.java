@@ -2,6 +2,9 @@ package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.asm.Hook.LocalVariable;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
+import gloomyfolken.hooklib.asm.model.AsmHook2;
+import gloomyfolken.hooklib.asm.model.HookSpec;
+import gloomyfolken.hooklib.asm.model.TargetMethodSpec;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.objectweb.asm.*;
@@ -71,6 +74,31 @@ public class HookContainerParser {
     }
 
     private void createHook() {
+        {
+            Type methodType = Type.getMethodType(currentMethodDesc);
+            Type[] argumentTypes = methodType.getArgumentTypes();
+
+            AsmHook2.AsmHook2Builder builder1 = AsmHook2.builder();
+            builder1.targetMethod(new TargetMethodSpec(
+                    (String) annotationValues.getOrDefault("targetMethod", currentMethodName),
+                    argumentTypes[0].getClassName(),
+
+            ));
+
+            builder1.hookMethod(new HookSpec(
+                    currentMethodName,
+                    currentClassName,
+            ))
+        }
+
+
+
+
+
+
+
+
+
         AsmHook.Builder builder = AsmHook.newBuilder();
         Type methodType = Type.getMethodType(currentMethodDesc);
         Type[] argumentTypes = methodType.getArgumentTypes();
