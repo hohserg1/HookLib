@@ -40,7 +40,6 @@ public class HookApplier {
                 break;
             case METHOD_CALL: {
                 Stream<MethodInsnNode> methodNodes = streamOfInsnList(instructions)
-                        .collect(Collectors.toList()).stream()
                         .filter(n -> n instanceof MethodInsnNode)
                         .map(n -> (MethodInsnNode) n)
                         .filter(n -> areMethodNamesEquals(n.name, anchorTarget));
@@ -104,21 +103,6 @@ public class HookApplier {
             }
             break;
         }
-
-
-        /*
-        ImmutableList<ConcretePoint> target = determineConcretePoints(ah.getAnchorPoint(), ah.getAnchorTarget(), methodNode);
-
-        InsertMethod im = determineInsertMethod(ah.getAnchor());
-        InsnList addition = determineAddition(ah, methodNode);
-
-        int ordinal = ah.getAnchorOrdinal();
-        if (ordinal == -1)
-            target.forEach(p -> im.insert(methodNode.instructions, p, addition));
-        else if (target.size() > ordinal)
-            im.insert(methodNode.instructions, target.get(ordinal), addition);
-        else
-            HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");*/
     }
 
     private static InsnList copy(InsnList insnList) {
@@ -131,8 +115,8 @@ public class HookApplier {
 
     private Stream<AbstractInsnNode> streamOfInsnList(InsnList instructions) {
         ListIterator<AbstractInsnNode> iterator = instructions.iterator();
-        //return Stream.generate(() -> iterator.hasNext() ? iterator.next() : null).limit(instructions.size());
-        return Stream.iterate(instructions.getFirst(), AbstractInsnNode::getNext).limit(instructions.size());
+        return Stream.iterate(instructions.getFirst(), AbstractInsnNode::getNext).limit(instructions.size())
+                .collect(Collectors.toList()).stream();
     }
 
     private InsnList determineAddition(AsmHook ah, MethodNode methodNode) {
