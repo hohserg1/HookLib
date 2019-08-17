@@ -5,6 +5,7 @@ import gloomyfolken.hooklib.asm.Hook.ReturnValue;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.objectweb.asm.*;
+import org.objectweb.asm.tree.ClassNode;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -96,7 +97,6 @@ public class HookContainerParser {
         builder.setTargetMethod((String) annotationValues.getOrDefault("targetMethod", currentMethodName));
 
 
-        System.out.println(currentClassName);
         builder.setHookClass(currentClassName);
         builder.setHookMethod(currentMethodName);
         builder.addThisToHookMethodParameters();
@@ -190,7 +190,7 @@ public class HookContainerParser {
     }
 
 
-    private class HookClassVisitor extends ClassVisitor {
+    private class HookClassVisitor extends ClassNode {
         public HookClassVisitor() {
             super(Opcodes.ASM5);
         }

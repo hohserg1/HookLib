@@ -17,6 +17,11 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 @HookContainer
 public class TestHooks {
 
+    @Hook(at=@At(point = InjectionPoint.RETURN),returnCondition = ReturnCondition.ALWAYS)
+    public static int lol(Test test){
+        return 4;
+    }
+
 
     @SideOnly(Side.CLIENT)
     @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "setInventorySlotContents", shift = Shift.INSTEAD))

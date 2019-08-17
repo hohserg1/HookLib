@@ -1,9 +1,7 @@
-public class hook {
-    public static int evaluation(int a, int b) {
-        return a * a * 111;
-    }
+package gloomyfolken.hooklib.example;
 
-    public int a=0;
+public class Test {
+    public int a = 0;
 
     public int lol() {
         if (a == 0)

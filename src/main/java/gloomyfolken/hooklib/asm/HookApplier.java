@@ -5,8 +5,11 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
+import java.util.HashMap;
 import java.util.ListIterator;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.objectweb.asm.Opcodes.*;
@@ -30,61 +33,70 @@ public class HookApplier {
         Integer ordinal = ah.getAnchorOrdinal();
 
         InsnList instructions = methodNode.instructions;
-        InsnList addition = determineAddition(ah, methodNode);
 
         switch (ah.getAnchorPoint()) {
             case HEAD:
-                instructions.insert(addition);
+                instructions.insert(determineAddition(ah, methodNode));
                 break;
             case METHOD_CALL: {
-                ListIterator<AbstractInsnNode> iterator = instructions.iterator();
-                while (iterator.hasNext()) {
-                    AbstractInsnNode node = iterator.next();
-                    if (node instanceof MethodInsnNode) {
-                        MethodInsnNode methodInsnNode = (MethodInsnNode) node;
-                        if (areMethodNamesEquals(methodInsnNode.name, anchorTarget)) {
-                            switch (ah.getShift()) {
-                                case BEFORE: {
-                                    instructions.insertBefore(node, addition);
-                                }
-                                break;
-                                case INSTEAD: {
-                                    instructions.insertBefore(node, addition);
+                Stream<MethodInsnNode> methodNodes = streamOfInsnList(instructions)
+                        .filter(n -> n instanceof MethodInsnNode)
+                        .map(n -> (MethodInsnNode) n)
+                        .filter(n -> areMethodNamesEquals(n.name, anchorTarget));
 
-                                    //remove values for method call from stack
-                                    int redundantStackSize = getMethodType(methodInsnNode.desc).getArgumentTypes().length +
-                                            (methodInsnNode.getOpcode() == INVOKESTATIC ? 0 : 1);
-                                    InsnList pop = new InsnList();
-                                    for (int i = 0; i < redundantStackSize; i++)
-                                        pop.add(new InsnNode(POP));
-                                    instructions.insertBefore(node, pop);
-
-                                    instructions.remove(node);
-                                }
-                                break;
-                                case AFTER: {
-                                    instructions.insert(node, addition);
-                                }
-                                break;
-                            }
+                Consumer<MethodInsnNode> methodInsnNodeConsumer = n -> {
+                    switch (ah.getShift()) {
+                        case BEFORE: {
+                            instructions.insertBefore(n, determineAddition(ah, methodNode));
                         }
+                        break;
+                        case INSTEAD: {
+                            instructions.insertBefore(n, determineAddition(ah, methodNode));
+
+                            //remove values for method call from stack
+                            int redundantStackSize = getMethodType(n.desc).getArgumentTypes().length +
+                                    (n.getOpcode() == INVOKESTATIC ? 0 : 1);
+                            InsnList pop = new InsnList();
+                            for (int i = 0; i < redundantStackSize; i++)
+                                pop.add(new InsnNode(POP));
+                            instructions.insertBefore(n, pop);
+
+                            instructions.remove(n);
+                        }
+                        break;
+                        case AFTER: {
+                            instructions.insert(n, determineAddition(ah, methodNode));
+                        }
+                        break;
                     }
+                };
+
+                if (ordinal == -1) {
+                    methodNodes.forEach(methodInsnNodeConsumer);
+                } else {
+                    Optional<MethodInsnNode> target = methodNodes.limit(ordinal + 1).skip(ordinal).findFirst();
+
+                    if (target.isPresent())
+                        target.ifPresent(methodInsnNodeConsumer);
+                    else
+                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
                 }
             }
             break;
             case EXPRESSION: {
+                String evalPatternName=anchorTarget;
 
             }
             break;
             case RETURN: {
                 Stream<AbstractInsnNode> returnNodes = streamOfInsnList(instructions).filter(n -> returnOpcodes.contains(n.getOpcode()));
                 if (ordinal == -1)
-                    returnNodes.forEach(n -> instructions.insertBefore(n, addition));
+                    returnNodes.forEach(n -> instructions.insertBefore(n, determineAddition(ah, methodNode)));
                 else {
-                    Optional<AbstractInsnNode> target = returnNodes.limit(ordinal+1).skip(ordinal).findFirst();
+                    Optional<AbstractInsnNode> target = returnNodes.limit(ordinal + 1).skip(ordinal).findFirst();
 
                     if (target.isPresent())
-                        instructions.insertBefore(target.get(), addition);
+                        instructions.insertBefore(target.get(), determineAddition(ah, methodNode));
                     else
                         HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
                 }
@@ -108,7 +120,17 @@ public class HookApplier {
             HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");*/
     }
 
+    private static InsnList copy(InsnList insnList) {
+        InsnList r = new InsnList();
+        for (int i = 0; i < insnList.size(); i++)
+            r.add(insnList.get(i).clone(new HashMap<>()));
+
+        return r;
+    }
+
     private Stream<AbstractInsnNode> streamOfInsnList(InsnList instructions) {
+        ListIterator<AbstractInsnNode> iterator = instructions.iterator();
+        //return Stream.generate(() -> iterator.hasNext() ? iterator.next() : null).limit(instructions.size());
         return Stream.iterate(instructions.getFirst(), AbstractInsnNode::getNext).limit(instructions.size());
     }
 

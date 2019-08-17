@@ -3,6 +3,7 @@ package gloomyfolken.hooklib.asm;
 import gloomyfolken.hooklib.asm.HookLogger.SystemOutLogger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -18,6 +19,7 @@ public class HookClassTransformer extends HookApplier {
 
     public static HookLogger logger = new SystemOutLogger();
     protected HashMap<String, List<AsmHook>> hooksMap = new HashMap<>();
+    protected HashMap<String, List<AbstractInsnNode>> exprPatternsMap = new HashMap<>();
     private HookContainerParser containerParser = new HookContainerParser(this);
     protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
@@ -104,19 +106,6 @@ public class HookClassTransformer extends HookApplier {
 
     protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
         return ah.isTargetMethod(name, desc);
-    }
-
-    /**
-     * Создает ClassVisitor для списка хуков.
-     * Метод можно переопределить, если в ClassVisitor'e нужна своя логика для проверки,
-     * является ли метод целевым (isTargetMethod())
-     *
-     * @param cw    ClassWriter, который должен стоять в цепочке после этого ClassVisitor'a
-     * @param hooks Список хуков, вставляемых в класс
-     * @return ClassVisitor, добавляющий хуки
-     */
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassWriter cw, List<AsmHook> hooks) {
-        return new HookInjectorClassVisitor(this, cw, hooks);
     }
 
     /**

@@ -31,6 +31,7 @@ public class TestEvalAnchor {
             byte[] test = identity(IOUtils.toByteArray(new FileInputStream(new File("./Test.class"))));
 
 
+            /*
             ClassReader cr = new ClassReader(hook);
 
             ClassNode cn = new ClassNode(ASM5);
@@ -46,11 +47,11 @@ public class TestEvalAnchor {
             ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
             cn.accept(cw);
 
-            FileUtils.writeByteArrayToFile(new File("./hook.class"), cw.toByteArray());
+            FileUtils.writeByteArrayToFile(new File("./hook.class"), cw.toByteArray());*/
 
 
 
-            /*
+
 
             System.out.println(Arrays.equals(test, identity(test)));
             Optional<List<AbstractInsnNode>> evaluation = analiseEvaluation(hook, "evaluation");
@@ -58,7 +59,7 @@ public class TestEvalAnchor {
             if (evaluation.isPresent() && evaluation.get().size() > 0) {
                 List<AbstractInsnNode> nodeList = evaluation.get();
 
-/*
+
             nodeList
                     .stream()
                     .map(TestEvalAnchor::nodeToString)
@@ -72,7 +73,7 @@ public class TestEvalAnchor {
                     .forEach(System.out::println);
 
                 findSimilarCode(test, "test", "()V", nodeList);
-            }*/
+            }
         }
     }
 
