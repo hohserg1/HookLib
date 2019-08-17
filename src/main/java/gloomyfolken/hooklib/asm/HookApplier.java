@@ -40,6 +40,7 @@ public class HookApplier {
                 break;
             case METHOD_CALL: {
                 Stream<MethodInsnNode> methodNodes = streamOfInsnList(instructions)
+                        .collect(Collectors.toList()).stream()
                         .filter(n -> n instanceof MethodInsnNode)
                         .map(n -> (MethodInsnNode) n)
                         .filter(n -> areMethodNamesEquals(n.name, anchorTarget));
