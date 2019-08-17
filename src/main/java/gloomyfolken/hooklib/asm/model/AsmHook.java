@@ -3,6 +3,7 @@ package gloomyfolken.hooklib.asm.model;
 import gloomyfolken.hooklib.asm.*;
 import lombok.Builder;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 import org.objectweb.asm.Type;
 
 import java.util.ArrayList;
@@ -11,7 +12,7 @@ import java.util.List;
 
 @Builder
 @Value
-public class AsmHook2 implements Comparable<AsmHook2> {
+public class AsmHook implements Comparable<AsmHook> {
 
     String targetMethodName;
     String targetClassName;
@@ -59,7 +60,7 @@ public class AsmHook2 implements Comparable<AsmHook2> {
     }
 
     @Override
-    public int compareTo(AsmHook2 o) {
+    public int compareTo(AsmHook o) {
         if (point.isPriorityInverted && o.point.isPriorityInverted) {
             return priority.ordinal() > o.priority.ordinal() ? -1 : 1;
         } else if (!point.isPriorityInverted && !o.point.isPriorityInverted) {
@@ -69,22 +70,22 @@ public class AsmHook2 implements Comparable<AsmHook2> {
         }
     }
 
-    public static class AsmHook2Builder {
+    public static class AsmHookBuilder {
 
-        public AsmHook2Builder startArgumentsFill() {
+        public AsmHookBuilder startArgumentsFill() {
             targetMethodParameters = new ArrayList<>();
             hookMethodParameters = new ArrayList<>();
             hookMethodLocalCaptureIds = new ArrayList<>();
             return this;
         }
 
-        public AsmHook2Builder addThisToHookMethodParameters() {
+        public AsmHookBuilder addThisToHookMethodParameters() {
             hookMethodParameters.add(TypeHelper.getType(targetClassName));
             hookMethodLocalCaptureIds.add(0);
             return this;
         }
 
-        public AsmHook2Builder addReturnValueToHookMethodParameters() {
+        public AsmHookBuilder addReturnValueToHookMethodParameters() {
             if (targetMethodReturnType == Type.VOID_TYPE) {
                 throw new IllegalStateException("Target method's return type is void, it does not make sense to " +
                         "transmit its return value to hook method.");
@@ -95,19 +96,19 @@ public class AsmHook2 implements Comparable<AsmHook2> {
             return this;
         }
 
-        public AsmHook2Builder addHookMethodParameter(Type parameterType, int variableId) {
+        public AsmHookBuilder addHookMethodParameter(Type parameterType, int variableId) {
             hookMethodParameters.add(parameterType);
             hookMethodLocalCaptureIds.add(variableId);
             return this;
         }
 
-        public AsmHook2Builder addTargetMethodParameter(Type parameterType) {
+        public AsmHookBuilder addTargetMethodParameter(Type parameterType) {
             targetMethodParameters.add(parameterType);
 
             return this;
         }
 
-        public AsmHook2Builder finishArgumentsFill() {
+        public AsmHookBuilder finishArgumentsFill() {
             targetMethodDescription = getMethodDesc(targetMethodReturnType, targetMethodParameters);
             hookMethodDescription = Type.getMethodDescriptor(hookMethodReturnType, hookMethodParameters.toArray(new Type[0]));
             return this;
@@ -115,15 +116,13 @@ public class AsmHook2 implements Comparable<AsmHook2> {
 
         private String getMethodDesc(Type returnType, List<Type> paramTypes) {
             Type[] paramTypesArray = paramTypes.toArray(new Type[0]);
-            if (returnType == null) {
-                String voidDesc = Type.getMethodDescriptor(Type.VOID_TYPE, paramTypesArray);
-                return voidDesc.substring(0, voidDesc.length() - 1);
-            } else {
+            if (returnType == null)
+                return StringUtils.chop(Type.getMethodDescriptor(Type.VOID_TYPE, paramTypesArray));
+            else
                 return Type.getMethodDescriptor(returnType, paramTypesArray);
-            }
         }
 
-        public AsmHook2Builder setAnchorForInject(HashMap<String, Object> anchor) {
+        public AsmHookBuilder setAnchorForInject(HashMap<String, Object> anchor) {
             MapUtils.<Integer>maybeOfMapValue(anchor, "ordinal").ifPresent(this::ordinal);
             MapUtils.<String>maybeOfMapValue(anchor, "point").map(InjectionPoint::valueOf).ifPresent(this::point);
             MapUtils.<String>maybeOfMapValue(anchor, "shift").map(Shift::valueOf).ifPresent(this::shift);

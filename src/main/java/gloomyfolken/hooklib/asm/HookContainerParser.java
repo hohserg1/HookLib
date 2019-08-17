@@ -2,7 +2,7 @@ package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.asm.Hook.LocalVariable;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
-import gloomyfolken.hooklib.asm.model.AsmHook2;
+import gloomyfolken.hooklib.asm.model.AsmHook;
 import gloomyfolken.hooklib.asm.model.MapUtils;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -97,7 +97,7 @@ public class HookContainerParser {
                 return;
             }
 
-            AsmHook2.AsmHook2Builder builder1 = AsmHook2.builder();
+            AsmHook.AsmHookBuilder builder1 = AsmHook.builder();
 
             builder1.targetMethodName((String) annotationValues.getOrDefault("targetMethod", currentMethodName));
             builder1.targetClassName(argumentTypes[0].getClassName());

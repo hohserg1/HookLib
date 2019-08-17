@@ -1,10 +1,9 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.model.AsmHook2;
-import net.minecraftforge.fml.common.asm.transformers.DeobfuscationTransformer;
-import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.ClassMetadataReader;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
+import gloomyfolken.hooklib.asm.model.AsmHook;
+import net.minecraftforge.fml.common.asm.transformers.DeobfuscationTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 import java.util.Map;
@@ -15,9 +14,9 @@ import java.util.Optional;
  * Регистрировать хуки и контейнеры нужно в registerHooks().
  */
 public abstract class HookLoader implements IFMLLoadingPlugin {
-    private static Optional<DeobfuscationTransformer> deobfuscationTransformer=Optional.empty();
+    private static Optional<DeobfuscationTransformer> deobfuscationTransformer = Optional.empty();
 
-    static Optional<DeobfuscationTransformer> deobfuscationTransformer(){
+    static Optional<DeobfuscationTransformer> deobfuscationTransformer() {
         if (HookLibPlugin.isObfuscated() && !deobfuscationTransformer.isPresent()) {
             deobfuscationTransformer = Optional.of(new DeobfuscationTransformer());
         }
@@ -38,7 +37,7 @@ public abstract class HookLoader implements IFMLLoadingPlugin {
     /**
      * Регистрирует вручную созданный хук
      */
-    public static void registerHook(AsmHook2 hook) {
+    public static void registerHook(AsmHook hook) {
         getTransformer().registerHook(hook);
     }
 
@@ -48,8 +47,9 @@ public abstract class HookLoader implements IFMLLoadingPlugin {
     public static void registerHookContainer(String className) {
         getTransformer().registerHookContainer(className);
     }
-    public static void registerHookContainer(String className,byte[] classData) {
-        getTransformer().registerHookContainer(className,classData);
+
+    public static void registerHookContainer(String className, byte[] classData) {
+        getTransformer().registerHookContainer(className, classData);
     }
 
     public static ClassMetadataReader getDeobfuscationMetadataReader() {

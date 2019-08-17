@@ -1,7 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 import com.google.common.collect.ImmutableList;
-import gloomyfolken.hooklib.asm.model.AsmHook2;
+import gloomyfolken.hooklib.asm.model.AsmHook;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -26,10 +26,10 @@ public class HookApplier {
             RETURN
     );
 
-    protected void createMethod(AsmHook2 ah, ClassNode classNode) {
+    protected void createMethod(AsmHook ah, ClassNode classNode) {
     }
 
-    protected void applyHook(AsmHook2 ah, MethodNode methodNode) {
+    protected void applyHook(AsmHook ah, MethodNode methodNode) {
         String anchorTarget = ah.getAnchorTarget();
         int ordinal = ah.getOrdinal();
 
@@ -120,7 +120,7 @@ public class HookApplier {
                 .collect(Collectors.toList()).stream();
     }
 
-    private InsnList determineAddition(AsmHook2 ah, MethodNode methodNode) {
+    private InsnList determineAddition(AsmHook ah, MethodNode methodNode) {
         InsnList r = new InsnList();
 
         r.add(createLocalCapturing(ah, methodNode));
@@ -140,7 +140,7 @@ public class HookApplier {
         return r;
     }
 
-    private InsnList createLocalCapturing(AsmHook2 ah, MethodNode methodNode) {
+    private InsnList createLocalCapturing(AsmHook ah, MethodNode methodNode) {
         InsnList r = new InsnList();
 
         int returnLocalId = -1;

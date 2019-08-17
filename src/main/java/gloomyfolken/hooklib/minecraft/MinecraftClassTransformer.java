@@ -1,8 +1,7 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
-import gloomyfolken.hooklib.asm.model.AsmHook2;
+import gloomyfolken.hooklib.asm.model.AsmHook;
 import net.minecraft.launchwrapper.IClassTransformer;
 
 import java.io.BufferedInputStream;
@@ -69,7 +68,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     }
 
     @Override
-    protected boolean isTargetMethod(AsmHook2 ah, String name, String desc) {
+    protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
         return super.isTargetMethod(ah, deobfNameOfMethod(name), desc);
     }
 
