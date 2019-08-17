@@ -6,37 +6,21 @@ import gloomyfolken.hooklib.asm.model.AsmHook;
 import gloomyfolken.hooklib.asm.model.MapUtils;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map.Entry;
+
+import static org.objectweb.asm.Opcodes.ASM5;
 
 public class HookContainerParser {
 
     private HookClassTransformer transformer;
     private String currentClassName;
-    private String currentMethodName;
-    private String currentMethodDesc;
-    private boolean currentMethodPublicStatic;
-
-    /*
-    Ключ - название значения аннотации
-     */
-    private HashMap<String, Object> annotationValues = new HashMap<>();
-    private HashMap<String, Object> sideOnlyValues = new HashMap<>();
-
-    /*
-    Ключ - номер параметра, значение - номер локальной переменной для перехвата
-    или -1 для перехвата значения наверху стека.
-     */
-    private HashMap<Integer, Integer> parameterAnnotations = new HashMap<>();
 
     public static final String HOOK_DESC = Type.getDescriptor(Hook.class);
+    public static final String HOOK_LENS_DESC = Type.getDescriptor(HookLens.class);
     public static final String SIDE_ONLY_DESC = Type.getDescriptor(SideOnly.class);
     public static final String LOCAL_DESC = Type.getDescriptor(LocalVariable.class);
     public static final String RETURN_DESC = Type.getDescriptor(ReturnValue.class);
@@ -75,7 +59,8 @@ public class HookContainerParser {
         transformer.logger.warning(message);
     }
 
-    private void createHook() {
+    private void createHook(String currentMethodName, String currentMethodDesc, boolean currentMethodPublicStatic, String currentClassName,
+                            HashMap<String, Object> annotationValues, HashMap<Integer, Integer> parameterAnnotations) {
         {
             Type methodType = Type.getMethodType(currentMethodDesc);
             Type[] argumentTypes = methodType.getArgumentTypes();
@@ -165,19 +150,10 @@ public class HookContainerParser {
 
     }
 
-    private Object getPrimitiveConstant() {
-        for (Entry<String, Object> entry : annotationValues.entrySet()) {
-            if (entry.getKey().endsWith("Constant")) {
-                return entry.getValue();
-            }
-        }
-        return null;
-    }
-
 
     private class HookClassVisitor extends ClassNode {
         public HookClassVisitor() {
-            super(Opcodes.ASM5);
+            super(ASM5);
         }
 
         @Override
@@ -188,17 +164,41 @@ public class HookContainerParser {
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            currentMethodName = name;
-            currentMethodDesc = desc;
-            currentMethodPublicStatic = (access & Opcodes.ACC_PUBLIC) != 0 && (access & Opcodes.ACC_STATIC) != 0;
-            return new HookMethodVisitor();
+            return new HookMethodVisitor(name, desc, (access & Opcodes.ACC_PUBLIC) != 0 && (access & Opcodes.ACC_STATIC) != 0, currentClassName, HookContainerParser.this);
+        }
+
+        @Override
+        public void visitEnd() {
+            super.visitEnd();
         }
     }
 
-    private class HookMethodVisitor extends MethodVisitor {
+    private static class HookMethodVisitor extends MethodVisitor {
+        /*
+        Ключ - название значения аннотации
+         */
+        private HashMap<String, Object> annotationValues = new HashMap<>();
+        private HashMap<String, Object> sideOnlyValues = new HashMap<>();
 
-        public HookMethodVisitor() {
-            super(Opcodes.ASM5);
+        /*
+        Ключ - номер параметра, значение - номер локальной переменной для перехвата
+        или -1 для перехвата значения наверху стека.
+         */
+        private HashMap<Integer, Integer> parameterAnnotations = new HashMap<>();
+
+        private final String currentMethodName;
+        private final String currentMethodDesc;
+        private final boolean currentMethodPublicStatic;
+        private final String currentClassName;
+        private final HookContainerParser hookContainerParser;
+
+        public HookMethodVisitor(String currentMethodName, String currentMethodDesc, boolean currentMethodPublicStatic, String currentClassName, HookContainerParser hookContainerParser) {
+            super(ASM5);
+            this.currentMethodName = currentMethodName;
+            this.currentMethodDesc = currentMethodDesc;
+            this.currentMethodPublicStatic = currentMethodPublicStatic;
+            this.currentClassName = currentClassName;
+            this.hookContainerParser = hookContainerParser;
         }
 
         @Override
@@ -218,7 +218,7 @@ public class HookContainerParser {
                 parameterAnnotations.put(parameter, -1);
             }
             if (LOCAL_DESC.equals(desc)) {
-                return new AnnotationVisitor(Opcodes.ASM5) {
+                return new AnnotationVisitor(ASM5) {
                     @Override
                     public void visit(String name, Object value) {
                         parameterAnnotations.put(parameter, (Integer) value);
@@ -232,13 +232,7 @@ public class HookContainerParser {
         public void visitEnd() {
             String currentSide = FMLLaunchHandler.side().toString();
             if (!annotationValues.isEmpty() && sideOnlyValues.getOrDefault("value", currentSide).equals(currentSide))
-                createHook();
-
-            annotationValues.clear();
-            sideOnlyValues.clear();
-            parameterAnnotations.clear();
-            currentMethodName = currentMethodDesc = null;
-            currentMethodPublicStatic = false;
+                hookContainerParser.createHook(currentMethodName, currentMethodDesc, currentMethodPublicStatic, currentClassName, annotationValues, parameterAnnotations);
         }
     }
 
@@ -247,7 +241,7 @@ public class HookContainerParser {
         private final HashMap<String, Object> map;
 
         public HookAnnotationVisitor(HashMap<String, Object> map) {
-            super(Opcodes.ASM5);
+            super(ASM5);
             this.map = map;
         }
 
@@ -263,7 +257,7 @@ public class HookContainerParser {
         @Override
         public AnnotationVisitor visitAnnotation(String name, String desc) {
             map.put(name, new HashMap<String, Object>());
-            return new AnnotationVisitor(Opcodes.ASM5) {
+            return new AnnotationVisitor(ASM5) {
                 @Override
                 public void visit(String name1, Object value) {
                     ((HashMap<String, Object>) map.get(name)).put(name1, value);
