@@ -200,8 +200,8 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         public Builder setAnchorForInject(HashMap<String, Object> anchor) {
             AsmHook.this.anchor.ordinal = (Integer) anchor.getOrDefault("ordinal", -1);
             AsmHook.this.anchor.point = InjectionPoint.valueOf((String) anchor.get("point"));
-            AsmHook.this.anchor.shift = Shift.valueOfNullable((String) anchor.get("shift"));
-            AsmHook.this.anchor.target = (String) anchor.get("target");
+            AsmHook.this.anchor.shift = Shift.valueOf((String) anchor.get("shift"));
+            AsmHook.this.anchor.target = (String) anchor.get("anchorTarget");
             return this;
         }
 
@@ -240,10 +240,10 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
          * Примеры использования:
          * import static gloomyfolken.hooklib.asm.TypeHelper.*
          * //...
-         * addTargetMethodParameters(Type.INT_TYPE)
+         * addTargetMethodParameter(Type.INT_TYPE)
          * Type worldType = getType("net.minecraft.world.World")
          * Type playerType = getType("net.minecraft.entity.player.EntityPlayer")
-         * addTargetMethodParameters(worldType, playerType, playerType)
+         * addTargetMethodParameter(worldType, playerType, playerType)
          *
          * @param parameterTypes Типы параметров целевого метода
          * @see TypeHelper
@@ -253,22 +253,6 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
                 AsmHook.this.targetMethodParameters.add(type);
             }
             return this;
-        }
-
-        /**
-         * Добавляет один или несколько параметров к списку параметров целевого метода.
-         * Обёртка над addTargetMethodParameters(Type... parameterTypes), которая сама строит типы из названия.
-         *
-         * @param parameterTypeNames Названия классов параметров целевого метода.
-         *                           Например: net.minecraft.world.World
-         */
-
-        public Builder addTargetMethodParameters(String... parameterTypeNames) {
-            Type[] types = new Type[parameterTypeNames.length];
-            for (int i = 0; i < parameterTypeNames.length; i++) {
-                types[i] = TypeHelper.getType(parameterTypeNames[i]);
-            }
-            return addTargetMethodParameters(types);
         }
 
         /**
@@ -429,12 +413,12 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
          * Кроме того, этот метод изменяет тип возвращаемого значения хук-метода:
          * NEVER -> void
          * ALWAYS -> void
-         * ON_TRUE -> boolean
+         * ON_SOLVE -> boolean
          * ON_NULL -> Object
          * ON_NOT_NULL -> Object
          *
          * @param condition Условие выхода после вызова хук-метода
-         * @throws IllegalArgumentException если condition == ON_TRUE, ON_NULL или ON_NOT_NULL, но не задан хук-метод.
+         * @throws IllegalArgumentException если condition == ON_SOLVE, ON_NULL или ON_NOT_NULL, но не задан хук-метод.
          * @see ReturnCondition
          */
         public Builder setReturnCondition(ReturnCondition condition) {
@@ -444,20 +428,6 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             }
 
             AsmHook.this.returnCondition = condition;
-            Type returnType;
-            switch (condition) {
-                case NEVER:
-                case ALWAYS:
-                    returnType = VOID_TYPE;
-                    break;
-                case ON_TRUE:
-                    returnType = BOOLEAN_TYPE;
-                    break;
-                default:
-                    returnType = getType(Object.class);
-                    break;
-            }
-            AsmHook.this.hookMethodReturnType = returnType;
             return this;
         }
 
@@ -558,7 +528,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
                     returnType == LONG_TYPE && !(constant instanceof Long) ||
                     returnType == FLOAT_TYPE && !(constant instanceof Float) ||
                     returnType == DOUBLE_TYPE && !(constant instanceof Double)) {
-                throw new IllegalArgumentException("Given object class does not math target method return type.");
+                throw new IllegalArgumentException("Given object class does not math anchorTarget method return type.");
             }
 
             AsmHook.this.primitiveConstant = constant;

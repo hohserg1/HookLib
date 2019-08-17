@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.minecraft;
 
+import gloomyfolken.hooklib.asm.model.AsmHook2;
 import net.minecraftforge.fml.common.asm.transformers.DeobfuscationTransformer;
 import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.ClassMetadataReader;
@@ -37,7 +38,7 @@ public abstract class HookLoader implements IFMLLoadingPlugin {
     /**
      * Регистрирует вручную созданный хук
      */
-    public static void registerHook(AsmHook hook) {
+    public static void registerHook(AsmHook2 hook) {
         getTransformer().registerHook(hook);
     }
 

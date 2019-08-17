@@ -6,7 +6,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityHopper;
 import net.minecraft.util.EnumFacing;
@@ -30,7 +29,7 @@ public class TestHooks {
     }
 
     /*
-    @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "getSlotsForFace"), returnCondition = ReturnCondition.ON_TRUE, booleanReturnConstant = true)
+    @Hook(at = @At(point = InjectionPoint.METHOD_CALL, anchorTarget = "getSlotsForFace"), returnCondition = ReturnCondition.ON_SOLVE, booleanReturnConstant = true)
     public static boolean isInventoryFull(TileEntityHopper tile, IInventory inventoryIn, EnumFacing side) {
         return ((ISidedInventory) inventoryIn).getSlotsForFace(side) == null;
     }*/
@@ -56,7 +55,7 @@ public class TestHooks {
     /**
      * Цель: запретить возможность телепортироваться в ад и обратно чаще, чем раз в пять секунд.
      */
-    @Hook(returnCondition = ReturnCondition.ON_TRUE, intReturnConstant = 100)
+    @Hook(returnCondition = ReturnCondition.ON_SOLVE, intReturnConstant = 100)
     public static boolean getPortalCooldown(EntityPlayer player) {
         return player.dimension == 0;
     }
@@ -65,7 +64,7 @@ public class TestHooks {
      * Цель: уменьшить вдвое яркость сущностей, которые выше полутора блоков.
      * Проверка на высоту в одном методе, пересчёт яркости - в другом.
      */
-    @Hook(at = @At(point = InjectionPoint.HEAD), returnCondition = ReturnCondition.ON_TRUE, returnAnotherMethod = "getBrightness")
+    @Hook(at = @At(point = InjectionPoint.HEAD), returnCondition = ReturnCondition.ON_SOLVE, returnAnotherMethod = "getBrightness")
     public static boolean getBrightnessForRender(Entity entity) {
         return entity.height > 1.5f;
     }

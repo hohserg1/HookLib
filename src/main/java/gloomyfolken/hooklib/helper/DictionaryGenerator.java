@@ -14,7 +14,7 @@ import java.util.Map;
  * Файл methods.csv лежит в mcp/conf/
  *
  * Настоятельно рекомендую сгенерировать methods.bin самостоятельно для своей версии mcp, иначе могут быть
- * внезапные ошибки уровня "can not find target method of hook".
+ * внезапные ошибки уровня "can not find anchorTarget method of hook".
  */
 public class DictionaryGenerator {
 

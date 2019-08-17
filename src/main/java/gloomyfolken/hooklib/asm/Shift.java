@@ -18,8 +18,4 @@ public enum Shift {
      * Вместо указанной точки вставки
      */
     INSTEAD;
-
-    public static Shift valueOfNullable(String shift) {
-        return shift == null ? Shift.AFTER : valueOf(shift);
-    }
 }

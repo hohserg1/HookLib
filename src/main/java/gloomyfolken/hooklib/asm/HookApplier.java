@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 import com.google.common.collect.ImmutableList;
+import gloomyfolken.hooklib.asm.model.AsmHook2;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -25,16 +26,16 @@ public class HookApplier {
             RETURN
     );
 
-    protected void createMethod(AsmHook ah, ClassNode classNode) {
+    protected void createMethod(AsmHook2 ah, ClassNode classNode) {
     }
 
-    protected void applyHook(AsmHook ah, MethodNode methodNode) {
+    protected void applyHook(AsmHook2 ah, MethodNode methodNode) {
         String anchorTarget = ah.getAnchorTarget();
-        Integer ordinal = ah.getAnchorOrdinal();
+        int ordinal = ah.getOrdinal();
 
         InsnList instructions = methodNode.instructions;
 
-        switch (ah.getAnchorPoint()) {
+        switch (ah.getPoint()) {
             case HEAD:
                 instructions.insert(determineAddition(ah, methodNode));
                 break;
@@ -119,7 +120,7 @@ public class HookApplier {
                 .collect(Collectors.toList()).stream();
     }
 
-    private InsnList determineAddition(AsmHook ah, MethodNode methodNode) {
+    private InsnList determineAddition(AsmHook2 ah, MethodNode methodNode) {
         InsnList r = new InsnList();
 
         r.add(createLocalCapturing(ah, methodNode));
@@ -139,12 +140,12 @@ public class HookApplier {
         return r;
     }
 
-    private InsnList createLocalCapturing(AsmHook ah, MethodNode methodNode) {
+    private InsnList createLocalCapturing(AsmHook2 ah, MethodNode methodNode) {
         InsnList r = new InsnList();
 
         int returnLocalId = -1;
 
-        if (ah.hasReturnValueParameter()) {
+        if (ah.isHasReturnValueParameter()) {
             returnLocalId = methodNode.maxLocals;
             methodNode.maxLocals++;
             r.add(new VarInsnNode(ah.getTargetMethodReturnType().getOpcode(ISTORE), returnLocalId));
@@ -152,7 +153,7 @@ public class HookApplier {
 
         for (int i = 0; i < ah.getHookMethodParameters().size(); i++) {
             Type parameterType = ah.getHookMethodParameters().get(i);
-            int variableId = ah.getTransmittableVariableIds().get(i);
+            int variableId = ah.getHookMethodLocalCaptureIds().get(i);
 
             if ((methodNode.access & Opcodes.ACC_STATIC) != 0) {
                 // если попытка передачи this из статического метода, то передаем null

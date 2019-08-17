@@ -20,19 +20,7 @@ public enum ReturnCondition {
      * return вызывается, если хук-метод вернул true.
      * Нельзя применить, если хук-метод не возвращает тип boolean.
      */
-    ON_TRUE(true),
-
-    /**
-     * return вызывается, если хук-метод вернул null.
-     * Нельзя применить, если хук-метод возвращает void или примитив.
-     */
-    ON_NULL(true),
-
-    /**
-     * return вызывается, если хук-метод вернул не null.
-     * Нельзя применить, если хук-метод возвращает void или примитив.
-     */
-    ON_NOT_NULL(true);
+    ON_SOLVE(true);
 
     public final boolean requiresCondition;
 

@@ -3,11 +3,13 @@ package gloomyfolken.hooklib.asm;
 import gloomyfolken.hooklib.asm.Hook.LocalVariable;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
 import gloomyfolken.hooklib.asm.model.AsmHook2;
-import gloomyfolken.hooklib.asm.model.HookSpec;
-import gloomyfolken.hooklib.asm.model.TargetMethodSpec;
+import gloomyfolken.hooklib.asm.model.MapUtils;
 import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
 import net.minecraftforge.fml.relauncher.SideOnly;
-import org.objectweb.asm.*;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.IOException;
@@ -78,134 +80,89 @@ public class HookContainerParser {
             Type methodType = Type.getMethodType(currentMethodDesc);
             Type[] argumentTypes = methodType.getArgumentTypes();
 
+            if (!currentMethodPublicStatic) {
+                invalidHook("Hook method must be public and static.");
+                return;
+            }
+
+            if (argumentTypes.length < 1) {
+                invalidHook("Hook method has no parameters. First parameter of a " +
+                        "hook method must belong the type of the anchorTarget class.");
+                return;
+            }
+
+            if (argumentTypes[0].getSort() != Type.OBJECT) {
+                invalidHook("First parameter of the hook method is not an object. First parameter of a " +
+                        "hook method must belong the type of the anchorTarget class.");
+                return;
+            }
+
             AsmHook2.AsmHook2Builder builder1 = AsmHook2.builder();
-            builder1.targetMethod(new TargetMethodSpec(
-                    (String) annotationValues.getOrDefault("targetMethod", currentMethodName),
-                    argumentTypes[0].getClassName(),
 
-            ));
+            builder1.targetMethodName((String) annotationValues.getOrDefault("targetMethod", currentMethodName));
+            builder1.targetClassName(argumentTypes[0].getClassName());
 
-            builder1.hookMethod(new HookSpec(
-                    currentMethodName,
-                    currentClassName,
-            ))
-        }
+            builder1.hookMethodName(currentMethodName);
+            builder1.hookClassName(currentClassName);
 
+            builder1.startArgumentsFill();
 
+            builder1.hookMethodReturnType(methodType.getReturnType());
 
+            builder1.addThisToHookMethodParameters();
 
-
-
-
-
-
-        AsmHook.Builder builder = AsmHook.newBuilder();
-        Type methodType = Type.getMethodType(currentMethodDesc);
-        Type[] argumentTypes = methodType.getArgumentTypes();
-
-        if (!currentMethodPublicStatic) {
-            invalidHook("Hook method must be public and static.");
-            return;
-        }
-
-        if (argumentTypes.length < 1) {
-            invalidHook("Hook method has no parameters. First parameter of a " +
-                    "hook method must belong the type of the target class.");
-            return;
-        }
-
-        if (argumentTypes[0].getSort() != Type.OBJECT) {
-            invalidHook("First parameter of the hook method is not an object. First parameter of a " +
-                    "hook method must belong the type of the target class.");
-            return;
-        }
-
-        builder.setTargetClass(argumentTypes[0].getClassName());
-
-        builder.setTargetMethod((String) annotationValues.getOrDefault("targetMethod", currentMethodName));
-
-
-        builder.setHookClass(currentClassName);
-        builder.setHookMethod(currentMethodName);
-        builder.addThisToHookMethodParameters();
-
-        int currentParameterId = 1;
-        for (int i = 1; i < argumentTypes.length; i++) {
-            Type argType = argumentTypes[i];
-            if (parameterAnnotations.containsKey(i)) {
-                int localId = parameterAnnotations.get(i);
-                if (localId == -1) {
-                    builder.setTargetMethodReturnType(argType);
-                    builder.addReturnValueToHookMethodParameters();
+            int currentParameterId = 1;
+            for (int i = 1; i < argumentTypes.length; i++) {
+                Type argType = argumentTypes[i];
+                if (parameterAnnotations.containsKey(i)) {
+                    int localId = parameterAnnotations.get(i);
+                    if (localId == -1) {
+                        builder1.targetMethodReturnType(argType);
+                        builder1.addReturnValueToHookMethodParameters();
+                    } else {
+                        builder1.addHookMethodParameter(argType, localId);
+                    }
                 } else {
-                    builder.addHookMethodParameter(argType, localId);
+                    builder1.addTargetMethodParameter(argType);
+                    builder1.addHookMethodParameter(argType, currentParameterId);
+                    currentParameterId += argType == Type.LONG_TYPE || argType == Type.DOUBLE_TYPE ? 2 : 1;
                 }
-            } else {
-                builder.addTargetMethodParameters(argType);
-                builder.addHookMethodParameter(argType, currentParameterId);
-                currentParameterId += argType == Type.LONG_TYPE || argType == Type.DOUBLE_TYPE ? 2 : 1;
             }
-        }
 
-        if (annotationValues.containsKey("at")) {
-            builder.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
-        }
+            builder1.finishArgumentsFill();
 
-        if (annotationValues.containsKey("returnType")) {
-            builder.setTargetMethodReturnType((String) annotationValues.get("returnType"));
-        }
+            if (annotationValues.containsKey("at"))
+                builder1.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
 
-        ReturnCondition returnCondition = ReturnCondition.NEVER;
-        if (annotationValues.containsKey("returnCondition")) {
-            returnCondition = ReturnCondition.valueOf((String) annotationValues.get("returnCondition"));
-            builder.setReturnCondition(returnCondition);
-        }
 
-        if (returnCondition != ReturnCondition.NEVER) {
-            Object primitiveConstant = getPrimitiveConstant();
-            if (primitiveConstant != null) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.PRIMITIVE_CONSTANT);
-                builder.setPrimitiveConstant(primitiveConstant);
-            } else if (Boolean.TRUE.equals(annotationValues.get("returnNull"))) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.NULL);
-            } else if (annotationValues.containsKey("returnAnotherMethod")) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.ANOTHER_METHOD_RETURN_VALUE);
-                builder.setReturnMethod((String) annotationValues.get("returnAnotherMethod"));
-            } else if (methodType.getReturnType() != Type.VOID_TYPE) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.HOOK_RETURN_VALUE);
+            if (annotationValues.containsKey("returnType"))
+                builder1.targetMethodReturnType(TypeHelper.getType((String) annotationValues.get("returnType")));
+
+
+            ReturnCondition returnCondition = ReturnCondition.NEVER;
+            if (annotationValues.containsKey("returnCondition"))
+                returnCondition = ReturnCondition.valueOf((String) annotationValues.get("returnCondition"));
+
+            builder1.returnCondition(returnCondition);
+
+
+            MapUtils.<String>maybeOfMapValue(annotationValues, "priority").map(HookPriority::valueOf).ifPresent(builder1::priority);
+            MapUtils.<Boolean>maybeOfMapValue(annotationValues, "createMethod").ifPresent(builder1::createMethod);
+            MapUtils.<Boolean>maybeOfMapValue(annotationValues, "isMandatory").ifPresent(builder1::isMandatory);
+
+            if (returnCondition == ReturnCondition.ON_SOLVE && methodType.getReturnType() != Type.getType(ResultSolve.class)) {
+                invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.");
+                return;
             }
+
+            try {
+                transformer.registerHook(builder1.build());
+            } catch (Exception e) {
+                invalidHook(e.getMessage());
+            }
+
         }
 
-        // setReturnCondition и setReturnValue сетают тип хук-метода, поэтому сетнуть его вручную можно только теперь
-        builder.setHookMethodReturnType(methodType.getReturnType());
-
-        if (returnCondition == ReturnCondition.ON_TRUE && methodType.getReturnType() != Type.BOOLEAN_TYPE) {
-            invalidHook("Hook method must return boolean if returnCodition is ON_TRUE.");
-            return;
-        }
-        if ((returnCondition == ReturnCondition.ON_NULL || returnCondition == ReturnCondition.ON_NOT_NULL) &&
-                methodType.getReturnType().getSort() != Type.OBJECT &&
-                methodType.getReturnType().getSort() != Type.ARRAY) {
-            invalidHook("Hook method must return object if returnCodition is ON_NULL or ON_NOT_NULL.");
-            return;
-        }
-
-        if (annotationValues.containsKey("priority")) {
-            builder.setPriority(HookPriority.valueOf((String) annotationValues.get("priority")));
-        }
-
-        if (annotationValues.containsKey("createMethod")) {
-            builder.setCreateMethod(Boolean.TRUE.equals(annotationValues.get("createMethod")));
-        }
-        if (annotationValues.containsKey("isMandatory")) {
-            builder.setMandatory(Boolean.TRUE.equals(annotationValues.get("isMandatory")));
-        }
-
-        try {
-            transformer.registerHook(builder.build());
-        } catch (Exception e) {
-            invalidHook(e.getMessage());
-        }
     }
 
     private Object getPrimitiveConstant() {

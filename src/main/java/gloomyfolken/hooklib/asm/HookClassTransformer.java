@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.asm.HookLogger.SystemOutLogger;
+import gloomyfolken.hooklib.asm.model.AsmHook2;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -18,16 +19,16 @@ import static org.objectweb.asm.Opcodes.ASM5;
 public class HookClassTransformer extends HookApplier {
 
     public static HookLogger logger = new SystemOutLogger();
-    protected HashMap<String, List<AsmHook>> hooksMap = new HashMap<>();
+    protected HashMap<String, List<AsmHook2>> hooksMap = new HashMap<>();
     protected HashMap<String, List<AbstractInsnNode>> exprPatternsMap = new HashMap<>();
     private HookContainerParser containerParser = new HookContainerParser(this);
     protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
-    public void registerHook(AsmHook hook) {
+    public void registerHook(AsmHook2 hook) {
         if (hooksMap.containsKey(hook.getTargetClassName())) {
             hooksMap.get(hook.getTargetClassName()).add(hook);
         } else {
-            List<AsmHook> list = new ArrayList<>(2);
+            List<AsmHook2> list = new ArrayList<>(2);
             list.add(hook);
             hooksMap.put(hook.getTargetClassName(), list);
         }
@@ -46,7 +47,7 @@ public class HookClassTransformer extends HookApplier {
     }
 
     public byte[] transform(String className, byte[] bytecode) {
-        List<AsmHook> hooks = hooksMap.get(className);
+        List<AsmHook2> hooks = hooksMap.get(className);
 
         if (hooks != null) {
             Collections.sort(hooks);
@@ -70,13 +71,13 @@ public class HookClassTransformer extends HookApplier {
 
                 for (MethodNode methodNode : classNode.methods)
                     if (!hooks.isEmpty()) {
-                        List<AsmHook> forCurrentMethod = hooks.stream().filter(ah -> isTargetMethod(ah, methodNode.name, methodNode.desc)).collect(Collectors.toList());
+                        List<AsmHook2> forCurrentMethod = hooks.stream().filter(ah -> isTargetMethod(ah, methodNode.name, methodNode.desc)).collect(Collectors.toList());
                         hooks.removeAll(forCurrentMethod);
                         forCurrentMethod.forEach(ah -> applyHook(ah, methodNode));
                         forCurrentMethod.forEach(ah -> logger.debug("Patching method " + ah.getPatchedMethodName()));
                     }
 
-                hooks.stream().filter(AsmHook::getCreateMethod).forEach(ah -> createMethod(ah, classNode));
+                hooks.stream().filter(AsmHook2::isCreateMethod).forEach(ah -> createMethod(ah, classNode));
 
                 classNode.accept(cw);
 
@@ -87,24 +88,24 @@ public class HookClassTransformer extends HookApplier {
             } catch (Exception e) {
                 logger.severe("A problem has occurred during transformation of class " + className + ".");
                 logger.severe("Attached hooks:");
-                for (AsmHook hook : hooks) {
+                for (AsmHook2 hook : hooks) {
                     logger.severe(hook.toString());
                 }
                 logger.severe("Stack trace:", e);
             }
 
-            for (AsmHook notInjected : hooks) {
+            for (AsmHook2 notInjected : hooks) {
                 if (notInjected.isMandatory()) {
-                    throw new RuntimeException("Can not find target method of mandatory hook " + notInjected);
+                    throw new RuntimeException("Can not find anchorTarget method of mandatory hook " + notInjected);
                 } else {
-                    logger.warning("Can not find target method of hook " + notInjected);
+                    logger.warning("Can not find anchorTarget method of hook " + notInjected);
                 }
             }
         }
         return bytecode;
     }
 
-    protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
+    protected boolean isTargetMethod(AsmHook2 ah, String name, String desc) {
         return ah.isTargetMethod(name, desc);
     }
 

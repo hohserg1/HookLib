@@ -2,6 +2,7 @@ package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
+import gloomyfolken.hooklib.asm.model.AsmHook2;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.Type;
@@ -40,11 +41,11 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
     }
 
     @Override
-    protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
+    protected boolean isTargetMethod(AsmHook2 ah, String name, String desc) {
         return super.isTargetMethod(ah, name, mapDesc(desc));
     }
 
-    HashMap<String, List<AsmHook>> getHooksMap() {
+    HashMap<String, List<AsmHook2>> getHooksMap() {
         return hooksMap;
     }
 
