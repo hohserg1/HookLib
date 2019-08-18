@@ -22,7 +22,6 @@ public class HookClassTransformer extends HookApplier {
     protected HashMap<String, List<AsmHook>> hooksMap = new HashMap<>();
     protected HashMap<String, List<AbstractInsnNode>> exprPatternsMap = new HashMap<>();
     private HookContainerParser containerParser = new HookContainerParser(this);
-    protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
     public void registerHook(AsmHook hook) {
         if (hooksMap.containsKey(hook.getTargetClassName())) {

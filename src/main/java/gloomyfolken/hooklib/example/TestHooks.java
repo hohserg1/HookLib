@@ -18,7 +18,7 @@ public class TestHooks {
     @HookLens
     public static Lens<TileEntityHopper, Integer> testField = null;
 
-    @Hook(at = @At(point = InjectionPoint.RETURN), targetMethod = "<init>")
+    @Hook(at = @At(point = InjectionPoint.HEAD), targetMethod = "<init>")
     public static void toolMaterial(Item.ToolMaterial toolMaterial, String name, int ordinal, int harvestLevel, int maxUses, float efficiency, float damageVsEntity, int enchantability) {
         System.out.println("toolMaterial " + name + " " + harvestLevel + " " + maxUses + " " + efficiency + " " + damageVsEntity + " " + enchantability);
     }

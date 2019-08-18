@@ -17,6 +17,7 @@ import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.*;
 
 public class HookApplier {
+    protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
     private ImmutableList<Integer> returnOpcodes = ImmutableList.of(
             IRETURN,
             LRETURN,
@@ -37,7 +38,17 @@ public class HookApplier {
 
         switch (ah.getPoint()) {
             case HEAD:
-                instructions.insert(determineAddition(ah, methodNode));
+                String superClass = classMetadataReader.getSuperClass(ah.getTargetClassName());
+
+                AbstractInsnNode afterSuperConstructor=streamOfInsnList(instructions)
+                        .filter(n->n instanceof MethodInsnNode)
+                        .map(n->(MethodInsnNode)n)
+                        .filter(n->n.getOpcode()==INVOKESPECIAL && n.owner.equals(superClass) && n.name.equals("<init>"))
+                        .findFirst()
+                        .map(n->(AbstractInsnNode)n)
+                        .orElseGet(instructions::getFirst);
+
+                instructions.insert(afterSuperConstructor,determineAddition(ah, methodNode));
                 break;
             case METHOD_CALL: {
                 Stream<MethodInsnNode> methodNodes = streamOfInsnList(instructions)
