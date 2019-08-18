@@ -54,7 +54,7 @@ public class HookContainerParser {
         void run() throws E;
     }
 
-    private void invalidHook(String message) {
+    private void invalidHook(String message, String currentMethodName) {
         transformer.logger.warning("Found invalid hook " + currentClassName + "#" + currentMethodName);
         transformer.logger.warning(message);
     }
@@ -66,19 +66,19 @@ public class HookContainerParser {
             Type[] argumentTypes = methodType.getArgumentTypes();
 
             if (!currentMethodPublicStatic) {
-                invalidHook("Hook method must be public and static.");
+                invalidHook("Hook method must be public and static.", currentMethodName);
                 return;
             }
 
             if (argumentTypes.length < 1) {
                 invalidHook("Hook method has no parameters. First parameter of a " +
-                        "hook method must belong the type of the anchorTarget class.");
+                        "hook method must belong the type of the anchorTarget class.", currentMethodName);
                 return;
             }
 
             if (argumentTypes[0].getSort() != Type.OBJECT) {
                 invalidHook("First parameter of the hook method is not an object. First parameter of a " +
-                        "hook method must belong the type of the anchorTarget class.");
+                        "hook method must belong the type of the anchorTarget class.", currentMethodName);
                 return;
             }
 
@@ -136,14 +136,14 @@ public class HookContainerParser {
             MapUtils.<Boolean>maybeOfMapValue(annotationValues, "isMandatory").ifPresent(builder1::isMandatory);
 
             if (returnCondition == ReturnCondition.ON_SOLVE && methodType.getReturnType() != Type.getType(ResultSolve.class)) {
-                invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.");
+                invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.", currentMethodName);
                 return;
             }
 
             try {
                 transformer.registerHook(builder1.build());
             } catch (Exception e) {
-                invalidHook(e.getMessage());
+                invalidHook(e.getMessage(), currentMethodName);
             }
 
         }
@@ -167,9 +167,54 @@ public class HookContainerParser {
             return new HookMethodVisitor(name, desc, (access & Opcodes.ACC_PUBLIC) != 0 && (access & Opcodes.ACC_STATIC) != 0, currentClassName, HookContainerParser.this);
         }
 
+
+        @Override
+        public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+            return new HookLensFieldVisitor(access, name, desc, signature, value);
+        }
+
         @Override
         public void visitEnd() {
             super.visitEnd();
+        }
+    }
+
+    private class HookLensFieldVisitor extends FieldVisitor {
+        private final String name;
+        private final String desc;
+        private final String signature;
+        private HashMap<String, Object> lensAnnotationValues = new HashMap<>();
+
+        public HookLensFieldVisitor(int access, String name, String desc, String signature, Object value) {
+            super(ASM5);
+            this.name = name;
+            this.desc = desc;
+            this.signature = signature;
+            System.out.println("HookLensField " + name + "|" + desc + "|" + signature + "|" + value);
+        }
+
+        @Override
+        public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
+            if (HOOK_LENS_DESC.equals(desc))
+                return new HookAnnotationVisitor(lensAnnotationValues);
+
+            return super.visitAnnotation(desc, visible);
+        }
+
+        @Override
+        public void visitEnd() {
+            boolean isLens = desc.equals(Type.getDescriptor(Lens.class));
+            if (isLens) {
+                String fieldName = (String) lensAnnotationValues.getOrDefault("name", name);
+
+                String[] substring = signature.substring(signature.indexOf('<') + 1, signature.indexOf('>')).split(";");
+                String owner = substring[0]+";";
+                String value = substring[1]+";";
+
+                //todo: create hook to <cinit> which inset to field right value instead of aconst_null
+
+                System.out.println(owner + ", " + value);
+            }
         }
     }
 
