@@ -1,16 +1,13 @@
 public class hook {
-    public static int evaluation(int a, int b) {
-        return a * a * 111;
-    }
+	public static abstract class Lens<A, B> {
 
-    public int a=0;
+		public abstract void set(A a, B b);
 
-    public int lol() {
-        if (a == 0)
-            return 1;
-        else if (a == 1)
-            return 2;
-        else
-            return 3;
-    }
+		public abstract B get(A a);
+
+	}
+	
+    public static Lens<String, Integer> testField = null;
+	
+	public static void test(Lens<Integer, Integer> lol){}
 }

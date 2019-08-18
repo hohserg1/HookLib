@@ -6,19 +6,30 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityHopper;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 @HookContainer
 public class TestHooks {
 
+    @HookLens
+    public static Lens<TileEntityHopper, Integer> testField = null;
+
+    @Hook(at = @At(point = InjectionPoint.RETURN), targetMethod = "<init>")
+    public static void toolMaterial(Item.ToolMaterial toolMaterial, String name, int ordinal, int harvestLevel, int maxUses, float efficiency, float damageVsEntity, int enchantability) {
+        System.out.println("toolMaterial " + name + " " + harvestLevel + " " + maxUses + " " + efficiency + " " + damageVsEntity + " " + enchantability);
+    }
+
+    //hook to hook
+    @Hook(at = @At(point = InjectionPoint.HEAD))
+    public static void insertStack(TestHooks testHooks, TileEntityHopper tile, IInventory source, IInventory destination, ItemStack stack, int index, EnumFacing direction) {
+        System.out.println("test1");
+    }
 
 
-    @SideOnly(Side.CLIENT)
     @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "setInventorySlotContents", shift = Shift.INSTEAD))
     public static void insertStack(TileEntityHopper tile, IInventory source, IInventory destination, ItemStack stack, int index, EnumFacing direction) {
         System.out.println("test");
@@ -45,7 +56,7 @@ public class TestHooks {
      */
     @Hook(at = @At(point = InjectionPoint.RETURN), returnCondition = ReturnCondition.ALWAYS)
     public static int getTotalArmorValue(ForgeHooks fh, EntityPlayer player, @ReturnValue int returnValue) {
-        return returnValue/2;
+        return returnValue / 2;
     }
 
     /**

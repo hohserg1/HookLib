@@ -164,13 +164,14 @@ public class HookContainerParser {
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            return new HookMethodVisitor(name, desc, (access & Opcodes.ACC_PUBLIC) != 0 && (access & Opcodes.ACC_STATIC) != 0, currentClassName, HookContainerParser.this);
+            return new HookMethodVisitor(name, desc, (access & Opcodes.ACC_PUBLIC) != 0 && (access & Opcodes.ACC_STATIC) != 0, currentClassName,
+                    HookContainerParser.this);
         }
 
 
         @Override
         public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-            return new HookLensFieldVisitor(access, name, desc, signature, value);
+            return new HookLensFieldVisitor(access, name, desc, signature, currentClassName,HookContainerParser.this);
         }
 
         @Override
@@ -179,18 +180,21 @@ public class HookContainerParser {
         }
     }
 
-    private class HookLensFieldVisitor extends FieldVisitor {
+    private static class HookLensFieldVisitor extends FieldVisitor {
         private final String name;
         private final String desc;
         private final String signature;
+        private final String currentClassName;
+        private final HookContainerParser hookContainerParser;
         private HashMap<String, Object> lensAnnotationValues = new HashMap<>();
 
-        public HookLensFieldVisitor(int access, String name, String desc, String signature, Object value) {
+        public HookLensFieldVisitor(int access, String name, String desc, String signature, String currentClassName, HookContainerParser hookContainerParser) {
             super(ASM5);
             this.name = name;
             this.desc = desc;
             this.signature = signature;
-            System.out.println("HookLensField " + name + "|" + desc + "|" + signature + "|" + value);
+            this.currentClassName = currentClassName;
+            this.hookContainerParser = hookContainerParser;
         }
 
         @Override
@@ -208,8 +212,16 @@ public class HookContainerParser {
                 String fieldName = (String) lensAnnotationValues.getOrDefault("name", name);
 
                 String[] substring = signature.substring(signature.indexOf('<') + 1, signature.indexOf('>')).split(";");
-                String owner = substring[0]+";";
-                String value = substring[1]+";";
+                String owner = Type.getType(substring[0]+";").getClassName();
+                String value = Type.getType(substring[1]+";").getClassName();
+
+                AsmHook.AsmHookBuilder builder = AsmHook.builder();
+
+                builder.targetClassName(currentClassName);
+
+                //hookContainerParser.transformer.registerHook(builder.build());
+
+
 
                 //todo: create hook to <cinit> which inset to field right value instead of aconst_null
 
