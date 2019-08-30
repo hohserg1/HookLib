@@ -1,13 +1,11 @@
 package gloomyfolken.hooklib.minecraft;
 
+import com.google.common.collect.Multimap;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.model.AsmHook;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.Type;
-
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * Этим трансформером трансформятся все классы, которые грузятся раньше майновских.
@@ -26,7 +24,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
 
         if (instance != null) {
             // переносим хуки, которые уже успели нарегистрировать
-            hooksMap.putAll(PrimaryClassTransformer.instance.getHooksMap());
+            hookMap.putAll(PrimaryClassTransformer.instance.getHooksMap());
             PrimaryClassTransformer.instance.getHooksMap().clear();
         } else {
             registerHookContainer("gloomyfolken.hooklib.minecraft.SecondaryTransformerHook");
@@ -44,8 +42,8 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
         return super.isTargetMethod(ah, name, mapDesc(desc));
     }
 
-    HashMap<String, List<AsmHook>> getHooksMap() {
-        return hooksMap;
+    Multimap<String, AsmHook> getHooksMap() {
+        return hookMap;
     }
 
     static String mapDesc(String desc) {

@@ -40,7 +40,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
 
         classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
 
-        hooksMap.putAll(PrimaryClassTransformer.instance.getHooksMap());
+        hookMap.putAll(PrimaryClassTransformer.instance.getHooksMap());
         PrimaryClassTransformer.instance.getHooksMap().clear();
         PrimaryClassTransformer.instance.registeredSecondTransformer = true;
     }

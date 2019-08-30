@@ -23,12 +23,17 @@ public class HookClassTransformer extends HookApplier {
     public static HookLogger logger = new SystemOutLogger();
 
     protected Multimap<String, AsmHook> hookMap = TreeMultimap.create();
+    protected Multimap<String, AsmTask> tasksMap = TreeMultimap.create();
 
     protected HashMap<String, List<AbstractInsnNode>> exprPatternsMap = new HashMap<>();
     private HookContainerParser containerParser = new HookContainerParser(this);
 
     public void registerHook(AsmHook hook) {
         hookMap.put(hook.getTargetClassName(), hook);
+    }
+
+    public void registerTask(AsmTask task) {
+        tasksMap.put(task.getTargetClassName(), task);
     }
 
     public void registerHookContainer(String className) {
@@ -45,6 +50,7 @@ public class HookClassTransformer extends HookApplier {
 
     public byte[] transform(String className, byte[] bytecode) {
         Collection<AsmHook> hooks = hookMap.get(className);
+        Collection<AsmTask> tasks = tasksMap.get(className);
 
         if (!hooks.isEmpty()) {
             //Collections.sort(hooks);
@@ -79,6 +85,7 @@ public class HookClassTransformer extends HookApplier {
                     hooks.remove(ah);
                 });
 
+                tasks.forEach(task -> task.getApply().accept(classNode));
 
                 classNode.accept(cw);
 
