@@ -1,15 +1,17 @@
 package gloomyfolken.hooklib.asm;
 
+import com.google.common.collect.Multimap;
+import com.google.common.collect.TreeMultimap;
 import gloomyfolken.hooklib.asm.HookLogger.SystemOutLogger;
 import gloomyfolken.hooklib.asm.model.AsmHook;
+import gloomyfolken.hooklib.asm.model.AsmTask;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,18 +21,14 @@ import static org.objectweb.asm.Opcodes.ASM5;
 public class HookClassTransformer extends HookApplier {
 
     public static HookLogger logger = new SystemOutLogger();
-    protected HashMap<String, List<AsmHook>> hooksMap = new HashMap<>();
+
+    protected Multimap<String, AsmHook> hookMap = TreeMultimap.create();
+
     protected HashMap<String, List<AbstractInsnNode>> exprPatternsMap = new HashMap<>();
     private HookContainerParser containerParser = new HookContainerParser(this);
 
     public void registerHook(AsmHook hook) {
-        if (hooksMap.containsKey(hook.getTargetClassName())) {
-            hooksMap.get(hook.getTargetClassName()).add(hook);
-        } else {
-            List<AsmHook> list = new ArrayList<>(2);
-            list.add(hook);
-            hooksMap.put(hook.getTargetClassName(), list);
-        }
+        hookMap.put(hook.getTargetClassName(), hook);
     }
 
     public void registerHookContainer(String className) {
@@ -46,10 +44,10 @@ public class HookClassTransformer extends HookApplier {
     }
 
     public byte[] transform(String className, byte[] bytecode) {
-        List<AsmHook> hooks = hooksMap.get(className);
+        Collection<AsmHook> hooks = hookMap.get(className);
 
-        if (hooks != null) {
-            Collections.sort(hooks);
+        if (!hooks.isEmpty()) {
+            //Collections.sort(hooks);
             logger.debug("Injecting hooks into class " + className);
             try {
                 /*
@@ -76,7 +74,11 @@ public class HookClassTransformer extends HookApplier {
                         forCurrentMethod.forEach(ah -> logger.debug("Patching method " + ah.getPatchedMethodName()));
                     }
 
-                hooks.stream().filter(AsmHook::isCreateMethod).forEach(ah -> createMethod(ah, classNode));
+                hooks.stream().filter(AsmHook::isCreateMethod).forEach(ah -> {
+                    createMethod(ah, classNode);
+                    hooks.remove(ah);
+                });
+
 
                 classNode.accept(cw);
 
