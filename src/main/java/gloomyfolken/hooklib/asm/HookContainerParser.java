@@ -61,93 +61,89 @@ public class HookContainerParser {
 
     private void createHook(String currentMethodName, String currentMethodDesc, boolean currentMethodPublicStatic, String currentClassName,
                             HashMap<String, Object> annotationValues, HashMap<Integer, Integer> parameterAnnotations) {
-        {
-            Type methodType = Type.getMethodType(currentMethodDesc);
-            Type[] argumentTypes = methodType.getArgumentTypes();
+        Type methodType = Type.getMethodType(currentMethodDesc);
+        Type[] argumentTypes = methodType.getArgumentTypes();
 
-            if (!currentMethodPublicStatic) {
-                invalidHook("Hook method must be public and static.", currentMethodName);
-                return;
-            }
-
-            if (argumentTypes.length < 1) {
-                invalidHook("Hook method has no parameters. First parameter of a " +
-                        "hook method must belong the type of the anchorTarget class.", currentMethodName);
-                return;
-            }
-
-            if (argumentTypes[0].getSort() != Type.OBJECT) {
-                invalidHook("First parameter of the hook method is not an object. First parameter of a " +
-                        "hook method must belong the type of the anchorTarget class.", currentMethodName);
-                return;
-            }
-
-            AsmHook.AsmHookBuilder builder1 = AsmHook.builder();
-
-            builder1.targetMethodName((String) annotationValues.getOrDefault("targetMethod", currentMethodName));
-            builder1.targetClassName(argumentTypes[0].getClassName());
-
-            builder1.hookMethodName(currentMethodName);
-            builder1.hookClassName(currentClassName);
-
-            builder1.startArgumentsFill();
-
-            builder1.hookMethodReturnType(methodType.getReturnType());
-
-            builder1.addThisToHookMethodParameters();
-
-            int currentParameterId = 1;
-            for (int i = 1; i < argumentTypes.length; i++) {
-                Type argType = argumentTypes[i];
-                if (parameterAnnotations.containsKey(i)) {
-                    int localId = parameterAnnotations.get(i);
-                    if (localId == -1) {
-                        builder1.targetMethodReturnType(argType);
-                        builder1.addReturnValueToHookMethodParameters();
-                    } else {
-                        builder1.addHookMethodParameter(argType, localId);
-                    }
-                } else {
-                    builder1.addTargetMethodParameter(argType);
-                    builder1.addHookMethodParameter(argType, currentParameterId);
-                    currentParameterId += argType == Type.LONG_TYPE || argType == Type.DOUBLE_TYPE ? 2 : 1;
-                }
-            }
-
-            builder1.finishArgumentsFill();
-
-            if (annotationValues.containsKey("at"))
-                builder1.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
-
-
-            if (annotationValues.containsKey("returnType"))
-                builder1.targetMethodReturnType(TypeHelper.getType((String) annotationValues.get("returnType")));
-
-
-            ReturnCondition returnCondition = ReturnCondition.NEVER;
-            if (annotationValues.containsKey("returnCondition"))
-                returnCondition = ReturnCondition.valueOf((String) annotationValues.get("returnCondition"));
-
-            builder1.returnCondition(returnCondition);
-
-
-            MapUtils.<String>maybeOfMapValue(annotationValues, "priority").map(HookPriority::valueOf).ifPresent(builder1::priority);
-            MapUtils.<Boolean>maybeOfMapValue(annotationValues, "createMethod").ifPresent(builder1::createMethod);
-            MapUtils.<Boolean>maybeOfMapValue(annotationValues, "isMandatory").ifPresent(builder1::isMandatory);
-
-            if (returnCondition == ReturnCondition.ON_SOLVE && methodType.getReturnType() != Type.getType(ResultSolve.class)) {
-                invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.", currentMethodName);
-                return;
-            }
-
-            try {
-                transformer.registerHook(builder1.build());
-            } catch (Exception e) {
-                invalidHook(e.getMessage(), currentMethodName);
-            }
-
+        if (!currentMethodPublicStatic) {
+            invalidHook("Hook method must be public and static.", currentMethodName);
+            return;
         }
 
+        if (argumentTypes.length < 1) {
+            invalidHook("Hook method has no parameters. First parameter of a " +
+                    "hook method must belong the type of the anchorTarget class.", currentMethodName);
+            return;
+        }
+
+        if (argumentTypes[0].getSort() != Type.OBJECT) {
+            invalidHook("First parameter of the hook method is not an object. First parameter of a " +
+                    "hook method must belong the type of the anchorTarget class.", currentMethodName);
+            return;
+        }
+
+        AsmHook.AsmHookBuilder builder1 = AsmHook.builder();
+
+        builder1.targetMethodName((String) annotationValues.getOrDefault("targetMethod", currentMethodName));
+        builder1.targetClassName(argumentTypes[0].getClassName());
+
+        builder1.hookMethodName(currentMethodName);
+        builder1.hookClassName(currentClassName);
+
+        builder1.startArgumentsFill();
+
+        builder1.hookMethodReturnType(methodType.getReturnType());
+
+        builder1.addThisToHookMethodParameters();
+
+        int currentParameterId = 1;
+        for (int i = 1; i < argumentTypes.length; i++) {
+            Type argType = argumentTypes[i];
+            if (parameterAnnotations.containsKey(i)) {
+                int localId = parameterAnnotations.get(i);
+                if (localId == -1) {
+                    builder1.targetMethodReturnType(argType);
+                    builder1.addReturnValueToHookMethodParameters();
+                } else {
+                    builder1.addHookMethodParameter(argType, localId);
+                }
+            } else {
+                builder1.addTargetMethodParameter(argType);
+                builder1.addHookMethodParameter(argType, currentParameterId);
+                currentParameterId += argType == Type.LONG_TYPE || argType == Type.DOUBLE_TYPE ? 2 : 1;
+            }
+        }
+
+        builder1.finishArgumentsFill();
+
+        if (annotationValues.containsKey("at"))
+            builder1.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
+
+
+        if (annotationValues.containsKey("returnType"))
+            builder1.targetMethodReturnType(TypeHelper.getType((String) annotationValues.get("returnType")));
+
+
+        ReturnCondition returnCondition = ReturnCondition.NEVER;
+        if (annotationValues.containsKey("returnCondition"))
+            returnCondition = ReturnCondition.valueOf((String) annotationValues.get("returnCondition"));
+
+        builder1.returnCondition(returnCondition);
+
+
+        MapUtils.<String>maybeOfMapValue(annotationValues, "priority").map(HookPriority::valueOf).ifPresent(builder1::priority);
+        MapUtils.<Boolean>maybeOfMapValue(annotationValues, "createMethod").ifPresent(builder1::createMethod);
+        MapUtils.<Boolean>maybeOfMapValue(annotationValues, "isMandatory").ifPresent(builder1::isMandatory);
+
+        if (returnCondition == ReturnCondition.ON_SOLVE && methodType.getReturnType() != Type.getType(ResultSolve.class)) {
+            invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.", currentMethodName);
+            return;
+        }
+
+        try {
+            transformer.registerHook(builder1.build());
+        } catch (Exception e) {
+            invalidHook(e.getMessage(), currentMethodName);
+        }
     }
 
 
@@ -171,7 +167,7 @@ public class HookContainerParser {
 
         @Override
         public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-            return new HookLensFieldVisitor(access, name, desc, signature, currentClassName,HookContainerParser.this);
+            return new HookLensFieldVisitor(access, name, desc, signature, currentClassName, HookContainerParser.this);
         }
 
         @Override
@@ -212,15 +208,14 @@ public class HookContainerParser {
                 String fieldName = (String) lensAnnotationValues.getOrDefault("name", name);
 
                 String[] substring = signature.substring(signature.indexOf('<') + 1, signature.indexOf('>')).split(";");
-                String owner = Type.getType(substring[0]+";").getClassName();
-                String value = Type.getType(substring[1]+";").getClassName();
+                String owner = Type.getType(substring[0] + ";").getClassName();
+                String value = Type.getType(substring[1] + ";").getClassName();
 
                 AsmHook.AsmHookBuilder builder = AsmHook.builder();
 
                 builder.targetClassName(currentClassName);
 
                 //hookContainerParser.transformer.registerHook(builder.build());
-
 
 
                 //todo: create hook to <cinit> which inset to field right value instead of aconst_null
