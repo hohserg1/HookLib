@@ -25,7 +25,14 @@ public class AnnotationUtils {
     }
 
     public static AnnotationMap annotationOfParameter(MethodNode methodNode, int parameter) {
-        return getAnnotationMap(methodNode.invisibleParameterAnnotations[parameter], methodNode.visibleParameterAnnotations[parameter]);
+        List<AnnotationNode>[] defaultValue = (List<AnnotationNode>[]) new List<?>[Type.getArgumentTypes(methodNode.desc).length];
+        return getAnnotationMap(
+                notNull(methodNode.invisibleParameterAnnotations, defaultValue)[parameter],
+                notNull(methodNode.visibleParameterAnnotations, defaultValue)[parameter]);
+    }
+
+    private static <A> A notNull(A value, A defaultValue) {
+        return Optional.ofNullable(value).orElse(defaultValue);
     }
 
     private static AnnotationMap getAnnotationMap(List<AnnotationNode> invisibleAnnotations, List<AnnotationNode> visibleAnnotations) {
@@ -36,7 +43,7 @@ public class AnnotationUtils {
     }
 
     private static <A> List<A> notNullList(List<A> list) {
-        return Optional.ofNullable(list).orElse(Collections.emptyList());
+        return notNull(list, Collections.emptyList());
     }
 
     private static Object createInstance(AnnotationNode annotationNode) {
