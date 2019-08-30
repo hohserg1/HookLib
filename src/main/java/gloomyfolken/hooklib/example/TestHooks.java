@@ -19,7 +19,8 @@ public class TestHooks {
     public static Lens<TileEntityHopper, Integer> testField = null;
 
     @Hook(at = @At(point = InjectionPoint.HEAD), targetMethod = "<init>")
-    public static void toolMaterial(Item.ToolMaterial toolMaterial, String name, int ordinal, int harvestLevel, int maxUses, float efficiency, float damageVsEntity, int enchantability) {
+    public static void toolMaterial(Item.ToolMaterial toolMaterial, String name, int ordinal,
+                                    int harvestLevel, int maxUses, float efficiency, float damageVsEntity, int enchantability) {
         System.out.println("toolMaterial " + name + " " + harvestLevel + " " + maxUses + " " + efficiency + " " + damageVsEntity + " " + enchantability);
     }
 
@@ -63,17 +64,17 @@ public class TestHooks {
      * Цель: запретить возможность телепортироваться в ад и обратно чаще, чем раз в пять секунд.
      */
     @Hook(returnCondition = ReturnCondition.ON_SOLVE, intReturnConstant = 100)
-    public static boolean getPortalCooldown(EntityPlayer player) {
-        return player.dimension == 0;
+    public static ResultSolve<Integer> getPortalCooldown(EntityPlayer player) {
+        return new ResultSolve<>(player.dimension == 0, 100);
     }
 
     /**
      * Цель: уменьшить вдвое яркость сущностей, которые выше полутора блоков.
      * Проверка на высоту в одном методе, пересчёт яркости - в другом.
      */
-    @Hook(at = @At(point = InjectionPoint.HEAD), returnCondition = ReturnCondition.ON_SOLVE, returnAnotherMethod = "getBrightness")
-    public static boolean getBrightnessForRender(Entity entity) {
-        return entity.height > 1.5f;
+    @Hook(at = @At(point = InjectionPoint.HEAD), returnCondition = ReturnCondition.ON_SOLVE)
+    public static ResultSolve<Integer> getBrightnessForRender(Entity entity) {
+        return new ResultSolve<>(entity.height > 1.5f, getBrightness(entity));
     }
 
     public static int getBrightness(Entity entity) {
