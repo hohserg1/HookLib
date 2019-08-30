@@ -1,5 +1,8 @@
 package gloomyfolken.hooklib.experimental.utils.annotation;
 
+import org.objectweb.asm.Type;
+
+import java.lang.annotation.Annotation;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -14,7 +17,11 @@ public class AnnotationMap {
         map = new HashMap<>();
     }
 
-    public <A> A get(String desc) {
+    public <A extends Annotation> A get(String desc) {
         return (A) map.get(desc);
+    }
+
+    public <A extends Annotation> A get(Class<A> annotationClass) {
+        return get(Type.getDescriptor(annotationClass));
     }
 }

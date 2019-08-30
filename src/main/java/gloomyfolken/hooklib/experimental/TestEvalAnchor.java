@@ -3,13 +3,11 @@ package gloomyfolken.hooklib.experimental;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.io.FileUtils;
+import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationMap;
+import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 import org.objectweb.asm.util.Printer;
 
@@ -31,49 +29,22 @@ public class TestEvalAnchor {
             byte[] test = identity(IOUtils.toByteArray(new FileInputStream(new File("./Test.class"))));
 
 
-            /*
             ClassReader cr = new ClassReader(hook);
 
             ClassNode cn = new ClassNode(ASM5);
             cr.accept(cn, 0);
-            cn.methods.stream().filter(m->m.name.equals("evaluation"))
-                    .forEach(m->{
-                        InsnList l1=new InsnList();
-                        l1.add(new InsnNode(LCONST_1));
-                        l1.add(new VarInsnNode(ISTORE,2));
-                        m.instructions.insertBefore(m.instructions.getFirst(),l1);
-                    });
 
-            ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS);
-            cn.accept(cw);
+            lol.hook.Shift.values();
 
-            FileUtils.writeByteArrayToFile(new File("./hook.class"), cw.toByteArray());*/
+            AnnotationMap annotationMap = AnnotationUtils.annotationOf(cn);
+            System.out.println(annotationMap.get(lol.hook.Test.class));
 
 
+            AnnotationUtils.annotationOf(cn.methods.iterator().next());
+            AnnotationUtils.annotationOf(cn.fields.iterator().next());
 
-
-
-            System.out.println(Arrays.equals(test, identity(test)));
-            Optional<List<AbstractInsnNode>> evaluation = analiseEvaluation(hook, "evaluation");
-            Optional<List<AbstractInsnNode>> test2test = analiseEvaluation(test, "test");
-            if (evaluation.isPresent() && evaluation.get().size() > 0) {
-                List<AbstractInsnNode> nodeList = evaluation.get();
-
-
-            nodeList
-                    .stream()
-                    .map(TestEvalAnchor::nodeToString)
-                    .forEach(System.out::println);
-
-            System.out.println("test");
-
-            test2test.get()
-                    .stream()
-                    .map(TestEvalAnchor::nodeToString)
-                    .forEach(System.out::println);
-
-                findSimilarCode(test, "test", "()V", nodeList);
-            }
+            AnnotationMap annotationMap1 = AnnotationUtils.annotationOfParameter(cn.methods.get(1), 0);
+            System.out.println(annotationMap1.get(lol.hook.Test.class));
         }
     }
 

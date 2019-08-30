@@ -25,7 +25,8 @@ public class AnnotationUtils {
     }
 
     public static AnnotationMap annotationOfParameter(MethodNode methodNode, int parameter) {
-        List<AnnotationNode>[] defaultValue = (List<AnnotationNode>[]) new List<?>[Type.getArgumentTypes(methodNode.desc).length];
+        int length = Type.getArgumentTypes(methodNode.desc).length;
+        List<AnnotationNode>[] defaultValue = (List<AnnotationNode>[]) new List<?>[length];
         return getAnnotationMap(
                 notNull(methodNode.invisibleParameterAnnotations, defaultValue)[parameter],
                 notNull(methodNode.visibleParameterAnnotations, defaultValue)[parameter]);
@@ -63,10 +64,11 @@ public class AnnotationUtils {
 
                 if (value instanceof String[]) {
                     String[] enum1 = (String[]) value;
-                    String enumType = enum1[0].replace('/', '.');
+                    String enumType = Type.getType(enum1[0].replace('/', '.')).getClassName();
                     String enumValue = enum1[1];
                     Class<Enum> enumClass = (Class<Enum>) Class.forName(enumType);
                     insertableValue = Enum.valueOf(enumClass, enumValue);
+                    System.out.println();
                 } else if (value instanceof AnnotationNode)
                     insertableValue = createInstance((AnnotationNode) value);
                 else
