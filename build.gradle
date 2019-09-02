@@ -45,6 +45,7 @@ minecraft {
 }
 
 dependencies {
+    testCompile 'junit:junit:4.12'
     compileOnly 'org.projectlombok:lombok:1.18.8'
     // you may put jars on which you depend on in ./libs
     // or you may define them like so..

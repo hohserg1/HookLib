@@ -17,7 +17,7 @@ import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.*;
 
 public class HookApplier {
-    protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
+    public ClassMetadataReader classMetadataReader = new ClassMetadataReader();
     private ImmutableList<Integer> returnOpcodes = ImmutableList.of(
             IRETURN,
             LRETURN,
@@ -27,10 +27,10 @@ public class HookApplier {
             RETURN
     );
 
-    protected void createMethod(AsmHook ah, ClassNode classNode) {
+    public void createMethod(AsmHook ah, ClassNode classNode) {
     }
 
-    protected void applyHook(AsmHook ah, MethodNode methodNode) {
+    public void applyHook(AsmHook ah, MethodNode methodNode) {
         String anchorTarget = ah.getAnchorTarget();
         int ordinal = ah.getOrdinal();
 
@@ -201,7 +201,7 @@ public class HookApplier {
         return new VarInsnNode(opcode, variableId);
     }
 
-    protected boolean areMethodNamesEquals(String name1, String name2) {
+    public boolean areMethodNamesEquals(String name1, String name2) {
         return name1.equals(name2);
     }
 }

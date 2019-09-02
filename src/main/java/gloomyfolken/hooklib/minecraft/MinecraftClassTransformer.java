@@ -68,7 +68,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     }
 
     @Override
-    protected boolean isTargetMethod(AsmHook ah, String name, String desc) {
+    public boolean isTargetMethod(AsmHook ah, String name, String desc) {
         return super.isTargetMethod(ah, deobfNameOfMethod(name), desc);
     }
 
@@ -78,7 +78,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
                 : name;
     }
 
-    protected boolean areMethodNamesEquals(String name1, String name2) {
+    public boolean areMethodNamesEquals(String name1, String name2) {
         return deobfNameOfMethod(name1).equals(deobfNameOfMethod(name2));
     }
 
