@@ -15,7 +15,6 @@ import org.objectweb.asm.tree.MethodNode;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
 
 import static org.junit.Assert.*;
 import static org.objectweb.asm.Opcodes.ASM5;
@@ -58,18 +57,13 @@ public class TestHookApplying {
     }
 
     @Test
-    public void testAsmHookParsing() {
-        //todo
-    }
-
-    @Test
     public void testApplying() {
         AsmHook hookHead = AsmHook.builder()
                 .targetClassName("test.hooklib.TestClass")
                 .targetMethodName("firstMethod")
                 .startArgumentsFill()
                 .addTargetMethodParameter(Type.INT_TYPE)
-                .hookClassName("test.hooklib.TestHook")
+                .hookClassInternalName("test.hooklib.TestHook")
                 .hookMethodName("hookHead")
                 .hookMethodReturnType(Type.VOID_TYPE)
                 .addThisToHookMethodParameters()
