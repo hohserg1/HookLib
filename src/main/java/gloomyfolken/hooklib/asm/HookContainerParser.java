@@ -61,7 +61,7 @@ public class HookContainerParser {
         return methodAnnotations.maybeGet(Hook.class)
                 .filter(__ -> methodAnnotations.maybeGet(SideOnly.class).map(SideOnly::value).map(v -> v == FMLLaunchHandler.side()).orElse(true))
                 .flatMap(hookAnnotation -> {
-                    System.out.println("Parsing hook "+methodNode.name);
+                    System.out.println("Parsing hook " + methodNode.name);
 
                     HashMap<Integer, Integer> parametersAnnotations = new HashMap<>();
 
@@ -181,7 +181,7 @@ public class HookContainerParser {
         builder1.isMandatory(annotationValues.isMandatory());
 
 
-        if (returnCondition == ReturnCondition.ON_SOLVE && methodType.getReturnType() != Type.getType(ResultSolve.class)) {
+        if (returnCondition == ReturnCondition.ON_SOLVE && !methodType.getReturnType().equals(Type.getType(ResultSolve.class))) {
             invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.", currentMethodName);
             return Optional.empty();
         }
