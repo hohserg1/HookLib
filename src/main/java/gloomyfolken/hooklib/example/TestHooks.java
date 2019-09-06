@@ -63,7 +63,7 @@ public class TestHooks {
     /**
      * Цель: запретить возможность телепортироваться в ад и обратно чаще, чем раз в пять секунд.
      */
-    @Hook(returnCondition = ReturnCondition.ON_SOLVE, intReturnConstant = 100)
+    @Hook(returnCondition = ReturnCondition.ON_SOLVE)
     public static ResultSolve<Integer> getPortalCooldown(EntityPlayer player) {
         return new ResultSolve<>(player.dimension == 0, 100);
     }
