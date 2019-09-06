@@ -21,7 +21,7 @@ public class AsmHook implements Comparable<AsmHook> {
     String targetMethodDescription;
 
     String hookMethodName;
-    String hookClassName;
+    String hookClassInternalName;
     List<Type> hookMethodParameters;
     List<Integer> hookMethodLocalCaptureIds;
     Type hookMethodReturnType;
@@ -55,8 +55,9 @@ public class AsmHook implements Comparable<AsmHook> {
         return targetClassName + '#' + targetMethodName + targetMethodDescription;
     }
 
-    public String getHookClassInternalName() {
-        return hookClassName.replace('.', '/');
+
+    public String getHookClassReflectName() {
+        return hookClassInternalName.replace('/', '.');
     }
 
     @Override
@@ -129,6 +130,13 @@ public class AsmHook implements Comparable<AsmHook> {
             MapUtils.<String>maybeOfMapValue(anchor, "target").ifPresent(this::anchorTarget);
 
             return this;
+        }
+
+        public AsmHookBuilder setAnchorForInject(At at) {
+            return ordinal(at.ordinal())
+                    .point(at.point())
+                    .shift(at.shift())
+                    .anchorTarget(at.target());
         }
 
     }

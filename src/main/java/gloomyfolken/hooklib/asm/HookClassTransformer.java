@@ -4,7 +4,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 import gloomyfolken.hooklib.asm.HookLogger.SystemOutLogger;
 import gloomyfolken.hooklib.asm.model.AsmHook;
-import gloomyfolken.hooklib.asm.model.AsmTask;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -23,25 +22,20 @@ public class HookClassTransformer extends HookApplier {
     public static HookLogger logger = new SystemOutLogger();
 
     protected Multimap<String, AsmHook> hookMap = TreeMultimap.create();
-    protected Multimap<String, AsmTask> tasksMap = TreeMultimap.create();
 
     protected HashMap<String, List<AbstractInsnNode>> exprPatternsMap = new HashMap<>();
-    private HookContainerParser containerParser = new HookContainerParser(this);
+    public HookContainerParser containerParser = new HookContainerParser(this);
 
     public void registerHook(AsmHook hook) {
         hookMap.put(hook.getTargetClassName(), hook);
     }
 
-    public void registerTask(AsmTask task) {
-        tasksMap.put(task.getTargetClassName(), task);
-    }
-
     public void registerHookContainer(String className) {
-        containerParser.parseHooks(className);
+        containerParser.parseHooks(className).forEach(this::registerHook);
     }
 
     public void registerHookContainer(String className, byte[] classData) {
-        containerParser.parseHooks(className, classData);
+        containerParser.parseHooks(className, classData).forEach(this::registerHook);
     }
 
     public void registerHookContainer(byte[] classData) {
@@ -50,7 +44,6 @@ public class HookClassTransformer extends HookApplier {
 
     public byte[] transform(String className, byte[] bytecode) {
         Collection<AsmHook> hooks = hookMap.get(className);
-        Collection<AsmTask> tasks = tasksMap.get(className);
 
         if (!hooks.isEmpty()) {
             //Collections.sort(hooks);
@@ -84,8 +77,6 @@ public class HookClassTransformer extends HookApplier {
                     createMethod(ah, classNode);
                     hooks.remove(ah);
                 });
-
-                tasks.forEach(task -> task.getApply().accept(classNode));
 
                 classNode.accept(cw);
 

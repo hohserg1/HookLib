@@ -91,7 +91,7 @@ public class HookApplier {
                     if (target.isPresent())
                         target.ifPresent(methodInsnNodeConsumer);
                     else
-                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
+                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassReflectName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
                 }
             }
             break;
@@ -110,7 +110,7 @@ public class HookApplier {
                     if (target.isPresent())
                         instructions.insertBefore(target.get(), determineAddition(ah, methodNode));
                     else
-                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
+                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassReflectName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
                 }
             }
             break;

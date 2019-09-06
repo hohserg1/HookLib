@@ -25,14 +25,16 @@ import static org.objectweb.asm.Opcodes.*;
 public class TestEvalAnchor {
     public static void main(String[] args) throws IOException {
         if (true) {
-            byte[] hook = identity(IOUtils.toByteArray(new FileInputStream(new File("./hook.class"))));
+            //byte[] hook = identity(IOUtils.toByteArray(new FileInputStream(new File("./hook.class"))));
             byte[] test = identity(IOUtils.toByteArray(new FileInputStream(new File("./Test.class"))));
 
 
-            ClassReader cr = new ClassReader(hook);
+            ClassReader cr = new ClassReader(test);
 
             ClassNode cn = new ClassNode(ASM5);
             cr.accept(cn, 0);
+            System.out.println(cn.name);
+            /*
 
             lol.hook.Shift.values();
 
@@ -44,7 +46,7 @@ public class TestEvalAnchor {
             AnnotationUtils.annotationOf(cn.fields.iterator().next());
 
             AnnotationMap annotationMap1 = AnnotationUtils.annotationOfParameter(cn.methods.get(1), 0);
-            System.out.println(annotationMap1.get(lol.hook.Test.class));
+            System.out.println(annotationMap1.get(lol.hook.Test.class));*/
         }
     }
 

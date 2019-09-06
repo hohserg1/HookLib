@@ -5,9 +5,10 @@ import org.objectweb.asm.Type;
 import java.lang.annotation.Annotation;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class AnnotationMap {
-    private Map<String, Object> map;
+    public Map<String, Object> map;
 
     AnnotationMap(Map<String, Object> map) {
         this.map = map;
@@ -23,5 +24,13 @@ public class AnnotationMap {
 
     public <A extends Annotation> A get(Class<A> annotationClass) {
         return get(Type.getDescriptor(annotationClass));
+    }
+
+    public <A extends Annotation> Optional<A> maybeGet(Class<A> annotationClass) {
+        return Optional.ofNullable(get(annotationClass));
+    }
+
+    public <A extends Annotation> boolean contains(Class<A> annotationClass) {
+        return map.containsKey(Type.getDescriptor(annotationClass));
     }
 }

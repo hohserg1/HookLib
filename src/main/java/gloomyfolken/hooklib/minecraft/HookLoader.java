@@ -35,18 +35,8 @@ public abstract class HookLoader implements IFMLLoadingPlugin {
     }
 
     /**
-     * Регистрирует вручную созданный хук
-     */
-    public static void registerHook(AsmHook hook) {
-        getTransformer().registerHook(hook);
-    }
-
-    /**
      * Деобфусцирует класс с хуками и регистрирует хуки из него
      */
-    public static void registerHookContainer(String className) {
-        getTransformer().registerHookContainer(className);
-    }
 
     public static void registerHookContainer(String className, byte[] classData) {
         getTransformer().registerHookContainer(className, classData);
