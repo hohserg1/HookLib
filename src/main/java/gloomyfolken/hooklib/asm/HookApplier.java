@@ -1,14 +1,16 @@
 package gloomyfolken.hooklib.asm;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import gloomyfolken.hooklib.asm.model.AsmHook;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
-import java.util.HashMap;
-import java.util.ListIterator;
-import java.util.Optional;
+import java.io.IOException;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,15 +42,15 @@ public class HookApplier {
             case HEAD:
                 String superClass = classMetadataReader.getSuperClass(ah.getTargetClassName());
 
-                AbstractInsnNode afterSuperConstructor=streamOfInsnList(instructions)
-                        .filter(n->n instanceof MethodInsnNode)
-                        .map(n->(MethodInsnNode)n)
-                        .filter(n->n.getOpcode()==INVOKESPECIAL && n.owner.equals(superClass) && n.name.equals("<init>"))
+                AbstractInsnNode afterSuperConstructor = streamOfInsnList(instructions)
+                        .filter(n -> n instanceof MethodInsnNode)
+                        .map(n -> (MethodInsnNode) n)
+                        .filter(n -> n.getOpcode() == INVOKESPECIAL && n.owner.equals(superClass) && n.name.equals("<init>"))
                         .findFirst()
-                        .map(n->(AbstractInsnNode)n)
+                        .map(n -> (AbstractInsnNode) n)
                         .orElseGet(instructions::getFirst);
 
-                instructions.insert(afterSuperConstructor,determineAddition(ah, methodNode));
+                instructions.insert(afterSuperConstructor, determineAddition(ah, methodNode));
                 break;
             case METHOD_CALL: {
                 Stream<MethodInsnNode> methodNodes = streamOfInsnList(instructions)
@@ -83,38 +85,129 @@ public class HookApplier {
                     }
                 };
 
-                if (ordinal == -1) {
+                if (ordinal == -1)
                     methodNodes.forEach(methodInsnNodeConsumer);
-                } else {
+                else {
                     Optional<MethodInsnNode> target = methodNodes.limit(ordinal + 1).skip(ordinal).findFirst();
 
                     if (target.isPresent())
                         target.ifPresent(methodInsnNodeConsumer);
                     else
-                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassReflectName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
+                        warnOrdinalMiss(ah);
                 }
             }
             break;
             case EXPRESSION: {
-                String evalPatternName=anchorTarget;
+                try {
+                    ClassNode hookClassNode = new ClassNode(ASM5);
+                    classMetadataReader.acceptVisitor(ah.getHookClassReflectName(), hookClassNode);
+                    Optional<MethodNode> maybeEvalPatternNode = hookClassNode.methods.stream().filter(mn -> mn.name.equals(anchorTarget)).findAny();
+                    if (maybeEvalPatternNode.isPresent()) {
+                        MethodNode evalPatternMethodNode = maybeEvalPatternNode.get();
+
+                        List<AbstractInsnNode> pattern = Arrays.stream(evalPatternMethodNode.instructions.toArray())
+                                .filter(n -> !(n instanceof LabelNode) && !(n instanceof LineNumberNode) && !(n instanceof FrameNode) && !isReturn(n))
+                                .collect(Collectors.toList());
+
+                        Stream<AbstractInsnNode> foundNodes = findSimilarCode(instructions, pattern).stream();
+
+                        if (ordinal == -1)
+                            foundNodes.forEach(n -> instructions.insert(n, determineAddition(ah, methodNode)));
+                        else {
+                            Optional<AbstractInsnNode> target = foundNodes.limit(ordinal + 1).skip(ordinal).findFirst();
+
+                            if (target.isPresent())
+                                target.ifPresent(n -> instructions.insert(n, determineAddition(ah, methodNode)));
+                            else
+                                warnOrdinalMiss(ah);
+
+                        }
+
+                    } else
+                        HookClassTransformer.logger.warning("Evaluation expression " + ah.getHookClassReflectName() + "#" + anchorTarget + " not found");
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
             }
             break;
             case RETURN: {
-                Stream<AbstractInsnNode> returnNodes = streamOfInsnList(instructions).filter(n -> returnOpcodes.contains(n.getOpcode()));
+                Stream<AbstractInsnNode> methodNodes = streamOfInsnList(instructions).filter(n -> returnOpcodes.contains(n.getOpcode()));
+
                 if (ordinal == -1)
-                    returnNodes.forEach(n -> instructions.insertBefore(n, determineAddition(ah, methodNode)));
+                    methodNodes.forEach(n -> instructions.insertBefore(n, determineAddition(ah, methodNode)));
                 else {
-                    Optional<AbstractInsnNode> target = returnNodes.limit(ordinal + 1).skip(ordinal).findFirst();
+                    Optional<AbstractInsnNode> target = methodNodes.limit(ordinal + 1).skip(ordinal).findFirst();
 
                     if (target.isPresent())
                         instructions.insertBefore(target.get(), determineAddition(ah, methodNode));
                     else
-                        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassReflectName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
+                        warnOrdinalMiss(ah);
                 }
             }
             break;
         }
+    }
+
+    private void warnOrdinalMiss(AsmHook ah) {
+        HookClassTransformer.logger.warning("Ordinal of hook " + ah.getHookClassReflectName() + "#" + ah.getHookMethodName() + " greater that number of available similar injection points");
+    }
+
+    private static boolean equalsWithVarColor(AbstractInsnNode current, AbstractInsnNode currentExpectation, BiMap<Integer, Integer> colorCompliance) {
+        if (current instanceof VarInsnNode && currentExpectation instanceof VarInsnNode) {
+            if (current.getOpcode() == currentExpectation.getOpcode()) {
+                VarInsnNode currentExpectation1 = (VarInsnNode) currentExpectation;
+                VarInsnNode current1 = (VarInsnNode) current;
+
+                Integer ePair = colorCompliance.get(currentExpectation1.var);
+                boolean colorEquals;
+                if (ePair == null) {
+                    if (!colorCompliance.values().contains(current1.var)) {
+                        colorCompliance.put(currentExpectation1.var, current1.var);
+                        colorEquals = true;
+                    } else
+                        colorEquals = false;
+                } else
+                    colorEquals = ePair == current1.var;
+                return colorEquals;
+            } else
+                return false;
+        } else {
+            return current.getType() == currentExpectation.getType() &&
+                    EqualsBuilder.reflectionEquals(current, currentExpectation, "prev", "next", "index");
+        }
+    }
+
+    private static List<AbstractInsnNode> findSimilarCode(InsnList instructions, List<AbstractInsnNode> pattern) {
+        List<AbstractInsnNode> r = new ArrayList<>();
+        BiMap<Integer, Integer> colorCompliance = HashBiMap.create();
+        AbstractInsnNode[] findingArea = instructions.toArray();
+
+        int findingPosition = 0;
+        for (int i = 0; i < findingArea.length; i++) {
+
+            AbstractInsnNode current = findingArea[i];
+            AbstractInsnNode currentExpectation = pattern.get(findingPosition);
+
+            if (equalsWithVarColor(current, currentExpectation, colorCompliance))
+                findingPosition++;
+            else
+                findingPosition = 0;
+
+            if (findingPosition == pattern.size()) {
+                System.out.println("FOUND!!1!");
+                r.add(current);
+                findingPosition = 0;
+                colorCompliance.clear();
+            }
+        }
+
+        return r;
+    }
+
+    private boolean isReturn(AbstractInsnNode n) {
+        return returnOpcodes.contains(n.getOpcode());
     }
 
     private static InsnList copy(InsnList insnList) {
