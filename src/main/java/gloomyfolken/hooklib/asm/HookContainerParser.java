@@ -2,9 +2,11 @@ package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.asm.Hook.LocalVariable;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
+import gloomyfolken.hooklib.asm.model.lens.hook.AsmLens;
 import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationMap;
 import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationUtils;
+import gnu.trove.TByteCollection;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -21,6 +23,7 @@ import static org.objectweb.asm.Opcodes.ASM5;
 public class HookContainerParser {
 
     private HookClassTransformer transformer;
+    private String className;
 
     public HookContainerParser(HookClassTransformer transformer) {
         this.transformer = transformer;
@@ -28,6 +31,7 @@ public class HookContainerParser {
 
     //MainHookLoader
     public Stream<AsmHook> parseHooks(String className, byte[] classData) {
+        this.className = className;
         transformer.logger.debug("Parsing hooks container " + className);
         ClassNode classNode = new ClassNode(ASM5);
         transformer.classMetadataReader.acceptVisitor(classData, classNode);
@@ -71,7 +75,7 @@ public class HookContainerParser {
     }
 
     private void invalidHook(String message, String currentMethodName) {
-        transformer.logger.warning("Found invalid hook " + currentClassName + "#" + currentMethodName);
+        transformer.logger.warning("Found invalid hook " + className + "#" + currentMethodName);
         transformer.logger.warning(message);
     }
 
@@ -164,4 +168,7 @@ public class HookContainerParser {
     }
 
 
+    public Stream<AsmLens> parseLenses(String className, byte[] classData) {
+        return null;
+    }
 }

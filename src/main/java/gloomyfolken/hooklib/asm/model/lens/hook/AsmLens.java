@@ -6,7 +6,7 @@ import org.objectweb.asm.Type;
 
 @Builder
 @Value
-public class AsmLens {
+public class AsmLens implements Comparable<AsmLens>{
     String targetClassName;
     String targetFieldName;
     Type targetFieldType;
@@ -14,4 +14,9 @@ public class AsmLens {
 
     String hookClassInternalName;
     String lensFieldName;
+
+    @Override
+    public int compareTo(AsmLens o) {
+        return 0;
+    }
 }

@@ -3,6 +3,7 @@ package gloomyfolken.hooklib.asm;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 import gloomyfolken.hooklib.asm.HookLogger.SystemOutLogger;
+import gloomyfolken.hooklib.asm.model.lens.hook.AsmLens;
 import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -23,12 +24,17 @@ public class HookClassTransformer extends HookApplier {
     public static HookLogger logger = new SystemOutLogger();
 
     protected Multimap<String, AsmHook> hookMap = TreeMultimap.create();
+    protected Multimap<String, AsmLens> lensMap = TreeMultimap.create();
 
     protected HashMap<String, List<AbstractInsnNode>> exprPatternsMap = new HashMap<>();
     public HookContainerParser containerParser = new HookContainerParser(this);
 
     public void registerHook(AsmHook hook) {
         hookMap.put(hook.getTargetClassName(), hook);
+    }
+
+    public void registerLens(AsmLens lens) {
+        lensMap.put(lens.getTargetClassName(), lens);
     }
 
     public void registerHookContainer(String className) {
@@ -42,6 +48,7 @@ public class HookClassTransformer extends HookApplier {
 
     public void registerHookContainer(String className, byte[] classData) {
         containerParser.parseHooks(className, classData).forEach(this::registerHook);
+        //containerParser.parseLenses(className, classData).forEach(this::registerLens);
     }
 
     public byte[] transform(String className, byte[] bytecode) {
