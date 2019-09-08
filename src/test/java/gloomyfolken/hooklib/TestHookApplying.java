@@ -58,8 +58,6 @@ public class TestHookApplying {
 
     @Test
     public void testApplying() {
-
-        EntityThrowable
         AsmHook hookHead = AsmHook.builder()
                 .targetClassName("test.hooklib.TestClass")
                 .targetMethodName("firstMethod")
