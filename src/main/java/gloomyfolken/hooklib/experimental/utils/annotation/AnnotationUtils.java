@@ -9,6 +9,7 @@ import org.objectweb.asm.tree.MethodNode;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Proxy;
 import java.util.*;
+import java.util.function.Supplier;
 
 public class AnnotationUtils {
     public static AnnotationMap annotationOf(ClassNode classNode) {
@@ -37,9 +38,11 @@ public class AnnotationUtils {
     }
 
     private static AnnotationMap getAnnotationMap(List<AnnotationNode> invisibleAnnotations, List<AnnotationNode> visibleAnnotations) {
-        HashMap<String, Object> map = new HashMap<>();
-        notNullList(invisibleAnnotations).forEach(annotationNode -> map.put(annotationNode.desc, createInstance(annotationNode)));
-        notNullList(visibleAnnotations).forEach(annotationNode -> map.put(annotationNode.desc, createInstance(annotationNode)));
+        HashMap<String, Supplier<Object>> map = new HashMap<>();
+
+        notNullList(invisibleAnnotations).forEach(node -> map.put(node.desc, () -> createInstance(node)));
+        notNullList(visibleAnnotations).forEach(node -> map.put(node.desc, () -> createInstance(node)));
+
         return new AnnotationMap(map);
     }
 
@@ -48,8 +51,8 @@ public class AnnotationUtils {
     }
 
     private static Object createInstance(AnnotationNode annotationNode) {
+        String className = Type.getType(annotationNode.desc).getClassName();
         try {
-            String className = Type.getType(annotationNode.desc).getClassName();
 
             HashMap<String, Object> map = new HashMap<>();
 
@@ -68,7 +71,6 @@ public class AnnotationUtils {
                     String enumValue = enum1[1];
                     Class<Enum> enumClass = (Class<Enum>) Class.forName(enumType);
                     insertableValue = Enum.valueOf(enumClass, enumValue);
-                    System.out.println();
                 } else if (value instanceof AnnotationNode)
                     insertableValue = createInstance((AnnotationNode) value);
                 else
@@ -78,8 +80,9 @@ public class AnnotationUtils {
             }
 
             return annotation(annotationClass, map);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+        } catch (ClassNotFoundException | NullPointerException e) {
+            System.out.println("Error with annotation " + className + " parsing");
+            //e.printStackTrace();
             return null;
         }
     }

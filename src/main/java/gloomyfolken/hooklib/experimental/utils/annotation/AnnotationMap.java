@@ -6,20 +6,28 @@ import java.lang.annotation.Annotation;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 public class AnnotationMap {
-    public Map<String, Object> map;
+    private Map<String, Supplier<Object>> suppliers;
+    private Map<String, Object> cahce = new HashMap<>();
 
-    AnnotationMap(Map<String, Object> map) {
-        this.map = map;
+    AnnotationMap(Map<String, Supplier<Object>> map) {
+        suppliers = map;
     }
 
     AnnotationMap() {
-        map = new HashMap<>();
+        suppliers = new HashMap<>();
     }
 
     public <A extends Annotation> A get(String desc) {
-        return (A) map.get(desc);
+        return (A) cahce.computeIfAbsent(desc, __ -> {
+            Supplier<Object> supplier = suppliers.get(desc);
+            if (supplier != null)
+                return supplier.get();
+            else
+                return null;
+        });
     }
 
     public <A extends Annotation> A get(Class<A> annotationClass) {
@@ -31,6 +39,6 @@ public class AnnotationMap {
     }
 
     public <A extends Annotation> boolean contains(Class<A> annotationClass) {
-        return map.containsKey(Type.getDescriptor(annotationClass));
+        return suppliers.containsKey(Type.getDescriptor(annotationClass));
     }
 }
