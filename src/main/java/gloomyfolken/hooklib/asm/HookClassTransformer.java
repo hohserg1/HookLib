@@ -3,13 +3,14 @@ package gloomyfolken.hooklib.asm;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 import gloomyfolken.hooklib.asm.HookLogger.SystemOutLogger;
-import gloomyfolken.hooklib.asm.model.AsmHook;
+import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -31,15 +32,16 @@ public class HookClassTransformer extends HookApplier {
     }
 
     public void registerHookContainer(String className) {
-        containerParser.parseHooks(className).forEach(this::registerHook);
+        try {
+            registerHookContainer(className, classMetadataReader.getClassData(className));
+        } catch (IOException e) {
+            logger.severe("Can not parse hooks container " + className, e);
+            e.printStackTrace();
+        }
     }
 
     public void registerHookContainer(String className, byte[] classData) {
         containerParser.parseHooks(className, classData).forEach(this::registerHook);
-    }
-
-    public void registerHookContainer(byte[] classData) {
-        containerParser.parseHooks(classData);
     }
 
     public byte[] transform(String className, byte[] bytecode) {

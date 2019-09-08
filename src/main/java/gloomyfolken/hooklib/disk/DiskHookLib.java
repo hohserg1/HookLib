@@ -23,7 +23,7 @@ public class DiskHookLib {
     void process() throws IOException {
         HookClassTransformer transformer = new HookClassTransformer();
         for (File file : getFiles(".class", hooksDir)) {
-            transformer.registerHookContainer(FileUtils.readFileToByteArray(file));
+            //transformer.registerHookContainer(FileUtils.readFileToByteArray(file));
             // теперь file надо скопировать в transformedDir, сохранив путь
         }
         for (File file : getFiles(".class", untransformedDir)) {

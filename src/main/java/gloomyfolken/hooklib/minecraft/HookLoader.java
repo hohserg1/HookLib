@@ -2,7 +2,6 @@ package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.asm.ClassMetadataReader;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
-import gloomyfolken.hooklib.asm.model.AsmHook;
 import net.minecraftforge.fml.common.asm.transformers.DeobfuscationTransformer;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
@@ -32,14 +31,6 @@ public abstract class HookLoader implements IFMLLoadingPlugin {
     public static HookClassTransformer getTransformer() {
         return PrimaryClassTransformer.instance.registeredSecondTransformer ?
                 MinecraftClassTransformer.instance : PrimaryClassTransformer.instance;
-    }
-
-    /**
-     * Деобфусцирует класс с хуками и регистрирует хуки из него
-     */
-
-    public static void registerHookContainer(String className, byte[] classData) {
-        getTransformer().registerHookContainer(className, classData);
     }
 
     public static ClassMetadataReader getDeobfuscationMetadataReader() {

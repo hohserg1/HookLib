@@ -1,6 +1,7 @@
-package gloomyfolken.hooklib.asm.model;
+package gloomyfolken.hooklib.asm.model.method.hook;
 
 import gloomyfolken.hooklib.asm.*;
+import gloomyfolken.hooklib.asm.model.MapUtils;
 import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;

@@ -1,7 +1,7 @@
 package gloomyfolken.hooklib;
 
 import gloomyfolken.hooklib.asm.HookApplier;
-import gloomyfolken.hooklib.asm.model.AsmHook;
+import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -58,6 +58,8 @@ public class TestHookApplying {
 
     @Test
     public void testApplying() {
+
+        EntityThrowable
         AsmHook hookHead = AsmHook.builder()
                 .targetClassName("test.hooklib.TestClass")
                 .targetMethodName("firstMethod")

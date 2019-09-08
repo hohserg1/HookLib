@@ -3,7 +3,7 @@ package gloomyfolken.hooklib.asm;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
-import gloomyfolken.hooklib.asm.model.AsmHook;
+import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -39,7 +39,7 @@ public class HookApplier {
         InsnList instructions = methodNode.instructions;
 
         switch (ah.getPoint()) {
-            case HEAD:
+            case HEAD: {
                 String superClass = classMetadataReader.getSuperClass(ah.getTargetClassName());
 
                 AbstractInsnNode afterSuperConstructor = streamOfInsnList(instructions)
@@ -51,7 +51,8 @@ public class HookApplier {
                         .orElseGet(instructions::getFirst);
 
                 instructions.insert(afterSuperConstructor, determineAddition(ah, methodNode));
-                break;
+            }
+            break;
             case METHOD_CALL: {
                 Stream<MethodInsnNode> methodNodes = streamOfInsnList(instructions)
                         .filter(n -> n instanceof MethodInsnNode)

@@ -2,7 +2,7 @@ package gloomyfolken.hooklib;
 
 import com.google.common.collect.ImmutableList;
 import gloomyfolken.hooklib.asm.*;
-import gloomyfolken.hooklib.asm.model.AsmHook;
+import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.objectweb.asm.Type;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -25,10 +26,11 @@ public class TestHookParsing {
     private List<AsmHook> handmadeHooks;
 
     @Before
-    public void init() {
+    public void init() throws IOException {
         transformer = new HookClassTransformer();
 
-        testHooks = transformer.containerParser.parseHooks("gloomyfolken.hooklib.example.TestHooks").collect(Collectors.toList());
+        String className = "gloomyfolken.hooklib.example.TestHooks";
+        testHooks = transformer.containerParser.parseHooks(className, transformer.classMetadataReader.getClassData(className)).collect(Collectors.toList());
 
         handmadeHooks = ImmutableList.of(
                 AsmHook.builder()
@@ -62,7 +64,7 @@ public class TestHookParsing {
                         .build(),
 
                 AsmHook.builder()
-                        .targetClassName("gloomyfolken.hooklib.example.TestHooks")
+                        .targetClassName(className)
                         .targetMethodName("insertStack")
 
                         .hookClassInternalName("gloomyfolken/hooklib/example/TestHooks")

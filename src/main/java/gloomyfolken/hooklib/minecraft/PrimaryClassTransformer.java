@@ -2,7 +2,7 @@ package gloomyfolken.hooklib.minecraft;
 
 import com.google.common.collect.Multimap;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
-import gloomyfolken.hooklib.asm.model.AsmHook;
+import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.Type;

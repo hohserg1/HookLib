@@ -1,7 +1,7 @@
 package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.asm.HookClassTransformer;
-import gloomyfolken.hooklib.asm.model.AsmHook;
+import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import net.minecraft.launchwrapper.IClassTransformer;
 
 import java.io.BufferedInputStream;

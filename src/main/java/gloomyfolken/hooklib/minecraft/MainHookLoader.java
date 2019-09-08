@@ -1,13 +1,18 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.HookCheckClassVisitor;
+import gloomyfolken.hooklib.asm.HookContainer;
 import gloomyfolken.hooklib.config.Config;
+import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationMap;
+import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationUtils;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModClassLoader;
+import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.tree.ClassNode;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +20,10 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+
+import static gloomyfolken.hooklib.experimental.utils.SideOnlyUtils.isValidSide;
+import static jdk.internal.org.objectweb.asm.Opcodes.ASM5;
+import static org.objectweb.asm.ClassReader.SKIP_CODE;
 
 public class MainHookLoader extends HookLoader {
 
@@ -31,7 +40,7 @@ public class MainHookLoader extends HookLoader {
         findHookContainers().forEach(i -> {
             String containerName = i.getLeft();
             if (Config.enableTestHooks || !containerName.equals("gloomyfolken.hooklib.example.TestHooks"))
-                registerHookContainer(containerName, i.getRight());
+                getTransformer().registerHookContainer(containerName, i.getRight());
         });
     }
 
@@ -97,8 +106,10 @@ public class MainHookLoader extends HookLoader {
 
     private void findHooksInStream(List<Pair<String, byte[]>> result, InputStream stream) throws IOException {
         byte[] targetArray = IOUtils.toByteArray(stream);
-        new ClassReader(targetArray)
-                .accept(new HookCheckClassVisitor(
-                        className -> result.add(Pair.of(className, targetArray))), 0);
+        ClassNode classNode = new ClassNode(ASM5);
+        new ClassReader(targetArray).accept(classNode, SKIP_CODE);
+        AnnotationMap annotationMap = AnnotationUtils.annotationOf(classNode);
+        if(annotationMap.contains(HookContainer.class) && isValidSide(annotationMap))
+            result.add(Pair.of(classNode.name.replace('/', '.'), targetArray));
     }
 }
