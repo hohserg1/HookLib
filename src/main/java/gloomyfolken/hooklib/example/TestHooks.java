@@ -1,18 +1,17 @@
 package gloomyfolken.hooklib.example;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import gloomyfolken.hooklib.asm.*;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntityHopper;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.ForgeHooks;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 @HookContainer
 public class TestHooks {
@@ -21,11 +20,6 @@ public class TestHooks {
     @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "setInventorySlotContents", shift = Shift.INSTEAD))
     public static void insertStack(TileEntityHopper tile, IInventory source, IInventory destination, ItemStack stack, int index, EnumFacing direction) {
         System.out.println("test");
-    }
-
-    @Hook(at = @At(point = InjectionPoint.METHOD_CALL, target = "getSlotsForFace"), returnCondition = ReturnCondition.ON_TRUE, booleanReturnConstant = true)
-    public static boolean isInventoryFull(TileEntityHopper tile, IInventory inventoryIn, EnumFacing side) {
-        return ((ISidedInventory) inventoryIn).getSlotsForFace(side) == null;
     }
 
     /**

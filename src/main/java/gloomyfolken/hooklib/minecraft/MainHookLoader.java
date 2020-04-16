@@ -1,9 +1,9 @@
 package gloomyfolken.hooklib.minecraft;
 
+import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.ModClassLoader;
 import gloomyfolken.hooklib.asm.HookCheckClassVisitor;
 import gloomyfolken.hooklib.config.Config;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModClassLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -72,7 +72,7 @@ public class MainHookLoader extends HookLoader {
     }
 
     private void addFromClasspath(List<File> jarCandidates, List<File> classCandidates) {
-        ModClassLoader modClassLoader = Loader.instance().getModClassLoader();
+        ModClassLoader modClassLoader = (ModClassLoader) Loader.instance().getModClassLoader();
 
         File[] minecraftSources = modClassLoader.getParentSources();
 

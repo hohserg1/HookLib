@@ -1,9 +1,9 @@
 package gloomyfolken.hooklib.asm;
 
+import cpw.mods.fml.relauncher.FMLLaunchHandler;
+import cpw.mods.fml.relauncher.SideOnly;
 import gloomyfolken.hooklib.asm.Hook.LocalVariable;
 import gloomyfolken.hooklib.asm.Hook.ReturnValue;
-import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.objectweb.asm.*;
 
 import java.io.IOException;

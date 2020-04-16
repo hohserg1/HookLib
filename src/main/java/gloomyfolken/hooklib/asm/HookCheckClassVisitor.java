@@ -1,7 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 
-import net.minecraftforge.fml.relauncher.FMLLaunchHandler;
+import cpw.mods.fml.relauncher.FMLLaunchHandler;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
