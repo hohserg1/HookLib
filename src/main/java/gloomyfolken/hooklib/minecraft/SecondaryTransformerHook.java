@@ -10,7 +10,7 @@ public class SecondaryTransformerHook {
     /**
      * Регистрирует хук-трансформер последним.
      */
-    @Hook(at = @At)
+    @Hook(at = @At())
     public static void injectData(Loader loader, Object... data) {
         ClassLoader classLoader = SecondaryTransformerHook.class.getClassLoader();
         if (classLoader instanceof LaunchClassLoader) {

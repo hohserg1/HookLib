@@ -5,6 +5,7 @@
 /classes/
 /build/
 /run/
+/eclipse/
 /libs/
 .gradle/
 gradle.properties

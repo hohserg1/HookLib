@@ -1,17 +1,23 @@
 package gloomyfolken.hooklib.minecraft;
 
+import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.LoaderException;
 import cpw.mods.fml.common.ModClassLoader;
 import gloomyfolken.hooklib.asm.HookCheckClassVisitor;
 import gloomyfolken.hooklib.config.Config;
+import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.Level;
 import org.objectweb.asm.ClassReader;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -71,10 +77,22 @@ public class MainHookLoader extends HookLoader {
         return result;
     }
 
-    private void addFromClasspath(List<File> jarCandidates, List<File> classCandidates) {
-        ModClassLoader modClassLoader = (ModClassLoader) Loader.instance().getModClassLoader();
+    public File[] getParentSources() {
+        List<URL> urls = ((LaunchClassLoader) getClass().getClassLoader()).getSources();
+        File[] sources = new File[urls.size()];
+        try {
+            for (int i = 0; i < urls.size(); i++) {
+                sources[i] = new File(urls.get(i).toURI());
+            }
+            return sources;
+        } catch (URISyntaxException e) {
+            FMLLog.log(Level.ERROR, e, "Unable to process our input to locate the minecraft code");
+            throw new LoaderException(e);
+        }
+    }
 
-        File[] minecraftSources = modClassLoader.getParentSources();
+    private void addFromClasspath(List<File> jarCandidates, List<File> classCandidates) {
+        File[] minecraftSources = getParentSources();
 
         for (File source : minecraftSources) {
             if (source.isFile()) {
