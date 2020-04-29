@@ -46,7 +46,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private List<Integer> transmittableVariableIds = new ArrayList<>(2);
     private List<Type> hookMethodParameters = new ArrayList<>(2);
     private Type hookMethodReturnType = Type.VOID_TYPE;
-    private boolean hasReturnValueParameter; // если в хук-метод передается значение из return
+    public boolean hasReturnValueParameter; // если в хук-метод передается значение из return
 
     private ReturnCondition returnCondition = ReturnCondition.NEVER;
     private ReturnValue returnValue = ReturnValue.VOID;

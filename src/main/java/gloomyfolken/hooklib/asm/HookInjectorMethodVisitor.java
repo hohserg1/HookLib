@@ -43,6 +43,17 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         }
     }
 
+    protected boolean canVisitOrderedHook() {
+        if (ordinal == 0) {
+            ordinal = -2;
+            return true;
+        } else if (ordinal == -1) {
+            return true;
+        } else if (ordinal > 0)
+            ordinal -= 1;
+        return false;
+    }
+
     protected boolean visitOrderedHook() {
         if (ordinal == 0) {
             visitHook();
@@ -84,10 +95,11 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                         visitOrderedHook();
                         break;
                     case INSTEAD:
-                        if (visitOrderedHook())
+                        if (canVisitOrderedHook()) {
                             for (int i = 0; i < Type.getArgumentTypes(desc).length + (opcode == Opcodes.INVOKESTATIC ? 0 : 1); i++)
                                 visitInsn(Opcodes.POP);
-                        else
+                            visitHook();
+                        } else
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
                         break;
                 }
