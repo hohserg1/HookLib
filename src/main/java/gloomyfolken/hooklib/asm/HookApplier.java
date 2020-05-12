@@ -3,8 +3,11 @@ package gloomyfolken.hooklib.asm;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
+import gloomyfolken.hooklib.asm.model.lens.hook.AsmLens;
 import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
+import gloomyfolken.hooklib.minecraft.MainHookLoader;
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
@@ -29,7 +32,80 @@ public class HookApplier {
             RETURN
     );
 
+    private void injectDefaultValue(MethodNode newMethod, Type targetMethodReturnType) {
+        switch (targetMethodReturnType.getSort()) {
+            case Type.VOID:
+                break;
+            case Type.BOOLEAN:
+            case Type.CHAR:
+            case Type.BYTE:
+            case Type.SHORT:
+            case Type.INT:
+                newMethod.visitInsn(Opcodes.ICONST_0);
+                break;
+            case Type.FLOAT:
+                newMethod.visitInsn(Opcodes.FCONST_0);
+                break;
+            case Type.LONG:
+                newMethod.visitInsn(Opcodes.LCONST_0);
+                break;
+            case Type.DOUBLE:
+                newMethod.visitInsn(Opcodes.DCONST_0);
+                break;
+            default:
+                newMethod.visitInsn(Opcodes.ACONST_NULL);
+                break;
+        }
+    }
+
+    private void injectSuperCall(MethodNode newMethod, ClassMetadataReader.MethodReference superMethod, AsmHook ah) {
+        int variableId = 0;
+        for (int i = 0; i <= ah.getTargetMethodParameters().size(); i++) {
+            Type parameterType = i == 0 ? TypeHelper.getType(ah.getTargetClassName()) : ah.getTargetMethodParameters().get(i - 1);
+            newMethod.instructions.add(createLocalLoad(parameterType, variableId));
+            if (parameterType.getSort() == Type.DOUBLE || parameterType.getSort() == Type.LONG) {
+                variableId += 2;
+            } else {
+                variableId++;
+            }
+        }
+        newMethod.visitMethodInsn(INVOKESPECIAL, superMethod.owner, superMethod.name, superMethod.desc, false);
+    }
+    private void injectReturn(MethodNode inj, Type targetMethodReturnType) {
+        if (targetMethodReturnType == INT_TYPE || targetMethodReturnType == SHORT_TYPE ||
+                targetMethodReturnType == BOOLEAN_TYPE || targetMethodReturnType == BYTE_TYPE
+                || targetMethodReturnType == CHAR_TYPE) {
+            inj.visitInsn(IRETURN);
+        } else if (targetMethodReturnType == LONG_TYPE) {
+            inj.visitInsn(LRETURN);
+        } else if (targetMethodReturnType == FLOAT_TYPE) {
+            inj.visitInsn(FRETURN);
+        } else if (targetMethodReturnType == DOUBLE_TYPE) {
+            inj.visitInsn(DRETURN);
+        } else if (targetMethodReturnType == VOID_TYPE) {
+            inj.visitInsn(RETURN);
+        } else {
+            inj.visitInsn(ARETURN);
+        }
+    }
+
     public void createMethod(AsmHook ah, ClassNode classNode) {
+        ClassMetadataReader.MethodReference superMethod = MainHookLoader.getTransformer().classMetadataReader
+                .findVirtualMethod(ah.getTargetClassName().replace('.', '/'), ah.getTargetMethodName(), ah.getTargetMethodDescription());
+        // юзаем название суперметода, потому что findVirtualMethod может вернуть метод с другим названием
+        MethodNode newMethod = new MethodNode(ASM5, superMethod == null ? ah.getTargetMethodName() : superMethod.name, ah.getTargetMethodDescription(), null, null);
+        classNode.methods.add(newMethod);
+
+        newMethod.visitCode();
+        newMethod.visitLabel(new Label());
+        if (superMethod == null)
+            injectDefaultValue(newMethod, ah.getTargetMethodReturnType());
+        else
+            injectSuperCall(newMethod, superMethod, ah);
+        injectReturn(newMethod,ah.getTargetMethodReturnType());
+        newMethod.visitLabel(new Label());
+        newMethod.visitMaxs(0, 0);
+        newMethod.visitEnd();
     }
 
     public void applyHook(AsmHook ah, MethodNode methodNode) {
