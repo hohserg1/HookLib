@@ -6,11 +6,10 @@ import gloomyfolken.hooklib.asm.model.lens.hook.AsmLens;
 import gloomyfolken.hooklib.asm.model.method.hook.AsmHook;
 import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationMap;
 import gloomyfolken.hooklib.experimental.utils.annotation.AnnotationUtils;
-import gnu.trove.TByteCollection;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.util.HashMap;
@@ -23,7 +22,6 @@ import static org.objectweb.asm.Opcodes.ASM5;
 public class HookContainerParser {
 
     private HookClassTransformer transformer;
-    private String className;
 
     public HookContainerParser(HookClassTransformer transformer) {
         this.transformer = transformer;
@@ -31,8 +29,7 @@ public class HookContainerParser {
 
     //MainHookLoader
     public Stream<AsmHook> parseHooks(String className, byte[] classData) {
-        this.className = className;
-        transformer.logger.debug("Parsing hooks container " + className);
+        HookClassTransformer.logger.debug("Parsing hooks container " + className);
         ClassNode classNode = new ClassNode(ASM5);
         transformer.classMetadataReader.acceptVisitor(classData, classNode);
         return classNode.methods.stream().flatMap(methodNode -> parseOneHook(classNode, methodNode));
@@ -74,9 +71,9 @@ public class HookContainerParser {
 
     }
 
-    private void invalidHook(String message, String currentMethodName) {
-        transformer.logger.warning("Found invalid hook " + className + "#" + currentMethodName);
-        transformer.logger.warning(message);
+    private void invalidHook(String message, String currentMethodName, String className) {
+        HookClassTransformer.logger.warning("Found invalid hook " + className.replace("/", ".") + "#" + currentMethodName);
+        HookClassTransformer.logger.warning(message);
     }
 
     private Optional<AsmHook> createHook(String currentMethodName, String currentMethodDesc, boolean currentMethodPublicStatic, String currentClassName,
@@ -85,19 +82,19 @@ public class HookContainerParser {
         Type[] argumentTypes = methodType.getArgumentTypes();
 
         if (!currentMethodPublicStatic) {
-            invalidHook("Hook method must be public and static.", currentMethodName);
+            invalidHook("Hook method must be public and static.", currentMethodName, currentClassName);
             return Optional.empty();
         }
 
         if (argumentTypes.length < 1) {
             invalidHook("Hook method has no parameters. First parameter of a " +
-                    "hook method must belong the type of the anchorTarget class.", currentMethodName);
+                    "hook method must belong the type of the anchorTarget class.", currentMethodName, currentClassName);
             return Optional.empty();
         }
 
         if (argumentTypes[0].getSort() != Type.OBJECT) {
             invalidHook("First parameter of the hook method is not an object. First parameter of a " +
-                    "hook method must belong the type of the anchorTarget class.", currentMethodName);
+                    "hook method must belong the type of the anchorTarget class.", currentMethodName, currentClassName);
             return Optional.empty();
         }
 
@@ -151,14 +148,14 @@ public class HookContainerParser {
 
 
         if (returnCondition == ReturnCondition.ON_SOLVE && !methodType.getReturnType().equals(Type.getType(ResultSolve.class))) {
-            invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.", currentMethodName);
+            invalidHook("Hook method must return ResultSolve if returnCodition is ON_SOLVE.", currentMethodName, currentClassName);
             return Optional.empty();
         }
 
         try {
             return Optional.of(builder1.build());
         } catch (Exception e) {
-            invalidHook(e.getMessage(), currentMethodName);
+            invalidHook(e.getMessage(), currentMethodName, currentClassName);
             return Optional.empty();
         }
     }
@@ -169,6 +166,41 @@ public class HookContainerParser {
 
 
     public Stream<AsmLens> parseLenses(String className, byte[] classData) {
-        return null;
+        HookClassTransformer.logger.debug("Parsing hook lenses container " + className);
+        ClassNode classNode = new ClassNode(ASM5);
+        transformer.classMetadataReader.acceptVisitor(classData, classNode);
+        return classNode.fields.stream().flatMap(fieldNode -> parseOneLens(classNode, fieldNode));
+    }
+
+    private Stream<AsmLens> parseOneLens(ClassNode classNode, FieldNode fieldNode) {
+        AnnotationMap fieldAnnotations = AnnotationUtils.annotationOf(fieldNode);
+        return fieldAnnotations.maybeGet(HookLens.class)
+                .filter(__ -> isValidSide(fieldAnnotations))
+                .flatMap(lensAnnotation -> {
+                    System.out.println("Parsing lens " + fieldNode.name);
+
+                    AsmLens.AsmLensBuilder builder = AsmLens.builder();
+
+                    if (!Type.getType(fieldNode.desc).equals(Type.getType(Lens.class))) {
+                        invalidHook("Hook lens field must have Lens<Owner, FieldType> Type", fieldNode.name, classNode.name);
+                        return Optional.empty();
+                    }
+
+                    String signature = fieldNode.signature;
+                    int indexOfSemicolon = signature.indexOf(';') + 1;
+                    String ownerClassInternalName = signature.substring(signature.indexOf('<') + 1, indexOfSemicolon);
+                    Type targetFieldType = Type.getType(signature.substring(indexOfSemicolon, signature.indexOf(';', indexOfSemicolon + 1) + 1));
+
+                    builder.targetClassInternalName(ownerClassInternalName);
+                    builder.targetFieldType(targetFieldType);
+                    builder.targetFieldName(ifDefinedOrElse(lensAnnotation.name(), fieldNode.name));
+                    builder.hookClassInternalName(classNode.name);
+                    builder.lensFieldName(fieldNode.name);
+                    builder.boxing(lensAnnotation.boxing());
+                    builder.createField(lensAnnotation.createField());
+                    return Optional.of(builder.build());
+                })
+                .map(Stream::of)
+                .orElse(Stream.empty());
     }
 }

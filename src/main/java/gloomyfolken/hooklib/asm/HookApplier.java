@@ -22,6 +22,11 @@ import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.*;
 
 public class HookApplier {
+
+    public void applyLense(AsmLens al, FieldNode fieldNode) {
+    }
+
+
     public ClassMetadataReader classMetadataReader = new ClassMetadataReader();
     private ImmutableList<Integer> returnOpcodes = ImmutableList.of(
             IRETURN,

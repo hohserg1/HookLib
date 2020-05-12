@@ -9,12 +9,14 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.objectweb.asm.Opcodes.ASM5;
@@ -34,7 +36,7 @@ public class HookClassTransformer extends HookApplier {
     }
 
     public void registerLens(AsmLens lens) {
-        lensMap.put(lens.getTargetClassName(), lens);
+        lensMap.put(lens.getTargetClassInternalName(), lens);
     }
 
     public void registerHookContainer(String className) {
@@ -46,15 +48,24 @@ public class HookClassTransformer extends HookApplier {
         }
     }
 
+    Map<String, byte[]> tempRegistryMap = new HashMap<>();
+
     public void registerHookContainer(String className, byte[] classData) {
-        containerParser.parseHooks(className, classData).forEach(this::registerHook);
-        //containerParser.parseLenses(className, classData).forEach(this::registerLens);
+        tempRegistryMap.put(className, classData);
+    }
+
+    public void finishRegistry() {
+        tempRegistryMap.forEach((className, classData) -> {
+            containerParser.parseHooks(className, classData).forEach(this::registerHook);
+            containerParser.parseLenses(className, classData).forEach(this::registerLens);
+        });
     }
 
     public byte[] transform(String className, byte[] bytecode) {
         Collection<AsmHook> hooks = hookMap.get(className);
+        Collection<AsmLens> lenses = lensMap.get(className);
 
-        if (!hooks.isEmpty()) {
+        if (!hooks.isEmpty() || !lenses.isEmpty()) {
             //Collections.sort(hooks);
             logger.debug("Injecting hooks into class " + className);
             try {
@@ -86,6 +97,15 @@ public class HookClassTransformer extends HookApplier {
                     createMethod(ah, classNode);
                     hooks.remove(ah);
                 });
+
+                for (FieldNode fieldNode : classNode.fields) {
+                    if (!lenses.isEmpty()) {
+                        List<AsmLens> forCurrectField = lenses.stream().filter(al -> al.isTargetField(fieldNode)).collect(Collectors.toList());
+                        lenses.removeAll(forCurrectField);
+                        forCurrectField.forEach(al -> applyLense(al, fieldNode));
+                        forCurrectField.forEach(al -> logger.debug("Patching field " + al.getTargetClassInternalName() + "#" + al.getTargetFieldName()));
+                    }
+                }
 
                 classNode.accept(cw);
 
@@ -130,4 +150,5 @@ public class HookClassTransformer extends HookApplier {
     protected ClassWriter createClassWriter(int flags) {
         return new SafeClassWriter(classMetadataReader, flags);
     }
+
 }
