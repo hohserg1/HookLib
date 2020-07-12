@@ -22,8 +22,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static gloomyfolken.hooklib.experimental.utils.SideOnlyUtils.isValidSide;
-import static jdk.internal.org.objectweb.asm.Opcodes.ASM5;
 import static org.objectweb.asm.ClassReader.SKIP_CODE;
+import static org.objectweb.asm.Opcodes.ASM5;
 
 public class MainHookLoader extends HookLoader {
 
