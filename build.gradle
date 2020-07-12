@@ -8,11 +8,13 @@ buildscript {
     }
 }
 
+mainHookLoader='gloomyfolken.hooklib.minecraft.MainHookLoader'
+
 apply plugin: 'java'
 
 jar {
     manifest {
-        attributes 'FMLCorePlugin': 'gloomyfolken.hooklib.minecraft.MainHookLoader'
+        attributes 'FMLCorePlugin': mainHookLoader
         attributes 'FMLCorePluginContainsFMLMod': 'true'
         attributes 'Created-By': '1.7.0 (Oracle Corporation)'
     }
@@ -47,7 +49,7 @@ minecraft {
     mappings = "snapshot_20171003"
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 
-    clientJvmArgs = ["-Dfml.coreMods.load=gloomyfolken.hooklib.minecraft.MainHookLoader"]//-Dlegacy.debugClassLoading=true -Dlegacy.debugClassLoadingSave=true
+    clientJvmArgs = ["-Dfml.coreMods.load="+mainHookLoader]//-Dlegacy.debugClassLoading=true -Dlegacy.debugClassLoadingSave=true
 }
 
 dependencies {
