@@ -8,7 +8,7 @@ buildscript {
     }
 }
 
-mainHookLoader='gloomyfolken.hooklib.minecraft.MainHookLoader'
+def mainHookLoader='gloomyfolken.hooklib.minecraft.MainHookLoader'
 
 apply plugin: 'java'
 
