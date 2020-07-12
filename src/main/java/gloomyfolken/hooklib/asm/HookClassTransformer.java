@@ -57,6 +57,8 @@ public class HookClassTransformer extends HookApplier {
         Collection<AsmHook> hooks = hookMap.get(className);
         Collection<AsmLens> lenses = lensMap.get(className);
 
+
+        System.out.println("transform " + className + " by " + getClass().getSimpleName() + " with hooks(" + hooks.size() + "), lenses(" + lenses.size() + ")");
         if (!hooks.isEmpty() || !lenses.isEmpty()) {
             //Collections.sort(hooks);
             logger.debug("Injecting hooks into class " + className);
