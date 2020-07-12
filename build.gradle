@@ -47,7 +47,7 @@ minecraft {
     mappings = "snapshot_20171003"
     // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
 
-    clientJvmArgs = ["-Dfml.coreMods.load=test"]
+    clientJvmArgs = ["-Dfml.coreMods.load=gloomyfolken.hooklib.minecraft.MainHookLoader"]//-Dlegacy.debugClassLoading=true -Dlegacy.debugClassLoadingSave=true
 }
 
 dependencies {
