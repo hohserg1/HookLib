@@ -1,9 +1,9 @@
 [{
   "modid": "hooklib",
   "name": "HookLib",
-  "description": "Coremod framefork. Easy way to create coremods!",
-  "version": "1.0",
-  "mcversion": "1.12.2",
+  "description": "Coremod framework. Easy way to create coremods!",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
   "logoFile": "assets/examplemod/textures/logo.png",
   "authorList": ["GloomyFolken","hohserg"],
   "credits": "Thx all people who use this mod!"
