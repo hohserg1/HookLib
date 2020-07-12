@@ -48,17 +48,9 @@ public class HookClassTransformer extends HookApplier {
         }
     }
 
-    Map<String, byte[]> tempRegistryMap = new HashMap<>();
-
     public void registerHookContainer(String className, byte[] classData) {
-        tempRegistryMap.put(className, classData);
-    }
-
-    public void finishRegistry() {
-        tempRegistryMap.forEach((className, classData) -> {
-            containerParser.parseHooks(className, classData).forEach(this::registerHook);
-            containerParser.parseLenses(className, classData).forEach(this::registerLens);
-        });
+        containerParser.parseHooks(className, classData).forEach(this::registerHook);
+        containerParser.parseLenses(className, classData).forEach(this::registerLens);
     }
 
     public byte[] transform(String className, byte[] bytecode) {
