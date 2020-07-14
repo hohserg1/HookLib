@@ -2,6 +2,7 @@ package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.api.At;
 import gloomyfolken.hooklib.api.Hook;
+import gloomyfolken.hooklib.api.HookContainer;
 import gloomyfolken.hooklib.api.InjectionPoint;
 import gloomyfolken.hooklib.common.SafeClassWriter;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 
 import static org.objectweb.asm.Opcodes.ASM5;
 
+@HookContainer(modid = ModTitle.hooklib_modid)
 public class ScannerClassTransformer implements IClassTransformer {
 
     private static ScannerClassTransformer instance;
