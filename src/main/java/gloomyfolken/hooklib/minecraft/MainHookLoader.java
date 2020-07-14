@@ -7,10 +7,7 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -18,13 +15,25 @@ import java.util.stream.StreamSupport;
 public class MainHookLoader implements IFMLLoadingPlugin {
 
     public MainHookLoader() {
-        putClassesToFML();
+        preloadUsedClasses();
         //System.out.println(DeobfHelper.class);
 
     }
 
-    private void putClassesToFML() {
-        Arrays.stream(getASMTransformerClass())
+    private void preloadUsedClasses() {
+        getClassesRequiredByTransformer()
+                .forEach(className -> {
+                    try {
+                        System.out.println("Preloaded for HookLib transformer " + className);
+                        Class.forName(className);
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                });
+    }
+
+    private Set<String> getClassesRequiredByTransformer() {
+        return Arrays.stream(getASMTransformerClass())
                 .flatMap(className -> {
                     try {
                         return Stream.of(ClassMetadataReader.instance.getClassData(className));
@@ -48,16 +57,8 @@ public class MainHookLoader implements IFMLLoadingPlugin {
                             });
                         })
                 )
-                .map(claccName -> claccName.replace('/', '.'))
-                .collect(Collectors.toSet())
-                .forEach(className -> {
-                    try {
-                        System.out.println("Preloaded for HookLib transformer " + className);
-                        Class.forName(className);
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                });
+                .map(className -> className.replace('/', '.'))
+                .collect(Collectors.toSet());
     }
 
     @Override
