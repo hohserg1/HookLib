@@ -33,7 +33,7 @@ public class HookContainerIndexer {
         return hookContainers.stream()
                 .flatMap(classNode -> classNode.fields.stream()
                         .filter(fn -> fn.annotations.contains(HookLens.class))
-                        .map(fn -> parseLens(classNode, fn)))
+                        .flatMap(maybeMapper(fn -> parseLens(classNode, fn))))
                 .collect(
                         ImmutableMultimap::<String, AsmLens>builder,
                         (builder, ah) -> builder.put(ah.targetClassName, ah),
@@ -46,7 +46,7 @@ public class HookContainerIndexer {
         return hookContainers.stream()
                 .flatMap(classNode -> classNode.methods.stream()
                         .filter(mn -> mn.annotations.contains(Hook.class))
-                        .map(mn -> parseHook(classNode, mn)))
+                        .flatMap(maybeMapper(mn -> parseHook(classNode, mn))))
                 .collect(
                         ImmutableMultimap::<String, AsmHook>builder,
                         (builder, ah) -> builder.put(ah.targetClassName, ah),
