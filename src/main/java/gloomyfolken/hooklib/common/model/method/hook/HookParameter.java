@@ -13,5 +13,5 @@ import org.objectweb.asm.Type;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PUBLIC)
 public class HookParameter {
     Type type;
-    HookParameterUsage usage;
+    int captureLocal;
 }
