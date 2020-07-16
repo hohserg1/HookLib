@@ -72,7 +72,6 @@ public class HookContainerIndexer {
         String targetClassName = Type.getType(typeParameters[0] + ";").getClassName();
         String targetFieldTypeName = Type.getType(typeParameters[1] + ";").getClassName();
 
-        System.out.println("test " + targetClassName + "#" + targetFieldName + ": " + targetFieldTypeName);
         return new AsmLens(classNode.name, fn.name, targetClassName, targetFieldName, targetFieldTypeName, null, annotation.boxing(), annotation.createField());
     }
 
