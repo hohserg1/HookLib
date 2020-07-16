@@ -24,6 +24,7 @@ public class AsmHook implements Comparable {
     String hookMethodName;
     List<HookParameter> hookMethodParameters;
     List<Type> targetMethodParameters;
+    Type targetMethodReturnType;
 
     boolean createMethod;
     boolean isMandatory;
