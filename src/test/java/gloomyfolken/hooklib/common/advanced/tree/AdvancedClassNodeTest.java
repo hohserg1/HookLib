@@ -6,13 +6,14 @@ import gloomyfolken.hooklib.common.AsmHelper;
 import gloomyfolken.hooklib.common.ClassMetadataReader;
 import org.apache.http.util.Asserts;
 import org.junit.Before;
+import org.junit.Test;
 
 import java.io.IOException;
 
 public class AdvancedClassNodeTest {
 
     byte[] classData;
-    String className = "gloomyfolken.hooklib.TestHooks";
+    String className = "gloomyfolken.hooklib.example.TestHooks";
 
     @Before
     public void init() throws IOException {
@@ -23,6 +24,7 @@ public class AdvancedClassNodeTest {
         return ClassMetadataReader.instance.getClassData(className);
     }
 
+    @Test
     public void testAnnotations() {
         AdvancedClassNode advancedClassNode = AsmHelper.classNodeOf(classData, 0);
 
