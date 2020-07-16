@@ -18,7 +18,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -154,14 +154,14 @@ public class HookContainerIndexer {
     }
 
     private interface ThrowableFunction<A, B> {
-        B apply(A a) throws IOException;
+        B apply(A a) throws Exception;
     }
 
     private static <A, B> Function<A, Stream<B>> maybeMapper(ThrowableFunction<A, B> openInputStream) {
         return a -> {
             try {
                 return Stream.of(openInputStream.apply(a));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 return Stream.empty();
             }
