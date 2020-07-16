@@ -43,7 +43,7 @@ public class AdvancedMethodNode extends MethodNode {
     @Override
     public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
         AdvancedAnnotationNode an = new AdvancedAnnotationNode(desc, visible);
-
+        int params = Type.getArgumentTypes(desc).length;
 
         parameterAnnotations.get(parameter).put(desc, an);
 
