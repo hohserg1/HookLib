@@ -1,16 +1,14 @@
 package gloomyfolken.hooklib.common;
 
+import gloomyfolken.hooklib.common.advanced.tree.AdvancedClassNode;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.tree.ClassNode;
-
-import static org.objectweb.asm.Opcodes.ASM5;
 
 public class AsmHelper {
 
-    public static ClassNode classNodeOf(byte[] bytes) {
+    public static AdvancedClassNode classNodeOf(byte[] bytes, int flags) {
         ClassReader classReader = new ClassReader(bytes);
-        ClassNode classNode = new ClassNode(ASM5);
-        classReader.accept(classNode, ClassReader.SKIP_FRAMES);
+        AdvancedClassNode classNode = new AdvancedClassNode();
+        classReader.accept(classNode, flags);
         return classNode;
     }
 }
