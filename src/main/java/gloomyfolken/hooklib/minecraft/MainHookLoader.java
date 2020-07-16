@@ -20,10 +20,12 @@ public class MainHookLoader implements IFMLLoadingPlugin {
     public MainHookLoader() {
         preloadUsedClasses();
         System.out.println("Start hooks indexing");
+        long start = System.currentTimeMillis();
         List<AdvancedClassNode> hookContainers = findHookContainers();
         hooks = findHooks(hookContainers);
         lenses = findLenses(hookContainers);
-        System.out.println("End hooks indexing");
+        long end = System.currentTimeMillis();
+        System.out.println("End hooks indexing " + (end - start) + " millis");
     }
 
     private void preloadUsedClasses() {
@@ -57,7 +59,6 @@ public class MainHookLoader implements IFMLLoadingPlugin {
     @Override
     public void injectData(Map<String, Object> data) {
         System.out.println(data);
-
     }
 
     @Override
