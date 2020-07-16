@@ -75,10 +75,43 @@ public class HookContainerIndexer {
         return new AsmLens(classNode.name, fn.name, targetClassName, targetFieldName, targetFieldTypeName, null, annotation.boxing(), annotation.createField());
     }
 
-    private static AsmHook parseHook(AdvancedClassNode classNode, AdvancedMethodNode methodNode) {
-        Hook value = methodNode.annotations.get(Hook.class).value();
-        At at = value.at();
-        return new AsmHook("", null, null, null, null, null, value.createMethod(), value.isMandatory(), value.returnCondition(), value.priority(),
+    private static AsmHook parseHook(AdvancedClassNode classNode, AdvancedMethodNode methodNode) throws IllegalHookException {
+        Hook hook = methodNode.annotations.get(Hook.class).value();
+        At at = hook.at();
+
+        String targetMethodName = hook.targetMethod().isEmpty() ? methodNode.name : hook.targetMethod();
+
+        Type methodType = Type.getMethodType(methodNode.desc);
+        Type[] argumentTypes = methodType.getArgumentTypes();
+
+        checkValid(argumentTypes.length > 0, "Hook method must have one or more arguments");
+
+        String targetClassName = argumentTypes[0].getClassName();
+
+        List<HookParameter> hookMethodParameters = new ArrayList<>();
+        List<Type> targetMethodParameters = new ArrayList<>();
+
+        int currentParameterId = 1;
+        Type targetMethodReturnType = null;
+
+        for (int i = 1; i < argumentTypes.length; i++) {
+            Type argType = argumentTypes[i];
+            AnnotationMap parameterAnnotation = methodNode.parameterAnnotations.get(i);
+            if (parameterAnnotation.contains(Hook.LocalVariable.class))
+                hookMethodParameters.add(new HookParameter(argType, parameterAnnotation.get(Hook.LocalVariable.class).<Hook.LocalVariable>value().value()));
+            else if (parameterAnnotation.contains(Hook.ReturnValue.class)) {
+                hookMethodParameters.add(new HookParameter(argType, -1));
+                targetMethodReturnType = argType;
+            } else {
+                hookMethodParameters.add(new HookParameter(argType, currentParameterId));
+                targetMethodParameters.add(argType);
+            }
+        }
+
+
+        return new AsmHook(targetClassName, targetMethodName, classNode.name, methodNode.name,
+                Collections.unmodifiableList(hookMethodParameters), Collections.unmodifiableList(targetMethodParameters), targetMethodReturnType,
+                hook.createMethod(), hook.isMandatory(), hook.returnCondition(), hook.priority(),
                 new Anchor(at.point(), at.shift(), at.target(), at.ordinal()));
     }
 
