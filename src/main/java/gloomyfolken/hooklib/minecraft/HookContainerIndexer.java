@@ -61,10 +61,11 @@ public class HookContainerIndexer {
                 .collect(toList());
     }
 
-    private static AsmLens parseLens(AdvancedClassNode classNode, AdvancedFieldNode fn) {
+    private static AsmLens parseLens(AdvancedClassNode classNode, AdvancedFieldNode fn) throws IllegalHookException {
         HookLens annotation = fn.annotations.get(HookLens.class).value();
         String targetFieldName = annotation.name().isEmpty() ? fn.name : annotation.name();
-        assert (fn.desc.equals(Type.getDescriptor(Lens.class)));//todo: replace assert by more good exception
+
+        checkValid(fn.desc.equals(Type.getDescriptor(Lens.class)), "Hook lens must be Lens<O,F>");
 
         String[] typeParameters = fn.signature.substring(fn.signature.indexOf('<') + 1, fn.signature.lastIndexOf('>')).split(";");
 
@@ -80,6 +81,11 @@ public class HookContainerIndexer {
         At at = value.at();
         return new AsmHook("", null, null, null, null, null, value.createMethod(), value.isMandatory(), value.returnCondition(), value.priority(),
                 new Anchor(at.point(), at.shift(), at.target(), at.ordinal()));
+    }
+
+    public static void checkValid(boolean ok, String error) throws IllegalHookException {
+        if (!ok)
+            throw new IllegalHookException(error);
     }
 
     private static Stream<AdvancedClassNode> getClasses() {
