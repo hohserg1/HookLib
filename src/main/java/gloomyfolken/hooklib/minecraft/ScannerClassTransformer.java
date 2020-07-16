@@ -4,6 +4,7 @@ import gloomyfolken.hooklib.api.At;
 import gloomyfolken.hooklib.api.Hook;
 import gloomyfolken.hooklib.api.HookContainer;
 import gloomyfolken.hooklib.api.InjectionPoint;
+import gloomyfolken.hooklib.common.AsmHelper;
 import gloomyfolken.hooklib.common.SafeClassWriter;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.LaunchClassLoader;
@@ -13,9 +14,6 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.util.List;
-import java.util.stream.Collectors;
-
-import static org.objectweb.asm.Opcodes.ASM5;
 
 @HookContainer(modid = ModTitle.hooklib_modid)
 public class ScannerClassTransformer implements IClassTransformer {
@@ -44,15 +42,11 @@ public class ScannerClassTransformer implements IClassTransformer {
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
-        System.out.println("transform " + name.equals(transformedName) + " name " + name + ", transformedName " + transformedName);
+        //System.out.println("transform " + name.equals(transformedName) + " name " + name + ", transformedName " + transformedName);
 
-        ClassReader classReader = new ClassReader(basicClass);
+        ClassNode classNode = AsmHelper.classNodeOf(basicClass, ClassReader.SKIP_FRAMES);
 
-
-        ClassNode classNode = new ClassNode(ASM5);
-        classReader.accept(classNode, ClassReader.SKIP_FRAMES);
-
-        System.out.println("methods " + classNode.methods.stream().map(m -> m.name).collect(Collectors.toList()));
+        //System.out.println("methods " + classNode.methods.stream().map(m -> m.name).collect(Collectors.toList()));
 
 
         ClassWriter classWriter = new SafeClassWriter(ClassWriter.COMPUTE_FRAMES);
