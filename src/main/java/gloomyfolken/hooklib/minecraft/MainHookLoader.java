@@ -1,27 +1,33 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.common.AsmHelper;
-import gloomyfolken.hooklib.common.ClassMetadataReader;
+import com.google.common.collect.ImmutableMultimap;
+import gloomyfolken.hooklib.common.advanced.tree.AdvancedClassNode;
+import gloomyfolken.hooklib.common.model.field.lens.AsmLens;
+import gloomyfolken.hooklib.common.model.method.hook.AsmHook;
 import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import org.objectweb.asm.tree.AbstractInsnNode;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.List;
+import java.util.Map;
+
+import static gloomyfolken.hooklib.minecraft.HookContainerIndexer.*;
 
 public class MainHookLoader implements IFMLLoadingPlugin {
 
+    public final ImmutableMultimap<String, AsmHook> hooks;
+    public final ImmutableMultimap<String, AsmLens> lenses;
+
     public MainHookLoader() {
         preloadUsedClasses();
-        //System.out.println(DeobfHelper.class);
-
+        System.out.println("Start hooks indexing");
+        List<AdvancedClassNode> hookContainers = findHookContainers();
+        hooks = findHooks(hookContainers);
+        lenses = findLenses(hookContainers);
+        System.out.println("End hooks indexing");
     }
 
     private void preloadUsedClasses() {
-        getClassesRequiredByTransformer()
+        PreLoader.getClassesRequiredByTransformer(getASMTransformerClass())
                 .forEach(className -> {
                     try {
                         System.out.println("Preloaded for HookLib transformer " + className);
@@ -30,35 +36,6 @@ public class MainHookLoader implements IFMLLoadingPlugin {
                         e.printStackTrace();
                     }
                 });
-    }
-
-    private Set<String> getClassesRequiredByTransformer() {
-        return Arrays.stream(getASMTransformerClass())
-                .flatMap(className -> {
-                    try {
-                        return Stream.of(ClassMetadataReader.instance.getClassData(className));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        return Stream.empty();
-                    }
-                })
-                .map(AsmHelper::classNodeOf)
-                .flatMap(cn ->
-                        cn.methods.stream().flatMap(mn -> {
-                            Stream<AbstractInsnNode> instructions = StreamSupport.stream(
-                                    Spliterators.spliteratorUnknownSize(mn.instructions.iterator(), Spliterator.ORDERED),
-                                    false);
-                            return instructions.flatMap(in -> {
-                                try {
-                                    return Stream.of((String) in.getClass().getDeclaredField("owner").get(in));
-                                } catch (NoSuchFieldException | IllegalAccessException e) {
-                                    return Stream.empty();
-                                }
-                            });
-                        })
-                )
-                .map(className -> className.replace('/', '.'))
-                .collect(Collectors.toSet());
     }
 
     @Override
