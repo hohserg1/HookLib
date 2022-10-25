@@ -25,11 +25,11 @@ public class SafeClassWriter extends ClassWriter {
         ArrayList<String> superClasses2 = classMetadataReader.getSuperClasses(type2);
         int size = Math.min(superClasses1.size(), superClasses2.size());
         int i;
-        for (i = 0; i < size && superClasses1.get(i).equals(superClasses2.get(i)); i++);
+        for (i = 0; i < size && superClasses1.get(i).equals(superClasses2.get(i)); i++) ;
         if (i == 0) {
             return "java/lang/Object";
         } else {
-            return superClasses1.get(i-1);
+            return superClasses1.get(i - 1);
         }
     }
 
