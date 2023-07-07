@@ -1,10 +1,8 @@
 package gloomyfolken.hooklib.asm;
 
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.tree.MethodNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,14 +10,14 @@ import java.util.List;
 public class HookInjectorClassVisitor extends ClassVisitor {
 
     List<AsmHook> hooks;
-    List<AsmHook> injectedHooks = new ArrayList<>(1);
+    List<AsmHook> injectedHooks = new ArrayList<AsmHook>(1);
     boolean visitingHook;
     HookClassTransformer transformer;
 
     String superName;
 
-    public HookInjectorClassVisitor(HookClassTransformer transformer, ClassWriter cv, List<AsmHook> hooks) {
-        super(Opcodes.ASM5, cv);
+    public HookInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmHook> hooks) {
+        super(Opcodes.ASM5, finalizeVisitor);
         this.hooks = hooks;
         this.transformer = transformer;
     }
@@ -35,7 +33,6 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     public MethodVisitor visitMethod(int access, String name, String desc,
                                      String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        
         for (AsmHook hook : hooks) {
             if (isTargetMethod(hook, name, desc) && !injectedHooks.contains(hook)) {
                 // добавляет MethodVisitor в цепочку

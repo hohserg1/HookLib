@@ -1,44 +1,14 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.utils.FMLRelaunchLog;
+import gloomyfolken.hooklib.helper.Logger;
 import net.minecraftforge.fml.relauncher.CoreModManager;
-import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 import java.lang.reflect.Field;
-import java.util.Map;
 
-public class HookLibPlugin implements IFMLLoadingPlugin {
+public class HookLibPlugin {
 
     private static boolean obf;
     private static boolean checked;
-
-    // 1.6.x only
-    public String[] getLibraryRequestClass() {
-        return null;
-    }
-
-    // 1.7.x only
-    public String getAccessTransformerClass() {
-        return null;
-    }
-
-    @Override
-    public String[] getASMTransformerClass() {
-        return new String[]{PrimaryClassTransformer.class.getName()};
-    }
-
-    @Override
-    public String getModContainerClass() {
-        return null;
-    }
-
-    @Override
-    public String getSetupClass() {
-        return null;
-    }
-
-    @Override
-    public void injectData(Map<String, Object> data) {}
 
     public static boolean getObfuscated() {
         if (!checked) {
@@ -46,7 +16,7 @@ public class HookLibPlugin implements IFMLLoadingPlugin {
                 Field deobfField = CoreModManager.class.getDeclaredField("deobfuscatedEnvironment");
                 deobfField.setAccessible(true);
                 obf = !deobfField.getBoolean(null);
-                FMLRelaunchLog.info(" Obfuscated: " + obf);
+                Logger.instance.info("Obfuscated: " + obf);
             } catch (Exception e) {
                 e.printStackTrace();
             }

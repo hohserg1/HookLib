@@ -1,8 +1,10 @@
 package gloomyfolken.hooklib.asm;
 
-import gloomyfolken.hooklib.asm.Hook.LocalVariable;
-import gloomyfolken.hooklib.asm.Hook.ReturnValue;
+import gloomyfolken.hooklib.api.Hook;
+import gloomyfolken.hooklib.api.LocalVariable;
+import gloomyfolken.hooklib.helper.Logger;
 import org.objectweb.asm.*;
+import org.objectweb.asm.tree.ClassNode;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -25,34 +27,39 @@ public class HookContainerParser {
     Ключ - номер параметра, значение - номер локальной переменной для перехвата
     или -1 для перехвата значения наверху стека.
      */
-    private HashMap<Integer, Integer> parameterAnnotations = new HashMap<>();
+    private HashMap<Integer, Integer> parameterAnnotations = new HashMap<Integer, Integer>();
 
     private boolean inHookAnnotation;
 
     private static final String HOOK_DESC = Type.getDescriptor(Hook.class);
     private static final String LOCAL_DESC = Type.getDescriptor(LocalVariable.class);
-    private static final String RETURN_DESC = Type.getDescriptor(ReturnValue.class);
+    private static final String RETURN_DESC = Type.getDescriptor(gloomyfolken.hooklib.api.ReturnValue.class);
 
     public HookContainerParser(HookClassTransformer transformer) {
         this.transformer = transformer;
     }
 
     protected void parseHooks(String className) {
-        transformer.logger.debug("Parsing hooks container " + className);
+        Logger.instance.debug("Parsing hooks container " + className);
         try {
             transformer.classMetadataReader.acceptVisitor(className, new HookClassVisitor());
         } catch (IOException e) {
-            transformer.logger.severe("Can not parse hooks container " + className, e);
+            Logger.instance.error("Can not parse hooks container " + className, e);
         }
     }
 
-    protected void parseHooks(byte[] classData) {
-
+    protected void parseHooks(String className, ClassNode classNode) {
+        Logger.instance.debug("Parsing hooks container " + className);
+        try {
+            classNode.accept(new HookClassVisitor());
+        } catch (Throwable e) {
+            Logger.instance.error("Can not parse hooks container " + className, e);
+        }
     }
 
     private void invalidHook(String message) {
-        transformer.logger.warning("Found invalid hook " + currentClassName + "#" + currentMethodName);
-        transformer.logger.warning(message);
+        Logger.instance.warning("Found invalid hook " + currentClassName + "#" + currentMethodName);
+        Logger.instance.warning(message);
     }
 
     private void createHook() {
@@ -116,10 +123,6 @@ public class HookContainerParser {
             builder.setInjectorFactory(new HookInjectorFactory.LineNumber(line));
         }
 
-        if (annotationValues.containsKey("at")) {
-            builder.setAnchorForInject((HashMap<String, Object>) annotationValues.get("at"));
-        }
-
         if (annotationValues.containsKey("returnType")) {
             builder.setTargetMethodReturnType((String) annotationValues.get("returnType"));
         }
@@ -133,15 +136,15 @@ public class HookContainerParser {
         if (returnCondition != ReturnCondition.NEVER) {
             Object primitiveConstant = getPrimitiveConstant();
             if (primitiveConstant != null) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.PRIMITIVE_CONSTANT);
+                builder.setReturnValue(ReturnValue.PRIMITIVE_CONSTANT);
                 builder.setPrimitiveConstant(primitiveConstant);
             } else if (Boolean.TRUE.equals(annotationValues.get("returnNull"))) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.NULL);
+                builder.setReturnValue(ReturnValue.NULL);
             } else if (annotationValues.containsKey("returnAnotherMethod")) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.ANOTHER_METHOD_RETURN_VALUE);
+                builder.setReturnValue(ReturnValue.ANOTHER_METHOD_RETURN_VALUE);
                 builder.setReturnMethod((String) annotationValues.get("returnAnotherMethod"));
             } else if (methodType.getReturnType() != Type.VOID_TYPE) {
-                builder.setReturnValue(gloomyfolken.hooklib.asm.ReturnValue.HOOK_RETURN_VALUE);
+                builder.setReturnValue(ReturnValue.HOOK_RETURN_VALUE);
             }
         }
 
@@ -167,7 +170,7 @@ public class HookContainerParser {
             builder.setCreateMethod(Boolean.TRUE.equals(annotationValues.get("createMethod")));
         }
         if (annotationValues.containsKey("isMandatory")) {
-            builder.setMandatory(Boolean.TRUE.equals(annotationValues.get("isMandatory")));
+            builder.setMandatory(!Boolean.FALSE.equals(annotationValues.get("isMandatory")));
         }
 
         transformer.registerHook(builder.build());
@@ -212,14 +215,14 @@ public class HookContainerParser {
         @Override
         public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
             if (HOOK_DESC.equals(desc)) {
-                annotationValues = new HashMap<>();
+                annotationValues = new HashMap<String, Object>();
                 inHookAnnotation = true;
             }
             return new HookAnnotationVisitor();
         }
 
         @Override
-        public AnnotationVisitor visitParameterAnnotation(int parameter, String desc, boolean visible) {
+        public AnnotationVisitor visitParameterAnnotation(final int parameter, String desc, boolean visible) {
             if (RETURN_DESC.equals(desc)) {
                 parameterAnnotations.put(parameter, -1);
             }
@@ -257,29 +260,6 @@ public class HookContainerParser {
             if (inHookAnnotation) {
                 annotationValues.put(name, value);
             }
-        }
-
-        /**
-         * Вложенные аннотации
-         */
-
-        @Override
-        public AnnotationVisitor visitAnnotation(String name, String desc) {
-            if (inHookAnnotation) {
-                annotationValues.put(name, new HashMap<String, Object>());
-                return new AnnotationVisitor(Opcodes.ASM5) {
-                    @Override
-                    public void visit(String name1, Object value) {
-                        ((HashMap<String, Object>) annotationValues.get(name)).put(name1, value);
-                    }
-
-                    @Override
-                    public void visitEnum(String name1, String desc, String value) {
-                        ((HashMap<String, Object>) annotationValues.get(name)).put(name1, value);
-                    }
-                };
-            } else
-                return null;
         }
 
         @Override

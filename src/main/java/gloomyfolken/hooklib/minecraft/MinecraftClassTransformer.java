@@ -3,8 +3,9 @@ package gloomyfolken.hooklib.minecraft;
 import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
+import gloomyfolken.hooklib.helper.Logger;
 import net.minecraft.launchwrapper.IClassTransformer;
-import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.ClassVisitor;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -21,7 +22,7 @@ import java.util.Map;
  */
 public class MinecraftClassTransformer extends HookClassTransformer implements IClassTransformer {
 
-    public static MinecraftClassTransformer instance;
+    static MinecraftClassTransformer instance;
     private Map<Integer, String> methodNames;
 
     private static List<IClassTransformer> postTransformers = new ArrayList<IClassTransformer>();
@@ -34,9 +35,9 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
                 long timeStart = System.currentTimeMillis();
                 methodNames = loadMethodNames();
                 long time = System.currentTimeMillis() - timeStart;
-                logger.debug("Methods dictionary loaded in " + time + " ms");
+                Logger.instance.debug("Methods dictionary loaded in " + time + " ms");
             } catch (IOException e) {
-                logger.severe("Can not load obfuscated method names", e);
+                Logger.instance.error("Can not load obfuscated method names", e);
             }
         }
 
@@ -70,8 +71,8 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     }
 
     @Override
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassWriter cw, List<AsmHook> hooks) {
-        return new HookInjectorClassVisitor(this, cw, hooks) {
+    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmHook> hooks) {
+        return new HookInjectorClassVisitor(this, finalizeVisitor, hooks) {
             @Override
             protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
                 if (HookLibPlugin.getObfuscated()) {

@@ -12,7 +12,6 @@ import java.util.Collections;
  * Позволяет при помощи велосипеда из костылей искать методы внутри незагруженных классов
  * и общие суперклассы для чего угодно. Работает через поиск class-файлов в classpath, и, в случае провала -
  * ищет через рефлексию. Для работы с майнкрафтом используется сабкласс под названием DeobfuscationMetadataReader,
- *
  */
 public class ClassMetadataReader {
     private static Method m;
@@ -163,7 +162,6 @@ public class ClassMetadataReader {
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            System.out.println("visiting " + name + "#" + desc);
             if ((access & Opcodes.ACC_PRIVATE) == 0 && checkSameMethod(name, desc, targetName, targetDesc)) {
                 found = true;
                 targetName = name;
@@ -189,7 +187,8 @@ public class ClassMetadataReader {
             return Type.getMethodType(desc);
         }
 
-        @Override public String toString() {
+        @Override
+        public String toString() {
             return "MethodReference{" +
                     "owner='" + owner + '\'' +
                     ", name='" + name + '\'' +
