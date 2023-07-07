@@ -4,6 +4,7 @@ import gloomyfolken.hooklib.api.HookContainer;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
+import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModClassLoader;
 import org.apache.commons.io.FileUtils;
@@ -41,20 +42,23 @@ public class MainHookLoader extends HookLoader {
         List<File> classCandidates = new ArrayList<>(100);
         List<ClassNode> result = new ArrayList<>(1);
 
-        if (Config.instance.useModsDirCandidates)
-            addFromModsDir(jarCandidates);
+        addFromModsDir(jarCandidates, new File("./mods/"));
+        addFromModsDir(jarCandidates, new File("./mods/" + ForgeVersion.mcVersion));
+
 
         if (Config.instance.useClasspathCandidates)
             addFromClasspath(jarCandidates, classCandidates);
 
         for (File jar : jarCandidates)
             try {
+                Logger.instance.info("Finding hooks in jar: " + jar);
                 ZipFile zipFile = new ZipFile(jar);
 
                 Enumeration<? extends ZipEntry> entries = zipFile.entries();
 
                 while (entries.hasMoreElements()) {
                     ZipEntry entry = entries.nextElement();
+                    System.out.println(entry.getName());
                     if (!entry.isDirectory() && entry.getName().endsWith(".class"))
                         try (InputStream is = zipFile.getInputStream(entry)) {
                             if (is != null)
@@ -98,11 +102,9 @@ public class MainHookLoader extends HookLoader {
         }
     }
 
-    File modsDir = new File("./mods/");
+    private void addFromModsDir(List<File> jarCandidates, File folder) {
 
-    private void addFromModsDir(List<File> jarCandidates) {
-
-        File[] jarFiles = modsDir.listFiles(pathname -> pathname.getName().endsWith(".jar"));
+        File[] jarFiles = folder.listFiles(pathname -> pathname.getName().endsWith(".jar"));
 
         if (jarFiles != null)
             jarCandidates.addAll(Arrays.asList(jarFiles));
