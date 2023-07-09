@@ -3,6 +3,7 @@ package gloomyfolken.hooklib.helper.annotation;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -26,10 +27,21 @@ class AnnotationInvocationHandler implements Annotation, InvocationHandler {
         for (Method element : annotationType.getDeclaredMethods()) {
             String elementName = element.getName();
             if (values.containsKey(elementName)) {
-                valid.put(elementName, values.get(elementName));
-            } else if (element.getDefaultValue() != null) {
+                Class<?> type = element.getReturnType();
+                Object value = values.get(elementName);
+                if (type.isArray()) {
+                    Class<?> componentType = type.getComponentType();
+                    int length = Array.getLength(value);
+                    Object value2 = Array.newInstance(componentType, length);
+                    for (int i = 0; i < length; i++)
+                        Array.set(value2, i, Array.get(value, i));
+                    valid.put(elementName, value2);
+
+                } else
+                    valid.put(elementName, value);
+
+            } else if (element.getDefaultValue() != null)
                 valid.put(elementName, element.getDefaultValue());
-            }
         }
         return valid;
     }

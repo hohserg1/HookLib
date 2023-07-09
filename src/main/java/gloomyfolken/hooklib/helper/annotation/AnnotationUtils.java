@@ -63,20 +63,7 @@ public class AnnotationUtils {
                 String name = (String) values.get(i);
                 Object value = values.get(i + 1);
 
-                Object insertableValue;
-
-                if (value instanceof String[]) {
-                    String[] enum1 = (String[]) value;
-                    String enumType = Type.getType(enum1[0].replace('/', '.')).getClassName();
-                    String enumValue = enum1[1];
-                    Class<Enum> enumClass = (Class<Enum>) Class.forName(enumType);
-                    insertableValue = Enum.valueOf(enumClass, enumValue);
-                } else if (value instanceof AnnotationNode)
-                    insertableValue = createInstance((AnnotationNode) value);
-                else
-                    insertableValue = value;
-
-                map.put(name, insertableValue);
+                map.put(name, parseValue(value));
             }
 
             return annotation(annotationClass, map);
@@ -85,6 +72,26 @@ public class AnnotationUtils {
             //e.printStackTrace();
             return null;
         }
+    }
+
+    private static Object parseValue(Object value) throws ClassNotFoundException {
+        if (value instanceof String[]) {
+            String[] enum1 = (String[]) value;
+            String enumType = Type.getType(enum1[0].replace('/', '.')).getClassName();
+            String enumValue = enum1[1];
+            Class<Enum> enumClass = (Class<Enum>) Class.forName(enumType);
+            return Enum.valueOf(enumClass, enumValue);
+        } else if (value instanceof AnnotationNode)
+            return createInstance((AnnotationNode) value);
+        else if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            Object[] arr = new Object[list.size()];
+            for (int i = 0; i < list.size(); i++) {
+                arr[i] = parseValue(list.get(i));
+            }
+            return arr;
+        } else
+            return value;
     }
 
     public static <A extends Annotation> A annotation(Class<A> annotationType, Map<String, Object> values) {
