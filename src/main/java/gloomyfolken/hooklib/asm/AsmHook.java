@@ -156,36 +156,36 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             if (returnSort == ReturnSort.NULL) {
                 inj.visitInsn(Opcodes.ACONST_NULL);
             } else if (returnSort == ReturnSort.PRIMITIVE_CONSTANT) {
-                if (primitiveConstant instanceof ReturnConstants) {
-                    ReturnConstants hook = (ReturnConstants) this.primitiveConstant;
+                if (primitiveConstant instanceof ReturnConstant) {
+                    ReturnConstant hook = (ReturnConstant) this.primitiveConstant;
                     switch (targetMethodReturnType.getSort()) {
                         case BOOLEAN:
-                            inj.visitLdcInsn(hook.booleanReturnConstant);
+                            inj.visitLdcInsn(hook.booleanValue());
                             break;
                         case CHAR:
-                            inj.visitLdcInsn(hook.charReturnConstant);
+                            inj.visitLdcInsn(hook.charValue());
                             break;
                         case BYTE:
-                            inj.visitLdcInsn(hook.byteReturnConstant);
+                            inj.visitLdcInsn(hook.byteValue());
                             break;
                         case SHORT:
-                            inj.visitLdcInsn(hook.shortReturnConstant);
+                            inj.visitLdcInsn(hook.shortValue());
                             break;
                         case INT:
-                            inj.visitLdcInsn(hook.intReturnConstant);
+                            inj.visitLdcInsn(hook.intValue());
                             break;
                         case FLOAT:
-                            inj.visitLdcInsn(hook.floatReturnConstant);
+                            inj.visitLdcInsn(hook.floatValue());
                             break;
                         case LONG:
-                            inj.visitLdcInsn(hook.longReturnConstant);
+                            inj.visitLdcInsn(hook.longValue());
                             break;
                         case DOUBLE:
-                            inj.visitLdcInsn(hook.doubleReturnConstant);
+                            inj.visitLdcInsn(hook.doubleValue());
                             break;
                         default:
                             if (targetMethodReturnType.equals(Type.getType(String.class)))
-                                inj.visitLdcInsn(hook.stringReturnConstant);
+                                inj.visitLdcInsn(hook.stringValue());
                             else
                                 throw new IllegalArgumentException("Hook have primitive return constant, but target method return type is not primitive or String");
                     }
@@ -700,7 +700,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
                         "to specify that constant.");
             }
             Type returnType = AsmHook.this.targetMethodReturnType;
-            if (!(constant instanceof ReturnConstants))
+            if (!(constant instanceof ReturnConstant))
                 if (returnType == BOOLEAN_TYPE && !(constant instanceof Boolean) ||
                         returnType == CHAR_TYPE && !(constant instanceof Character) ||
                         returnType == BYTE_TYPE && !(constant instanceof Byte) ||

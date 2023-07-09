@@ -91,16 +91,16 @@ public class HookContainerParser2 {
 
                 try {
                     if (returnCondition != ReturnCondition.NEVER) {
-                        if (hookAnnotation.returnNull()) {
+                        if (hookAnnotation.returnConstant().length != 0) {
+                            builder.setReturnValue(ReturnSort.PRIMITIVE_CONSTANT);
+                            builder.setPrimitiveConstant(hookAnnotation.returnConstant()[0]);
+                        } else if (hookAnnotation.returnNull()) {
                             builder.setReturnValue(ReturnSort.NULL);
                         } else if (!hookAnnotation.returnAnotherMethod().isEmpty()) {
                             builder.setReturnValue(ReturnSort.ANOTHER_METHOD_RETURN_VALUE);
                             builder.setReturnMethod(hookAnnotation.returnAnotherMethod());
                         } else if (methodType.getReturnType() != Type.VOID_TYPE) {
                             builder.setReturnValue(ReturnSort.HOOK_RETURN_VALUE);
-                        } else {
-                            builder.setReturnValue(ReturnSort.PRIMITIVE_CONSTANT);
-                            builder.setPrimitiveConstant(ReturnConstants.of(hookAnnotation));
                         }
                     }
                 } catch (IllegalArgumentException e) {
