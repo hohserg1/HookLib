@@ -90,7 +90,7 @@ public class AnnotationUtils {
     public static <A extends Annotation> A annotation(Class<A> annotationType, Map<String, Object> values) {
         return (A) Proxy.newProxyInstance(annotationType.getClassLoader(),
                 new Class[]{annotationType},
-                new AnnotationInvocationHandler(annotationType, values == null ? Collections.emptyMap() : values));
+                new AnnotationInvocationHandler(annotationType, values));
     }
 
 }
