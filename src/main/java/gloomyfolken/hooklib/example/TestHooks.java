@@ -1,8 +1,6 @@
 package gloomyfolken.hooklib.example;
 
-import gloomyfolken.hooklib.api.Hook;
-import gloomyfolken.hooklib.api.HookContainer;
-import gloomyfolken.hooklib.api.ReturnValue;
+import gloomyfolken.hooklib.api.*;
 import gloomyfolken.hooklib.asm.ReturnCondition;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
@@ -10,7 +8,8 @@ import net.minecraftforge.common.ForgeHooks;
 
 @HookContainer
 public class TestHooks {
-    @Hook()
+    @Hook
+    @OnBegin
     public static void resize(Minecraft mc, int x, int y) {
         System.out.println("Resize, x=" + x + ", y=" + y);
     }
@@ -19,8 +18,9 @@ public class TestHooks {
      * Цель: уменьшить вдвое показатели брони у всех игроков.
      * P.S: фордж перехватывает получение показателя брони, ну а мы перехватим перехватчик :D
      */
-    @Hook(injectOnExit = true, returnCondition = ReturnCondition.ALWAYS)
-    public static int getTotalArmorValue(ForgeHooks fh, EntityPlayer player, @ReturnValue int returnValue) {
-        return returnValue / 2;
+    @Hook(returnCondition = ReturnCondition.ALWAYS, returnConstant = @ReturnConstant(intValue = 1))
+    @OnReturn
+    public static void getTotalArmorValue(ForgeHooks fh, EntityPlayer player) {
+        //return returnValue / 2;
     }
 }
