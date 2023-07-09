@@ -1,6 +1,8 @@
 package gloomyfolken.hooklib.asm;
 
-import org.objectweb.asm.Label;
+import gloomyfolken.hooklib.api.Shift;
+import gloomyfolken.hooklib.minecraft.HookLibPlugin;
+import gloomyfolken.hooklib.minecraft.MinecraftClassTransformer;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -43,13 +45,43 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         return mv;
     }
 
+    static class OrderedVisitor extends HookInjectorMethodVisitor {
+
+        private int ordinal;
+
+        protected OrderedVisitor(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor cv, int ordinal) {
+            super(mv, access, name, desc, hook, cv);
+            this.ordinal = ordinal;
+        }
+
+        protected boolean canVisitOrderedHook() {
+            if (this.ordinal == 0) {
+                this.ordinal = -2;
+                return true;
+            }
+            if (this.ordinal == -1)
+                return true;
+            if (this.ordinal > 0)
+                this.ordinal--;
+            return false;
+        }
+
+        protected boolean visitOrderedHook() {
+            if (canVisitOrderedHook()) {
+                visitHook();
+                return true;
+            } else
+                return false;
+        }
+    }
+
     /**
      * Вставляет хук в начале метода.
      */
-    public static class MethodEnter extends HookInjectorMethodVisitor {
+    static class BeginVisitor extends HookInjectorMethodVisitor {
 
-        public MethodEnter(MethodVisitor mv, int access, String name, String desc,
-                           AsmHook hook, HookInjectorClassVisitor cv) {
+        public BeginVisitor(MethodVisitor mv, int access, String name, String desc,
+                            AsmHook hook, HookInjectorClassVisitor cv) {
             super(mv, access, name, desc, hook, cv);
         }
 
@@ -63,39 +95,58 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     /**
      * Вставляет хук на каждом выходе из метода, кроме выходов через throw.
      */
-    public static class MethodExit extends HookInjectorMethodVisitor {
+    static class ReturnVisitor extends OrderedVisitor {
 
-        public MethodExit(MethodVisitor mv, int access, String name, String desc,
-                          AsmHook hook, HookInjectorClassVisitor cv) {
-            super(mv, access, name, desc, hook, cv);
+        public ReturnVisitor(MethodVisitor mv, int access, String name, String desc,
+                             AsmHook hook, HookInjectorClassVisitor cv, int ordinal) {
+            super(mv, access, name, desc, hook, cv, ordinal);
         }
 
         @Override
         protected void onMethodExit(int opcode) {
-            if (opcode != Opcodes.ATHROW) {
-                visitHook();
+            if (opcode != Opcodes.ATHROW)
+                visitOrderedHook();
+        }
+    }
+
+    static class MethodCallVisitor extends OrderedVisitor {
+
+        private final String methodName;
+        private final String methodDesc;
+        private final Shift shift;
+
+        protected MethodCallVisitor(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor cv,
+                                    String methodName, String methodDesc, int ordinal, Shift shift) {
+            super(mv, access, name, desc, hook, cv, ordinal);
+            this.methodName = methodName;
+            this.methodDesc = methodDesc;
+            this.shift = shift;
+        }
+
+        public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+            String targetName = HookLibPlugin.getObfuscated() ? MinecraftClassTransformer.instance.getMethodNames().getOrDefault(MinecraftClassTransformer.getMethodId(name), name) : name;
+            if (methodName.equals(targetName) && (methodDesc.isEmpty() || desc.startsWith(methodDesc))) {
+                switch (shift) {
+                    case BEFORE:
+                        visitOrderedHook();
+                        super.visitMethodInsn(opcode, owner, name, desc, itf);
+                        break;
+                    case AFTER:
+                        super.visitMethodInsn(opcode, owner, name, desc, itf);
+                        visitOrderedHook();
+                        break;
+                    case INSTEAD:
+                        if (canVisitOrderedHook()) {
+                            for (int i = 0; i < (Type.getArgumentTypes(desc)).length + ((opcode == 184) ? 0 : 1); i++)
+                                visitInsn(87);
+                            visitHook();
+                        } else
+                            super.visitMethodInsn(opcode, owner, name, desc, itf);
+                        break;
+                }
+            } else {
+                super.visitMethodInsn(opcode, owner, name, desc, itf);
             }
         }
     }
-
-    /**
-     * Вставляет хук по номеру строки.
-     */
-    public static class LineNumber extends HookInjectorMethodVisitor {
-
-        private int lineNumber;
-
-        public LineNumber(MethodVisitor mv, int access, String name, String desc,
-                          AsmHook hook, HookInjectorClassVisitor cv, int lineNumber) {
-            super(mv, access, name, desc, hook, cv);
-            this.lineNumber = lineNumber;
-        }
-
-        @Override
-        public void visitLineNumber(int line, Label start) {
-            super.visitLineNumber(line, start);
-            if (this.lineNumber == line) visitHook();
-        }
-    }
-
 }

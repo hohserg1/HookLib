@@ -1,8 +1,6 @@
 package gloomyfolken.hooklib.asm;
 
-import gloomyfolken.hooklib.api.Hook;
-import gloomyfolken.hooklib.api.LocalVariable;
-import gloomyfolken.hooklib.api.ReturnValue;
+import gloomyfolken.hooklib.api.*;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
@@ -15,9 +13,10 @@ import java.util.stream.Stream;
 
 public class HookContainerParser2 {
 
-    private static void invalidHook(String message, ClassNode classNode, MethodNode methodNode) {
+    private static Stream<AsmHook> invalidHook(String message, ClassNode classNode, MethodNode methodNode) {
         Logger.instance.warning("Found invalid hook " + classNode.name.replace('/', '.') + "#" + methodNode.name);
         Logger.instance.warning(message);
+        return Stream.empty();
     }
 
     public static Stream<AsmHook> parseHooks(ClassNode classNode) {
@@ -30,18 +29,15 @@ public class HookContainerParser2 {
                 Type[] argumentTypes = methodType.getArgumentTypes();
 
                 if (!(isPublic(methodNode) && isStatic(methodNode))) {
-                    invalidHook("Hook method must be public and static.", classNode, methodNode);
-                    return Stream.empty();
+                    return invalidHook("Hook method must be public and static.", classNode, methodNode);
                 }
 
                 if (argumentTypes.length < 1) {
-                    invalidHook("Hook method has no parameters. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
-                    return Stream.empty();
+                    return invalidHook("Hook method has no parameters. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
                 }
 
                 if (argumentTypes[0].getSort() != Type.OBJECT) {
-                    invalidHook("First parameter of the hook method is not an object. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
-                    return Stream.empty();
+                    return invalidHook("First parameter of the hook method is not an object. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
                 }
 
                 builder.setTargetClass(argumentTypes[0].getClassName());
@@ -74,12 +70,20 @@ public class HookContainerParser2 {
                     }
                 }
 
-                if (hookAnnotation.injectOnExit())
-                    builder.setInjectorFactory(AsmHook.ON_EXIT_FACTORY);
+                OnBegin onBegin = annotationMap.get(OnBegin.class);
+                OnReturn onReturn = annotationMap.get(OnReturn.class);
+                OnMethodCall onMethodCall = annotationMap.get(OnMethodCall.class);
 
-                if (hookAnnotation.injectOnLine() != -1)
-                    builder.setInjectorFactory(new HookInjectorFactory.LineNumber(hookAnnotation.injectOnLine()));
-
+                if (onBegin != null)
+                    builder.setInjectorFactory(HookInjectorFactory.BeginFactory.INSTANCE);
+                else if (onReturn != null)
+                    builder.setInjectorFactory(new HookInjectorFactory.ReturnFactory(onReturn.ordinal()));
+                else if (onMethodCall != null)
+                    builder.setInjectorFactory(new HookInjectorFactory.MethodCallFactory(
+                            onMethodCall.value(), onMethodCall.desc(), onMethodCall.ordinal(), onMethodCall.shift()
+                    ));
+                else
+                    return invalidHook("Injection point doesnt described. Use one of @OnBegin,@OnReturn or @OnMethodCall", classNode, methodNode);
 
                 if (!hookAnnotation.returnType().isEmpty())
                     builder.setTargetMethodReturnType(hookAnnotation.returnType());

@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.asm;
 
+import gloomyfolken.hooklib.api.ReturnConstant;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -42,11 +43,8 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private ReturnSort returnSort = ReturnSort.VOID;
     private Object primitiveConstant;
 
-    private HookInjectorFactory injectorFactory = ON_ENTER_FACTORY;
+    private HookInjectorFactory injectorFactory = HookInjectorFactory.BeginFactory.INSTANCE;
     private HookPriority priority = HookPriority.NORMAL;
-
-    public static final HookInjectorFactory ON_ENTER_FACTORY = HookInjectorFactory.MethodEnter.INSTANCE;
-    public static final HookInjectorFactory ON_EXIT_FACTORY = HookInjectorFactory.MethodExit.INSTANCE;
 
     // может быть без возвращаемого типа
     private String targetMethodDescription;
@@ -835,7 +833,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
                         "specified. Call setReturnMethod() before build().");
             }
 
-            if (!(hook.injectorFactory instanceof HookInjectorFactory.MethodExit) && hook.hasReturnValueParameter) {
+            if (!(hook.injectorFactory instanceof HookInjectorFactory.ReturnFactory) && hook.hasReturnValueParameter) {
                 throw new IllegalStateException("Can not pass return value to hook method " +
                         "because hook location is not return insn.");
             }

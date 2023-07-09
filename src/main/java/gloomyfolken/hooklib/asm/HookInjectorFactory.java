@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.asm;
 
+import gloomyfolken.hooklib.api.Shift;
 import org.objectweb.asm.MethodVisitor;
 
 /**
@@ -20,48 +21,52 @@ public abstract class HookInjectorFactory {
                                                           AsmHook hook, HookInjectorClassVisitor cv);
 
 
-    static class MethodEnter extends HookInjectorFactory {
+    static class BeginFactory extends HookInjectorFactory {
 
-        public static final MethodEnter INSTANCE = new MethodEnter();
+        public static final BeginFactory INSTANCE = new BeginFactory();
 
-        private MethodEnter() {
+        private BeginFactory() {
         }
 
         @Override
         public HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc,
                                                             AsmHook hook, HookInjectorClassVisitor cv) {
-            return new HookInjectorMethodVisitor.MethodEnter(mv, access, name, desc, hook, cv);
+            return new HookInjectorMethodVisitor.BeginVisitor(mv, access, name, desc, hook, cv);
         }
 
     }
 
-    static class MethodExit extends HookInjectorFactory {
+    static class ReturnFactory extends HookInjectorFactory {
+        public final int ordinal;
 
-        public static final MethodExit INSTANCE = new MethodExit();
-
-        private MethodExit() {
+        public ReturnFactory(int ordinal) {
+            this.ordinal = ordinal;
             isPriorityInverted = true;
         }
 
         @Override
         public HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc,
                                                             AsmHook hook, HookInjectorClassVisitor cv) {
-            return new HookInjectorMethodVisitor.MethodExit(mv, access, name, desc, hook, cv);
+            return new HookInjectorMethodVisitor.ReturnVisitor(mv, access, name, desc, hook, cv, ordinal);
         }
     }
 
-    static class LineNumber extends HookInjectorFactory {
+    static class MethodCallFactory extends HookInjectorFactory {
+        public final String methodName;
+        public final String methodDesc;
+        public final int ordinal;
+        public final Shift shift;
 
-        private int lineNumber;
-
-        public LineNumber(int lineNumber) {
-            this.lineNumber = lineNumber;
+        MethodCallFactory(String methodName, String methodDesc, int ordinal, Shift shift) {
+            this.methodName = methodName;
+            this.methodDesc = methodDesc;
+            this.ordinal = ordinal;
+            this.shift = shift;
         }
 
         @Override
-        public HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc,
-                                                            AsmHook hook, HookInjectorClassVisitor cv) {
-            return new HookInjectorMethodVisitor.LineNumber(mv, access, name, desc, hook, cv, lineNumber);
+        HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor cv) {
+            return new HookInjectorMethodVisitor.MethodCallVisitor(mv, access, name, desc, hook, cv, methodName, methodDesc, ordinal, shift);
         }
     }
 
