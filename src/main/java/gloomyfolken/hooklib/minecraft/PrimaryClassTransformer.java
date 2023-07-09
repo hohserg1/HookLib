@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.minecraft;
 
+import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
@@ -8,7 +9,6 @@ import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRema
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
 
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -53,7 +53,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
         };
     }
 
-    HashMap<String, List<AsmHook>> getHooksMap() {
+    ListMultimap<String, AsmHook> getHooksMap() {
         return hooksMap;
     }
 

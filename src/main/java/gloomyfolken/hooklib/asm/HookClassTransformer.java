@@ -1,5 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.minecraft.Config;
 import org.objectweb.asm.ClassReader;
@@ -8,38 +10,38 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
+import static org.objectweb.asm.ClassReader.SKIP_CODE;
+import static org.objectweb.asm.Opcodes.ASM5;
+
 public class HookClassTransformer {
-    protected HashMap<String, List<AsmHook>> hooksMap = new HashMap<String, List<AsmHook>>();
-    private HookContainerParser containerParser = new HookContainerParser(this);
+    protected ListMultimap<String, AsmHook> hooksMap = ArrayListMultimap.create(10, 2);
     protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
-    public void registerHook(AsmHook hook) {
-        if (hooksMap.containsKey(hook.getTargetClassName())) {
-            hooksMap.get(hook.getTargetClassName()).add(hook);
-        } else {
-            List<AsmHook> list = new ArrayList<AsmHook>(2);
-            list.add(hook);
-            hooksMap.put(hook.getTargetClassName(), list);
-        }
+    public void registerAllHooks(ListMultimap<String, AsmHook> hooks) {
+        hooksMap.putAll(hooks);
     }
 
-    public void registerHookContainer(String className, ClassNode classNode) {
-        containerParser.parseHooks(className, classNode);
+    public void registerHook(AsmHook hook) {
+        hooksMap.put(hook.getTargetClassName(), hook);
     }
 
     public void registerHookContainer(String className) {
-        containerParser.parseHooks(className);
+        try {
+            ClassNode classNode = new ClassNode(ASM5);
+            new ClassReader(classMetadataReader.getClassData(className)).accept(classNode, SKIP_CODE);
+            HookContainerParser2.parseHooks(classNode).forEachOrdered(this::registerHook);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public byte[] transform(String className, byte[] bytecode) {
-        List<AsmHook> hooks = hooksMap.get(className);
-
-        if (hooks != null) {
+        if (hooksMap.containsKey(className)) {
+            List<AsmHook> hooks = hooksMap.get(className);
             Collections.sort(hooks);
             Logger.instance.debug("Injecting hooks into class " + className);
             try {
@@ -116,4 +118,6 @@ public class HookClassTransformer {
     protected ClassWriter createClassWriter(int flags) {
         return new SafeClassWriter(classMetadataReader, flags);
     }
+
+
 }

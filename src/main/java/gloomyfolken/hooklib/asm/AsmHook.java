@@ -9,6 +9,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Type.DOUBLE;
+import static org.objectweb.asm.Type.FLOAT;
+import static org.objectweb.asm.Type.LONG;
 import static org.objectweb.asm.Type.*;
 
 /**
@@ -36,7 +39,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private boolean hasReturnValueParameter; // если в хук-метод передается значение из return
 
     private ReturnCondition returnCondition = ReturnCondition.NEVER;
-    private ReturnValue returnValue = ReturnValue.VOID;
+    private ReturnSort returnSort = ReturnSort.VOID;
     private Object primitiveConstant;
 
     private HookInjectorFactory injectorFactory = ON_ENTER_FACTORY;
@@ -55,7 +58,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     private boolean createMethod;
     private boolean isMandatory = true;
 
-    protected String getTargetClassName() {
+    public String getTargetClassName() {
         return targetClassName;
     }
 
@@ -127,7 +130,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         if (hasHookMethod()) {
             injectInvokeStatic(inj, returnLocalId, hookMethodName, hookMethodDescription);
 
-            if (returnValue == ReturnValue.HOOK_RETURN_VALUE || returnCondition.requiresCondition) {
+            if (returnSort == ReturnSort.HOOK_RETURN_VALUE || returnCondition.requiresCondition) {
                 hookResultLocalId = inj.newLocal(hookMethodReturnType);
                 inj.visitVarInsn(hookMethodReturnType.getOpcode(54), hookResultLocalId); //storeLocal
             }
@@ -150,13 +153,47 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             }
 
             // вставляем в стак значение, которое необходимо вернуть
-            if (returnValue == ReturnValue.NULL) {
+            if (returnSort == ReturnSort.NULL) {
                 inj.visitInsn(Opcodes.ACONST_NULL);
-            } else if (returnValue == ReturnValue.PRIMITIVE_CONSTANT) {
-                inj.visitLdcInsn(primitiveConstant);
-            } else if (returnValue == ReturnValue.HOOK_RETURN_VALUE) {
+            } else if (returnSort == ReturnSort.PRIMITIVE_CONSTANT) {
+                if (primitiveConstant instanceof ReturnConstants) {
+                    ReturnConstants hook = (ReturnConstants) this.primitiveConstant;
+                    switch (targetMethodReturnType.getSort()) {
+                        case BOOLEAN:
+                            inj.visitLdcInsn(hook.booleanReturnConstant);
+                            break;
+                        case CHAR:
+                            inj.visitLdcInsn(hook.charReturnConstant);
+                            break;
+                        case BYTE:
+                            inj.visitLdcInsn(hook.byteReturnConstant);
+                            break;
+                        case SHORT:
+                            inj.visitLdcInsn(hook.shortReturnConstant);
+                            break;
+                        case INT:
+                            inj.visitLdcInsn(hook.intReturnConstant);
+                            break;
+                        case FLOAT:
+                            inj.visitLdcInsn(hook.floatReturnConstant);
+                            break;
+                        case LONG:
+                            inj.visitLdcInsn(hook.longReturnConstant);
+                            break;
+                        case DOUBLE:
+                            inj.visitLdcInsn(hook.doubleReturnConstant);
+                            break;
+                        default:
+                            if (targetMethodReturnType.equals(Type.getType(String.class)))
+                                inj.visitLdcInsn(hook.stringReturnConstant);
+                            else
+                                throw new IllegalArgumentException("Hook have primitive return constant, but target method return type is not primitive or String");
+                    }
+                } else
+                    inj.visitLdcInsn(primitiveConstant);
+            } else if (returnSort == ReturnSort.HOOK_RETURN_VALUE) {
                 inj.visitVarInsn(hookMethodReturnType.getOpcode(21), hookResultLocalId); //loadLocal
-            } else if (returnValue == ReturnValue.ANOTHER_METHOD_RETURN_VALUE) {
+            } else if (returnSort == ReturnSort.ANOTHER_METHOD_RETURN_VALUE) {
                 String returnMethodDescription = this.returnMethodDescription;
                 // если не был определён заранее нужный возвращаемый тип, то добавляем его к описанию
                 if (returnMethodDescription.endsWith(")")) {
@@ -200,7 +237,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         for (int i = 0; i <= targetMethodParameters.size(); i++) {
             Type parameterType = i == 0 ? TypeHelper.getType(targetClassName) : targetMethodParameters.get(i - 1);
             injectLoad(inj, parameterType, variableId);
-            if (parameterType.getSort() == Type.DOUBLE || parameterType.getSort() == Type.LONG) {
+            if (parameterType.getSort() == DOUBLE || parameterType.getSort() == LONG) {
                 variableId += 2;
             } else {
                 variableId++;
@@ -220,13 +257,13 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
             case Type.INT:
                 inj.visitInsn(Opcodes.ICONST_0);
                 break;
-            case Type.FLOAT:
+            case FLOAT:
                 inj.visitInsn(Opcodes.FCONST_0);
                 break;
-            case Type.LONG:
+            case LONG:
                 inj.visitInsn(Opcodes.LCONST_0);
                 break;
-            case Type.DOUBLE:
+            case DOUBLE:
                 inj.visitInsn(Opcodes.DCONST_0);
                 break;
             default:
@@ -289,8 +326,8 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         sb.append(hookMethodDescription);
 
         sb.append(", ReturnCondition=" + returnCondition);
-        sb.append(", ReturnValue=" + returnValue);
-        if (returnValue == ReturnValue.PRIMITIVE_CONSTANT) sb.append(", Constant=" + primitiveConstant);
+        sb.append(", ReturnValue=" + returnSort);
+        if (returnSort == ReturnSort.PRIMITIVE_CONSTANT) sb.append(", Constant=" + primitiveConstant);
         sb.append(", InjectorFactory: " + injectorFactory.getClass().getName());
         sb.append(", CreateMethod = " + createMethod);
 
@@ -589,35 +626,35 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
          *                                  целевого метода указан как void (или setTargetMethodReturnType ещё не вызывался).
          *                                  Нет смысла использовать значение, которое вернул хук-метод, если метод возвращает void.
          */
-        public Builder setReturnValue(ReturnValue value) {
+        public Builder setReturnValue(ReturnSort value) {
             if (AsmHook.this.returnCondition == ReturnCondition.NEVER) {
                 throw new IllegalStateException("Current return condition is ReturnCondition.NEVER, so it does not " +
                         "make sense to specify the return value.");
             }
             Type returnType = AsmHook.this.targetMethodReturnType;
-            if (value != ReturnValue.VOID && returnType == VOID_TYPE && AsmHook.this.returnCondition == ReturnCondition.ALWAYS) {
+            if (value != ReturnSort.VOID && returnType == VOID_TYPE && AsmHook.this.returnCondition == ReturnCondition.ALWAYS) {
                 throw new IllegalArgumentException("Target method return value is void, so it does not make sense to " +
                         "return anything else.");
             }
-            if (value == ReturnValue.VOID && returnType != VOID_TYPE) {
+            if (value == ReturnSort.VOID && returnType != VOID_TYPE) {
                 throw new IllegalArgumentException("Target method return value is not void, so it is impossible " +
                         "to return VOID.");
             }
-            if (value == ReturnValue.PRIMITIVE_CONSTANT && returnType != null && !isPrimitive(returnType)) {
+            if (value == ReturnSort.PRIMITIVE_CONSTANT && returnType != null && !isPrimitive(returnType)) {
                 throw new IllegalArgumentException("Target method return value is not a primitive, so it is " +
                         "impossible to return PRIVITIVE_CONSTANT.");
             }
-            if (value == ReturnValue.NULL && returnType != null && isPrimitive(returnType)) {
+            if (value == ReturnSort.NULL && returnType != null && isPrimitive(returnType)) {
                 throw new IllegalArgumentException("Target method return value is a primitive, so it is impossible " +
                         "to return NULL.");
             }
-            if (value == ReturnValue.HOOK_RETURN_VALUE && !hasHookMethod()) {
+            if (value == ReturnSort.HOOK_RETURN_VALUE && !hasHookMethod()) {
                 throw new IllegalArgumentException("Hook method is not specified, so can not use return " +
                         "value that depends on hook method.");
             }
 
-            AsmHook.this.returnValue = value;
-            if (value == ReturnValue.HOOK_RETURN_VALUE) {
+            AsmHook.this.returnSort = value;
+            if (value == ReturnSort.HOOK_RETURN_VALUE) {
                 AsmHook.this.hookMethodReturnType = AsmHook.this.targetMethodReturnType;
             }
             return this;
@@ -658,21 +695,22 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
          *                                  для примитивного типа, который возвращает целевой метод.
          */
         public Builder setPrimitiveConstant(Object constant) {
-            if (AsmHook.this.returnValue != ReturnValue.PRIMITIVE_CONSTANT) {
+            if (AsmHook.this.returnSort != ReturnSort.PRIMITIVE_CONSTANT) {
                 throw new IllegalStateException("Return value is not PRIMITIVE_CONSTANT, so it does not make sence" +
                         "to specify that constant.");
             }
             Type returnType = AsmHook.this.targetMethodReturnType;
-            if (returnType == BOOLEAN_TYPE && !(constant instanceof Boolean) ||
-                    returnType == CHAR_TYPE && !(constant instanceof Character) ||
-                    returnType == BYTE_TYPE && !(constant instanceof Byte) ||
-                    returnType == SHORT_TYPE && !(constant instanceof Short) ||
-                    returnType == INT_TYPE && !(constant instanceof Integer) ||
-                    returnType == LONG_TYPE && !(constant instanceof Long) ||
-                    returnType == FLOAT_TYPE && !(constant instanceof Float) ||
-                    returnType == DOUBLE_TYPE && !(constant instanceof Double)) {
-                throw new IllegalArgumentException("Given object class does not math target method return type.");
-            }
+            if (!(constant instanceof ReturnConstants))
+                if (returnType == BOOLEAN_TYPE && !(constant instanceof Boolean) ||
+                        returnType == CHAR_TYPE && !(constant instanceof Character) ||
+                        returnType == BYTE_TYPE && !(constant instanceof Byte) ||
+                        returnType == SHORT_TYPE && !(constant instanceof Short) ||
+                        returnType == INT_TYPE && !(constant instanceof Integer) ||
+                        returnType == LONG_TYPE && !(constant instanceof Long) ||
+                        returnType == FLOAT_TYPE && !(constant instanceof Float) ||
+                        returnType == DOUBLE_TYPE && !(constant instanceof Double)) {
+                    throw new IllegalArgumentException("Given object class does not math target method return type.");
+                }
 
             AsmHook.this.primitiveConstant = constant;
             return this;
@@ -687,7 +725,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
          * @throws IllegalStateException если возвращаемое значение не установлено на ANOTHER_METHOD_RETURN_VALUE
          */
         public Builder setReturnMethod(String methodName) {
-            if (AsmHook.this.returnValue != ReturnValue.ANOTHER_METHOD_RETURN_VALUE) {
+            if (AsmHook.this.returnSort != ReturnSort.ANOTHER_METHOD_RETURN_VALUE) {
                 throw new IllegalStateException("Return value is not ANOTHER_METHOD_RETURN_VALUE, " +
                         "so it does not make sence to specify that method.");
             }
@@ -768,7 +806,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
                 hook.hookMethodDescription = Type.getMethodDescriptor(hook.hookMethodReturnType,
                         hook.hookMethodParameters.toArray(new Type[0]));
             }
-            if (hook.returnValue == ReturnValue.ANOTHER_METHOD_RETURN_VALUE) {
+            if (hook.returnSort == ReturnSort.ANOTHER_METHOD_RETURN_VALUE) {
                 hook.returnMethodDescription = getMethodDesc(hook.targetMethodReturnType, hook.hookMethodParameters);
             }
 
@@ -787,12 +825,12 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
                         "Call setTargetMethodName() before build().");
             }
 
-            if (hook.returnValue == ReturnValue.PRIMITIVE_CONSTANT && hook.primitiveConstant == null) {
+            if (hook.returnSort == ReturnSort.PRIMITIVE_CONSTANT && hook.primitiveConstant == null) {
                 throw new IllegalStateException("Return value is PRIMITIVE_CONSTANT, but the constant is not " +
                         "specified. Call setReturnValue() before build().");
             }
 
-            if (hook.returnValue == ReturnValue.ANOTHER_METHOD_RETURN_VALUE && hook.returnMethodName == null) {
+            if (hook.returnSort == ReturnSort.ANOTHER_METHOD_RETURN_VALUE && hook.returnMethodName == null) {
                 throw new IllegalStateException("Return value is ANOTHER_METHOD_RETURN_VALUE, but the method is not " +
                         "specified. Call setReturnMethod() before build().");
             }

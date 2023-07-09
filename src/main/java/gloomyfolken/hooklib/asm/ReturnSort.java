@@ -5,7 +5,7 @@ package gloomyfolken.hooklib.asm;
  * В зависимости от этого значения определяется, что вернёт целевой метод
  * при выходе return после вызова хук-метода.
  */
-public enum ReturnValue {
+public enum ReturnSort {
 
     /**
      * Возвращается void.

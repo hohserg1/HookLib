@@ -1,6 +1,11 @@
 package gloomyfolken.hooklib.minecraft;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimaps;
 import gloomyfolken.hooklib.api.HookContainer;
+import gloomyfolken.hooklib.asm.AsmHook;
+import gloomyfolken.hooklib.asm.HookContainerParser2;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
@@ -16,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -30,10 +36,10 @@ public class MainHookLoader extends HookLoader {
     }
 
     protected void registerHooks() {
-        findHookContainers().forEach(classNode -> {
-            String containerName = classNode.name.replace('/', '.');
-            getTransformer().registerHookContainer(containerName, classNode);
-        });
+        ListMultimap<String, AsmHook> hooks = findHookContainers().stream()
+                .flatMap(HookContainerParser2::parseHooks)
+                .collect(Multimaps.toMultimap(AsmHook::getTargetClassName, Function.identity(), ArrayListMultimap::create));
+        getTransformer().registerAllHooks(hooks);
     }
 
     private List<ClassNode> findHookContainers() {
@@ -58,7 +64,6 @@ public class MainHookLoader extends HookLoader {
 
                 while (entries.hasMoreElements()) {
                     ZipEntry entry = entries.nextElement();
-                    System.out.println(entry.getName());
                     if (!entry.isDirectory() && entry.getName().endsWith(".class"))
                         try (InputStream is = zipFile.getInputStream(entry)) {
                             if (is != null)
