@@ -104,10 +104,6 @@ public @interface Hook {
      */
     boolean returnNull() default false;
 
-    /**
-     * Если определена одна из этих констант, то она будет возвращена при вызове return в целевом методе
-     */
-
     boolean booleanReturnConstant() default false;
 
     byte byteReturnConstant() default 0;
