@@ -5,6 +5,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,18 +20,24 @@ import java.util.Map;
 public class DictionaryGenerator {
 
     public static void main(String[] args) throws Exception {
-        List<String> lines = FileUtils.readLines(new File("methods.csv"));
+        prepareNames("methods.csv", "methods.bin");
+        prepareNames("fields.csv", "fields.bin");
+
+    }
+
+    private static void prepareNames(String sourceFileName, String outputFileName) throws IOException {
+        List<String> lines = FileUtils.readLines(new File(sourceFileName));
         lines.remove(0);
         HashMap<Integer, String> map = new HashMap<Integer, String>();
         for (String str : lines) {
             String[] splitted = str.split(",");
             int first = splitted[0].indexOf('_');
             int second = splitted[0].indexOf('_', first + 1);
-            int id = Integer.valueOf(splitted[0].substring(first + 1, second));
+            int id = Integer.parseInt(splitted[0].substring(first + 1, second));
             map.put(id, splitted[1]);
         }
 
-        DataOutputStream out = new DataOutputStream(new FileOutputStream("methods.bin"));
+        DataOutputStream out = new DataOutputStream(new FileOutputStream(outputFileName));
         out.writeInt(map.size());
 
         for (Map.Entry<Integer, String> entry : map.entrySet()) {
@@ -39,6 +46,5 @@ public class DictionaryGenerator {
         }
 
         out.close();
-
     }
 }
