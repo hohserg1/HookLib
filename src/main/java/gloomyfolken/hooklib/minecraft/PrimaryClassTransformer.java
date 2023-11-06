@@ -2,6 +2,7 @@ package gloomyfolken.hooklib.minecraft;
 
 import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.asm.AsmHook;
+import gloomyfolken.hooklib.asm.AsmInjection;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -42,7 +43,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
     }
 
     @Override
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmHook> hooks) {
+    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         // Если ничего не сломается, то никакие майновские классы не должны грузиться этим трансформером -
         // соответственно, и костыли для деобфускации названий методов тут не нужны.
         return new HookInjectorClassVisitor(this, finalizeVisitor, hooks) {
@@ -53,7 +54,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
         };
     }
 
-    ListMultimap<String, AsmHook> getHooksMap() {
+    ListMultimap<String, AsmInjection> getHooksMap() {
         return hooksMap;
     }
 

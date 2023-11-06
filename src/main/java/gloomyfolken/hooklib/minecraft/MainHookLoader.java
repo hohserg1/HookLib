@@ -4,7 +4,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import gloomyfolken.hooklib.api.HookContainer;
-import gloomyfolken.hooklib.asm.AsmHook;
+import gloomyfolken.hooklib.asm.AsmInjection;
 import gloomyfolken.hooklib.asm.HookContainerParser2;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
@@ -36,9 +36,10 @@ public class MainHookLoader extends HookLoader {
     }
 
     protected void registerHooks() {
-        ListMultimap<String, AsmHook> hooks = findHookContainers().stream()
+        ListMultimap<String, AsmInjection> hooks = findHookContainers().stream()
                 .flatMap(HookContainerParser2::parseHooks)
-                .collect(Multimaps.toMultimap(AsmHook::getTargetClassName, Function.identity(), ArrayListMultimap::create));
+                .distinct()
+                .collect(Multimaps.toMultimap(AsmInjection::getTargetClassName, Function.identity(), ArrayListMultimap::create));
         getTransformer().registerAllHooks(hooks);
     }
 

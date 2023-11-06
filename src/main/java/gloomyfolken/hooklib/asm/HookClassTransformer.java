@@ -18,14 +18,14 @@ import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.Opcodes.ASM5;
 
 public class HookClassTransformer {
-    protected ListMultimap<String, AsmHook> hooksMap = ArrayListMultimap.create(10, 2);
+    protected ListMultimap<String, AsmInjection> hooksMap = ArrayListMultimap.create(10, 2);
     protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
-    public void registerAllHooks(ListMultimap<String, AsmHook> hooks) {
+    public void registerAllHooks(ListMultimap<String, AsmInjection> hooks) {
         hooksMap.putAll(hooks);
     }
 
-    public void registerHook(AsmHook hook) {
+    public void registerHook(AsmInjection hook) {
         hooksMap.put(hook.getTargetClassName(), hook);
     }
 
@@ -41,7 +41,7 @@ public class HookClassTransformer {
 
     public byte[] transform(String className, byte[] bytecode) {
         if (hooksMap.containsKey(className)) {
-            List<AsmHook> hooks = hooksMap.get(className);
+            List<AsmInjection> hooks = hooksMap.get(className);
             Collections.sort(hooks);
             Logger.instance.debug("Injecting hooks into class " + className);
             try {
@@ -59,23 +59,30 @@ public class HookClassTransformer {
                 ClassWriter cw = createClassWriter(java7 ? ClassWriter.COMPUTE_FRAMES : ClassWriter.COMPUTE_MAXS);
                 HookInjectorClassVisitor hooksWriter = createInjectorClassVisitor(
                         Config.instance.useCheckClassAdapter ? new CheckClassAdapter(cw) : cw,
-                        hooks);
+                        hooks
+                );
                 cr.accept(hooksWriter, java7 ? ClassReader.SKIP_FRAMES : ClassReader.EXPAND_FRAMES);
                 bytecode = cw.toByteArray();
-                for (AsmHook hook : hooksWriter.injectedHooks) {
-                    Logger.instance.debug("Patching method " + hook.getPatchedMethodName());
+                for (AsmInjection injection : hooksWriter.injectedHooks) {
+                    if (injection instanceof AsmHook) {
+                        Logger.instance.debug("Patching method " + ((AsmHook) injection).getPatchedMethodName());
+                    } else if (injection instanceof AsmLens) {
+                        Logger.instance.debug("Patching field " + ((AsmLens) injection).getPatchedFieldName());
+                    } else if (injection instanceof AsmLensHook) {
+                        Logger.instance.debug("Patching lens " + ((AsmLensHook) injection).getPatchedMethodName());
+                    }
                 }
                 hooks.removeAll(hooksWriter.injectedHooks);
             } catch (Exception e) {
                 Logger.instance.error("A problem has occurred during transformation of class " + className + ".");
                 Logger.instance.error("Attached hooks:");
-                for (AsmHook hook : hooks) {
+                for (AsmInjection hook : hooks) {
                     Logger.instance.error("    " + hook.toString());
                 }
                 Logger.instance.error("Stack trace:", e);
             }
 
-            for (AsmHook notInjected : hooks) {
+            for (AsmInjection notInjected : hooks) {
                 if (notInjected.isMandatory()) {
                     throw new RuntimeException("Can not find target method of mandatory hook " + notInjected);
                 } else {
@@ -101,7 +108,7 @@ public class HookClassTransformer {
      * @param hooks           Список хуков, вставляемых в класс
      * @return ClassVisitor, добавляющий хуки
      */
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmHook> hooks) {
+    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         return new HookInjectorClassVisitor(this, finalizeVisitor, hooks);
     }
 

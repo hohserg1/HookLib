@@ -19,7 +19,26 @@ public class HookContainerParser2 {
         return Stream.empty();
     }
 
-    public static Stream<AsmHook> parseHooks(ClassNode classNode) {
+    private static boolean checkRegularConditions(ClassNode classNode, MethodNode methodNode, Type[] argumentTypes) {
+        if (!(isPublic(methodNode) && isStatic(methodNode))) {
+            invalidHook("Hook method must be public and static.", classNode, methodNode);
+            return false;
+        }
+
+        if (argumentTypes.length < 1) {
+            invalidHook("Hook method has no parameters. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
+            return false;
+        }
+
+        if (argumentTypes[0].getSort() != Type.OBJECT) {
+            invalidHook("First parameter of the hook method is not an object. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
+            return false;
+        }
+
+        return true;
+    }
+
+    public static Stream<AsmInjection> parseHooks(ClassNode classNode) {
         return classNode.methods.stream().flatMap(methodNode -> {
             AnnotationMap annotationMap = AnnotationUtils.annotationOf(methodNode);
             Hook hookAnnotation = annotationMap.get(Hook.class);
@@ -28,17 +47,8 @@ public class HookContainerParser2 {
                 Type methodType = Type.getMethodType(methodNode.desc);
                 Type[] argumentTypes = methodType.getArgumentTypes();
 
-                if (!(isPublic(methodNode) && isStatic(methodNode))) {
-                    return invalidHook("Hook method must be public and static.", classNode, methodNode);
-                }
-
-                if (argumentTypes.length < 1) {
-                    return invalidHook("Hook method has no parameters. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
-                }
-
-                if (argumentTypes[0].getSort() != Type.OBJECT) {
-                    return invalidHook("First parameter of the hook method is not an object. First parameter of a hook method must belong the type of the target class.", classNode, methodNode);
-                }
+                if (!checkRegularConditions(classNode, methodNode, argumentTypes))
+                    return Stream.empty();
 
                 builder.setTargetClass(argumentTypes[0].getClassName());
 
@@ -134,6 +144,29 @@ public class HookContainerParser2 {
 
                 return Stream.of(builder.build());
             }
+
+
+            FieldLens lensAnnotation = annotationMap.get(FieldLens.class);
+            if (lensAnnotation != null) {
+                Type methodType = Type.getMethodType(methodNode.desc);
+                Type[] argumentTypes = methodType.getArgumentTypes();
+
+                if (!checkRegularConditions(classNode, methodNode, argumentTypes)) {
+                    return Stream.empty();
+                }
+
+                boolean isGetter = argumentTypes.length == 1;
+
+                String targetClassName = argumentTypes[0].getClassName();
+                String targetFieldName = !lensAnnotation.targetField().isEmpty() ? lensAnnotation.targetField() : methodNode.name;
+                Type targetFieldType = isGetter ? methodType.getReturnType() : argumentTypes[1];
+
+                return Stream.of(
+                        new AsmLensHook(classNode.name, methodNode.name, methodNode.desc, targetClassName, targetFieldName, targetFieldType, isGetter, lensAnnotation.isMandatory()),
+                        new AsmLens(targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory(), lensAnnotation.createField(), null)
+                );
+            }
+
             return Stream.empty();
         });
     }

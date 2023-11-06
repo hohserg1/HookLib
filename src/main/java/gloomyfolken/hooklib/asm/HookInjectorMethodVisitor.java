@@ -1,8 +1,10 @@
 package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.api.Shift;
+import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.minecraft.HookLibPlugin;
 import gloomyfolken.hooklib.minecraft.MinecraftClassTransformer;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -124,7 +126,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         }
 
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            String targetName = HookLibPlugin.getObfuscated() ? MinecraftClassTransformer.instance.getMethodNames().getOrDefault(MinecraftClassTransformer.getMethodId(name), name) : name;
+            String targetName = HookLibPlugin.getObfuscated() ? MinecraftClassTransformer.instance.getMethodNames().getOrDefault(MinecraftClassTransformer.getMemberId("func_", name), name) : name;
             if (methodName.equals(targetName) && (methodDesc.isEmpty() || desc.startsWith(methodDesc))) {
                 switch (shift) {
                     case BEFORE:

@@ -1,8 +1,6 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.AsmHook;
-import gloomyfolken.hooklib.asm.HookClassTransformer;
-import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
+import gloomyfolken.hooklib.asm.*;
 import gloomyfolken.hooklib.helper.Logger;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassVisitor;
@@ -24,6 +22,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
 
     public static MinecraftClassTransformer instance;
     private Map<Integer, String> methodNames;
+    private Map<Integer, String> fieldNames;
 
     private static List<IClassTransformer> postTransformers = new ArrayList<IClassTransformer>();
 
@@ -33,9 +32,10 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
         if (HookLibPlugin.getObfuscated()) {
             try {
                 long timeStart = System.currentTimeMillis();
-                methodNames = loadMethodNames();
+                methodNames = loadMethodNames("/methods.bin");
+                fieldNames = loadMethodNames("/fields.bin");
                 long time = System.currentTimeMillis() - timeStart;
-                Logger.instance.debug("Methods dictionary loaded in " + time + " ms");
+                Logger.instance.debug("Mappings dictionary loaded in " + time + " ms");
             } catch (IOException e) {
                 Logger.instance.error("Can not load obfuscated method names", e);
             }
@@ -48,8 +48,8 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
         PrimaryClassTransformer.instance.registeredSecondTransformer = true;
     }
 
-    private HashMap<Integer, String> loadMethodNames() throws IOException {
-        InputStream resourceStream = getClass().getResourceAsStream("/methods.bin");
+    private HashMap<Integer, String> loadMethodNames(String fileName) throws IOException {
+        InputStream resourceStream = getClass().getResourceAsStream(fileName);
         if (resourceStream == null) throw new IOException("Methods dictionary not found");
         DataInputStream input = new DataInputStream(new BufferedInputStream(resourceStream));
         int numMethods = input.readInt();
@@ -71,17 +71,28 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     }
 
     @Override
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmHook> hooks) {
+    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         return new HookInjectorClassVisitor(this, finalizeVisitor, hooks) {
             @Override
             protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
                 if (HookLibPlugin.getObfuscated()) {
-                    String mcpName = methodNames.get(getMethodId(name));
+                    String mcpName = methodNames.get(getMemberId("func_", name));
                     if (mcpName != null && super.isTargetMethod(hook, mcpName, desc)) {
                         return true;
                     }
                 }
                 return super.isTargetMethod(hook, name, desc);
+            }
+
+            @Override
+            protected boolean isTargetField(AsmLens lens, String name, String desc) {
+                if (HookLibPlugin.getObfuscated()) {
+                    String mcpName = fieldNames.get(getMemberId("field_", name));
+                    if (mcpName != null && super.isTargetField(lens, mcpName, desc)) {
+                        return true;
+                    }
+                }
+                return super.isTargetField(lens, name, desc);
             }
         };
     }
@@ -90,8 +101,8 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
         return methodNames;
     }
 
-    public static int getMethodId(String srgName) {
-        if (srgName.startsWith("func_")) {
+    public static int getMemberId(String prefix, String srgName) {
+        if (srgName.startsWith(prefix)) {
             int first = srgName.indexOf('_');
             int second = srgName.indexOf('_', first + 1);
             return Integer.valueOf(srgName.substring(first + 1, second));

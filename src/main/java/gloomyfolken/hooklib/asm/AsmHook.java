@@ -24,7 +24,7 @@ import static org.objectweb.asm.Type.*;
  * hookMethod (хук-метод) - ваш статический метод, который вызывается из стороннего кода
  * hookClass (класс с хуком) - класс, в котором содержится хук-метод
  */
-public class AsmHook implements Cloneable, Comparable<AsmHook> {
+public class AsmHook implements AsmInjection, Cloneable {
 
     private String targetClassName; // через точки
     private String targetMethodName;
@@ -55,6 +55,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
 
     private boolean createMethod;
     private boolean isMandatory = true;
+    private boolean requiredPrintLocalVariables = false;
 
     public String getTargetClassName() {
         return targetClassName;
@@ -73,12 +74,16 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
                 desc.equals(targetMethodDescription)) && name.equals(targetMethodName);
     }
 
-    protected boolean getCreateMethod() {
+    public boolean needToCreate() {
         return createMethod;
     }
 
-    protected boolean isMandatory() {
+    public boolean isMandatory() {
         return isMandatory;
+    }
+
+    protected boolean isRequiredPrintLocalVariables() {
+        return requiredPrintLocalVariables;
     }
 
     protected HookInjectorFactory getInjectorFactory() {
@@ -89,7 +94,7 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
         return hookMethodName != null && hooksClassName != null;
     }
 
-    protected void createMethod(HookInjectorClassVisitor classVisitor) {
+    public void create(HookInjectorClassVisitor classVisitor) {
         ClassMetadataReader.MethodReference superMethod = classVisitor.transformer.classMetadataReader
                 .findVirtualMethod(getTargetClassInternalName(), targetMethodName, targetMethodDescription);
         // юзаем название суперметода, потому что findVirtualMethod может вернуть метод с другим названием
@@ -333,14 +338,18 @@ public class AsmHook implements Cloneable, Comparable<AsmHook> {
     }
 
     @Override
-    public int compareTo(AsmHook o) {
-        if (injectorFactory.isPriorityInverted && o.injectorFactory.isPriorityInverted) {
-            return priority.ordinal() > o.priority.ordinal() ? -1 : 1;
-        } else if (!injectorFactory.isPriorityInverted && !o.injectorFactory.isPriorityInverted) {
-            return priority.ordinal() > o.priority.ordinal() ? 1 : -1;
-        } else {
-            return injectorFactory.isPriorityInverted ? 1 : -1;
-        }
+    public int compareTo(AsmInjection o) {
+        if (o instanceof AsmHook) {
+            AsmHook otherHook = (AsmHook) o;
+            if (injectorFactory.isPriorityInverted && otherHook.injectorFactory.isPriorityInverted) {
+                return priority.ordinal() > otherHook.priority.ordinal() ? -1 : 1;
+            } else if (!injectorFactory.isPriorityInverted && !otherHook.injectorFactory.isPriorityInverted) {
+                return priority.ordinal() > otherHook.priority.ordinal() ? 1 : -1;
+            } else {
+                return injectorFactory.isPriorityInverted ? 1 : -1;
+            }
+        } else
+            return AsmInjection.super.compareTo(o);
     }
 
     public static Builder newBuilder() {
