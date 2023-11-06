@@ -785,6 +785,11 @@ public class AsmHook implements AsmInjection, Cloneable {
             return this;
         }
 
+        public Builder setRequiredPrintLocalVariables(boolean requiredPrintLocalVariables) {
+            AsmHook.this.requiredPrintLocalVariables = requiredPrintLocalVariables;
+            return this;
+        }
+
         private String getMethodDesc(Type returnType, List<Type> paramTypes) {
             Type[] paramTypesArray = paramTypes.toArray(new Type[0]);
             if (returnType == null) {

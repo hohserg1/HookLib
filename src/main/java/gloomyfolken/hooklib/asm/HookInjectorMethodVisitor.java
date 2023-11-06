@@ -32,6 +32,13 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         this.methodType = Type.getMethodType(desc);
     }
 
+    @Override
+    public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+        super.visitLocalVariable(name, desc, signature, start, end, index);
+        if (hook.isRequiredPrintLocalVariables())
+            Logger.instance.info(methodName + ":  @LocalVariable(" + index + ") " + Type.getType(desc).getClassName() + " " + name);
+    }
+
     /**
      * Вставляет хук в байткод.
      */

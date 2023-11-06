@@ -142,6 +142,8 @@ public class HookContainerParser2 {
 
                 builder.setMandatory(hookAnnotation.isMandatory());
 
+                builder.setRequiredPrintLocalVariables(annotationMap.get(PrintLocalVariables.class) != null);
+
                 return Stream.of(builder.build());
             }
 
