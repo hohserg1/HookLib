@@ -1,19 +1,21 @@
 package gloomyfolken.hooklib.asm;
 
+import gloomyfolken.hooklib.helper.Logger;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.objectweb.asm.Opcodes.*;
 
 public class HookInjectorClassVisitor extends ClassVisitor {
 
     List<AsmInjection> hooks;
-    List<AsmInjection> injectedHooks = new ArrayList<>(1);
+    Set<AsmInjection> injectedHooks = new HashSet<>(1);
     boolean visitingHook;
     HookClassTransformer transformer;
 
@@ -39,11 +41,14 @@ public class HookInjectorClassVisitor extends ClassVisitor {
                 AsmLens lens = (AsmLens) injection;
                 if (isTargetField(lens, name, desc) && !injectedHooks.contains(lens)) {
                     injectedHooks.add(lens);
+                    Logger.instance.debug("Patching field " + ((AsmLens) injection).getPatchedFieldName());
 
-                    return super.visitField(
-                            access | ACC_PUBLIC & ~ACC_PRIVATE & ~ACC_PROTECTED & ~ACC_FINAL,
-                            name, desc, signature, value
-                    );
+                    access |= ACC_PUBLIC;
+                    access &= ~ACC_PRIVATE;
+                    access &= ~ACC_PROTECTED;
+                    access &= ~ACC_FINAL;
+
+                    return super.visitField(access, name, desc, signature, value);
                 }
             }
         }
@@ -51,8 +56,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     }
 
     @Override
-    public MethodVisitor visitMethod(int access, String name, String desc,
-                                     String signature, String[] exceptions) {
+    public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         for (AsmInjection injection : hooks) {
             if (injection instanceof AsmHook) {
@@ -61,6 +65,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
                     // добавляет MethodVisitor в цепочку
                     mv = hook.getInjectorFactory().createHookInjector(mv, access, name, desc, hook, this);
                     injectedHooks.add(hook);
+                    Logger.instance.debug("Patching method " + ((AsmHook) injection).getPatchedMethodName());
                 }
             } else if (injection instanceof AsmLensHook) {
                 AsmLensHook hook = (AsmLensHook) injection;
@@ -68,6 +73,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
                     // добавляет MethodVisitor в цепочку
                     mv = hook.createHookInjector(mv, access, name, desc, hook, this);
                     injectedHooks.add(hook);
+                    Logger.instance.debug("Patching lens " + ((AsmLensHook) injection).getPatchedMethodName());
                 }
             }
         }

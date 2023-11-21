@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.minecraft.Config;
@@ -13,6 +14,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.Opcodes.ASM5;
@@ -42,6 +44,7 @@ public class HookClassTransformer {
     public byte[] transform(String className, byte[] bytecode) {
         if (hooksMap.containsKey(className)) {
             List<AsmInjection> hooks = hooksMap.get(className);
+            Set<AsmInjection> injectedHooks;
             Collections.sort(hooks);
             Logger.instance.debug("Injecting hooks into class " + className);
             try {
@@ -63,17 +66,9 @@ public class HookClassTransformer {
                 );
                 cr.accept(hooksWriter, java7 ? ClassReader.SKIP_FRAMES : ClassReader.EXPAND_FRAMES);
                 bytecode = cw.toByteArray();
-                for (AsmInjection injection : hooksWriter.injectedHooks) {
-                    if (injection instanceof AsmHook) {
-                        Logger.instance.debug("Patching method " + ((AsmHook) injection).getPatchedMethodName());
-                    } else if (injection instanceof AsmLens) {
-                        Logger.instance.debug("Patching field " + ((AsmLens) injection).getPatchedFieldName());
-                    } else if (injection instanceof AsmLensHook) {
-                        Logger.instance.debug("Patching lens " + ((AsmLensHook) injection).getPatchedMethodName());
-                    }
-                }
-                hooks.removeAll(hooksWriter.injectedHooks);
+                injectedHooks = hooksWriter.injectedHooks;
             } catch (Exception e) {
+                injectedHooks = ImmutableSet.of();
                 Logger.instance.error("A problem has occurred during transformation of class " + className + ".");
                 Logger.instance.error("Attached hooks:");
                 for (AsmInjection hook : hooks) {
@@ -82,12 +77,13 @@ public class HookClassTransformer {
                 Logger.instance.error("Stack trace:", e);
             }
 
-            for (AsmInjection notInjected : hooks) {
-                if (notInjected.isMandatory()) {
-                    throw new RuntimeException("Can not find target method of mandatory hook " + notInjected);
-                } else {
-                    Logger.instance.warning("Can not find target method of hook " + notInjected);
-                }
+            for (AsmInjection hook : hooks) {
+                if (!injectedHooks.contains(hook))
+                    if (hook.isMandatory()) {
+                        throw new RuntimeException("Can not find target method of mandatory hook " + hook);
+                    } else {
+                        Logger.instance.warning("Can not find target method of hook " + hook);
+                    }
             }
         }
 
