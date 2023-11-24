@@ -35,7 +35,7 @@ public class HookClassTransformer {
         try {
             ClassNode classNode = new ClassNode(ASM5);
             new ClassReader(classMetadataReader.getClassData(className)).accept(classNode, SKIP_CODE);
-            HookContainerParser2.parseHooks(classNode).forEachOrdered(this::registerHook);
+            HookContainerParser.parseHooks(classNode).forEachOrdered(this::registerHook);
         } catch (IOException e) {
             e.printStackTrace();
         }

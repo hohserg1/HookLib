@@ -11,7 +11,7 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.util.stream.Stream;
 
-public class HookContainerParser2 {
+public class HookContainerParser {
 
     private static Stream<AsmHook> invalidHook(String message, ClassNode classNode, MethodNode methodNode) {
         Logger.instance.warning("Found invalid hook " + classNode.name.replace('/', '.') + "#" + methodNode.name);
