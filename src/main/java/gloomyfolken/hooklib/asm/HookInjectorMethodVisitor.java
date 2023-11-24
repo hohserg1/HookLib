@@ -146,8 +146,14 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                         break;
                     case INSTEAD:
                         if (canVisitOrderedHook()) {
-                            for (int i = 0; i < (Type.getArgumentTypes(desc)).length + ((opcode == 184) ? 0 : 1); i++)
-                                visitInsn(87);
+
+                            Type[] argumentTypes = Type.getArgumentTypes(desc);
+                            for (int i = argumentTypes.length - 1; i >= 0; i--) {
+                                visitInsn(getPopOpcode(argumentTypes[i]));
+                            }
+                            if (opcode != Opcodes.INVOKESTATIC)
+                                visitInsn(Opcodes.POP);
+
                             visitHook();
                         } else
                             super.visitMethodInsn(opcode, owner, name, desc, itf);
@@ -156,6 +162,10 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
             } else {
                 super.visitMethodInsn(opcode, owner, name, desc, itf);
             }
+        }
+
+        private int getPopOpcode(Type argumentType) {
+            return argumentType == Type.LONG_TYPE || argumentType == Type.DOUBLE_TYPE ? Opcodes.POP2 : Opcodes.POP;
         }
     }
 }

@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraftforge.common.ForgeHooks;
 
 import javax.annotation.Nullable;
@@ -13,6 +14,19 @@ import java.util.Random;
 
 @HookContainer
 public class TestHooks {
+
+    @Hook
+    @OnMethodCall(value = "kek", shift = Shift.INSTEAD, ordinal = -1)
+    public static void testDoubleArgumentPop2(TestHooks self) {
+
+    }
+
+    public static void testDoubleArgumentPop2() {
+        new TestHooks().kek(EnumParticleTypes.EXPLOSION_LARGE, 0, 0, 0, 0, 0, 0);
+    }
+
+    public void kek(EnumParticleTypes particleType, double xCoord, double yCoord, double zCoord, double xSpeed, double ySpeed, double zSpeed, int... parameters) {
+    }
 
     @FieldLens(createField = true)
     public static void prevX(Minecraft mc, int x) {
