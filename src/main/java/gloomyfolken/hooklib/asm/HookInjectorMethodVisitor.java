@@ -4,11 +4,21 @@ import gloomyfolken.hooklib.api.Shift;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.minecraft.HookLibPlugin;
 import gloomyfolken.hooklib.minecraft.MinecraftClassTransformer;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
+import org.objectweb.asm.tree.AbstractInsnNode;
+import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
+
+import java.util.*;
+
+import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
 
 /**
  * Класс, непосредственно вставляющий хук в метод.
@@ -47,6 +57,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
             cv.visitingHook = true;
             hook.inject(this);
             cv.visitingHook = false;
+            cv.markInjected(hook);
         }
     }
 
@@ -163,9 +174,159 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                 super.visitMethodInsn(opcode, owner, name, desc, itf);
             }
         }
+    }
 
-        private int getPopOpcode(Type argumentType) {
-            return argumentType == Type.LONG_TYPE || argumentType == Type.DOUBLE_TYPE ? Opcodes.POP2 : Opcodes.POP;
+    private static int getPopOpcode(Type argumentType) {
+        return argumentType == Type.LONG_TYPE || argumentType == Type.DOUBLE_TYPE ? Opcodes.POP2 : Opcodes.POP;
+    }
+
+    static class ExpressionVisitor extends MethodNode {
+        private final MethodVisitor targetVisitor;
+        private final AsmHook hook;
+        private final HookInjectorClassVisitor cv;
+        private final List<AbstractInsnNode> expressionPattern;
+        private final int ordinal;
+        private final Shift shift;
+        private final Type patternType;
+
+        public ExpressionVisitor(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
+                                 AsmHook hook, HookInjectorClassVisitor cv,
+                                 List<AbstractInsnNode> expressionPattern, int ordinal, Shift shift, Type patternType) {
+            super(Opcodes.ASM5, access, name, desc, signature, exceptions);
+            targetVisitor = mv;
+            this.hook = hook;
+            this.cv = cv;
+            this.expressionPattern = expressionPattern;
+            this.ordinal = ordinal;
+            this.shift = shift;
+            this.patternType = patternType;
+        }
+
+        @Override
+        public void visitEnd() {
+            List<Pair<AbstractInsnNode, AbstractInsnNode>> foundNodes = findSimilarCode();
+
+            if (ordinal == -1) {
+                for (Pair<AbstractInsnNode, AbstractInsnNode> e : foundNodes)
+                    insertExpressionInjectCall(e);
+
+                if (foundNodes.size() > 0)
+                    cv.markInjected(hook);
+
+            } else {
+                if (foundNodes.size() > ordinal) {
+                    insertExpressionInjectCall(foundNodes.get(ordinal));
+                    cv.markInjected(hook);
+                }
+            }
+
+            accept(targetVisitor);
+        }
+
+        private void insertExpressionInjectCall(Pair<AbstractInsnNode, AbstractInsnNode> found) {
+
+            switch (shift) {
+                case BEFORE:
+                    instructions.insertBefore(found.getLeft(), hook.injectNode(this));
+
+                    break;
+                case INSTEAD:
+
+                    /*
+                    for (Type in : patternType.getArgumentTypes()) {
+                        instructions.insertBefore(found.getLeft(), new InsnNode(getPopOpcode(in)));
+                    }*/
+
+                    instructions.insert(found.getRight(), hook.injectNode(this));
+                    instructions.insert(found.getRight(), new InsnNode(getPopOpcode(patternType.getReturnType())));
+
+                    /*
+                    AbstractInsnNode i = found.getLeft();
+                    while (i != found.getRight().getNext()) {
+                        AbstractInsnNode next = i.getNext();
+                        instructions.remove(i);
+                        i = next;
+                    }
+                    */
+
+                    //N значений есть на стеке до инструкций
+                    //1 или 0 значений есть на стеке после инструкций
+                    //нужно добавить N операций POP или POP2 вместо инструкций
+
+                    /*
+                    InsnList pops = new InsnList();
+                    int stackCount = 0;
+                    for (AbstractInsnNode insn : expressionPattern) {
+                        List<InsnNode> in = getInAmount(insn);
+                        int out = getOutAmount(insn);
+                        for (int i = stackCount; i < in.size(); i++) {
+                            pops.add(in.get(i));
+                        }
+                        stackCount += out;
+                    }*/
+
+                    break;
+                case AFTER:
+                    instructions.insert(found.getRight(), hook.injectNode(this));
+
+                    break;
+            }
+        }
+
+        private List<Pair<AbstractInsnNode, AbstractInsnNode>> findSimilarCode() {
+            List<Pair<AbstractInsnNode, AbstractInsnNode>> r = new ArrayList<>();
+            Map<Integer, Integer> colorCompliance = new HashMap<>();
+
+            AbstractInsnNode start = null;
+            int findingPosition = 0;
+            ListIterator<AbstractInsnNode> iter = instructions.iterator();
+            while (iter.hasNext()) {
+                AbstractInsnNode current = iter.next();
+                if (isPatternSensitive(current)) {
+                    AbstractInsnNode currentExpectation = expressionPattern.get(findingPosition);
+
+                    if (findingPosition == 0)
+                        start = current;
+
+                    if (equalsWithVarColor(current, currentExpectation, colorCompliance))
+                        findingPosition++;
+                    else
+                        findingPosition = 0;
+
+                    if (findingPosition == expressionPattern.size()) {
+                        r.add(Pair.of(start, current));
+                        findingPosition = 0;
+                        colorCompliance.clear();
+                    }
+                }
+            }
+
+            return r;
+        }
+
+        private boolean equalsWithVarColor(AbstractInsnNode current, AbstractInsnNode currentExpectation, Map<Integer, Integer> colorCompliance) {
+            if (current instanceof VarInsnNode && currentExpectation instanceof VarInsnNode) {
+                if (current.getOpcode() == currentExpectation.getOpcode()) {
+                    VarInsnNode currentExpectation1 = (VarInsnNode) currentExpectation;
+                    VarInsnNode current1 = (VarInsnNode) current;
+
+                    Integer ePair = colorCompliance.get(currentExpectation1.var);
+                    boolean colorEquals;
+                    if (ePair == null) {
+                        if (!colorCompliance.containsValue(current1.var)) {
+                            colorCompliance.put(currentExpectation1.var, current1.var);
+                            colorEquals = true;
+                        } else
+                            colorEquals = false;
+                    } else
+                        colorEquals = ePair == current1.var;
+                    return colorEquals;
+                } else
+                    return false;
+            } else {
+                return current.getType() == currentExpectation.getType() &&
+                        EqualsBuilder.reflectionEquals(current, currentExpectation, "prev", "next", "index", "previousInsn", "nextInsn");
+            }
         }
     }
 }

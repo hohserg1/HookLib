@@ -68,6 +68,7 @@ public class AsmLensHook implements AsmInjection {
                     visitFieldInsn(Opcodes.PUTFIELD, targetClassName, targetFieldName, targetFieldType.getDescriptor());
                     visitInsn(targetFieldType.getOpcode(Opcodes.RETURN));
                 }
+                hookInjectorClassVisitor.markInjected(hook);
             }
         };
     }

@@ -4,11 +4,14 @@ import gloomyfolken.hooklib.api.*;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 public class HookContainerParser {
@@ -20,7 +23,7 @@ public class HookContainerParser {
     }
 
     private static boolean checkRegularConditions(ClassNode classNode, MethodNode methodNode, Type[] argumentTypes) {
-        if (!(isPublic(methodNode) && isStatic(methodNode))) {
+        if (!(AsmUtils.isPublic(methodNode) && AsmUtils.isStatic(methodNode))) {
             invalidHook("Hook method must be public and static.", classNode, methodNode);
             return false;
         }
@@ -83,16 +86,40 @@ public class HookContainerParser {
                 OnBegin onBegin = annotationMap.get(OnBegin.class);
                 OnReturn onReturn = annotationMap.get(OnReturn.class);
                 OnMethodCall onMethodCall = annotationMap.get(OnMethodCall.class);
+                OnExpression onExpression = annotationMap.get(OnExpression.class);
 
                 if (onBegin != null)
                     builder.setInjectorFactory(HookInjectorFactory.BeginFactory.INSTANCE);
+
                 else if (onReturn != null)
                     builder.setInjectorFactory(new HookInjectorFactory.ReturnFactory(onReturn.ordinal()));
+
                 else if (onMethodCall != null)
                     builder.setInjectorFactory(new HookInjectorFactory.MethodCallFactory(
                             onMethodCall.value(), onMethodCall.desc(), onMethodCall.ordinal(), onMethodCall.shift()
                     ));
-                else
+
+                else if (onExpression != null) {
+                    String expressionPatternMethodName = onExpression.expressionPattern();
+
+                    Optional<MethodNode> maybeExpressionPatternMethod =
+                            classNode.methods.stream().filter(mn -> mn.name.equals(expressionPatternMethodName)).findAny();
+
+                    if (!maybeExpressionPatternMethod.isPresent())
+                        return invalidHook("Expression pattern \"" + expressionPatternMethodName + "\" not found", classNode, methodNode);
+
+                    MethodNode expressionPatternMethod = maybeExpressionPatternMethod.get();
+                    List<AbstractInsnNode> pattern = new ArrayList<>();
+                    for (AbstractInsnNode i : expressionPatternMethod.instructions.toArray()) {
+                        if (AsmUtils.isReturn(i))
+                            break;
+                        if (AsmUtils.isPatternSensitive(i))
+                            pattern.add(i);
+                    }
+
+                    builder.setInjectorFactory(new HookInjectorFactory.ExpressionFactory(pattern, onExpression.shift(), onExpression.ordinal(), Type.getMethodType(expressionPatternMethod.desc)));
+
+                } else
                     return invalidHook("Injection point doesnt described. Use one of @OnBegin,@OnReturn or @OnMethodCall", classNode, methodNode);
 
                 if (!hookAnnotation.returnType().isEmpty())
@@ -173,11 +200,5 @@ public class HookContainerParser {
         });
     }
 
-    private static boolean isStatic(MethodNode methodNode) {
-        return (methodNode.access & Opcodes.ACC_STATIC) != 0;
-    }
 
-    private static boolean isPublic(MethodNode methodNode) {
-        return (methodNode.access & Opcodes.ACC_PUBLIC) != 0;
-    }
 }

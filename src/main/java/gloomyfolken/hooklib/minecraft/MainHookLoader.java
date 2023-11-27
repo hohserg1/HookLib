@@ -4,6 +4,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import gloomyfolken.hooklib.api.HookContainer;
+import gloomyfolken.hooklib.api.OnExpression;
 import gloomyfolken.hooklib.asm.AsmInjection;
 import gloomyfolken.hooklib.asm.HookContainerParser;
 import gloomyfolken.hooklib.helper.Logger;
@@ -118,9 +119,19 @@ public class MainHookLoader extends HookLoader {
 
     private void findHooksInStream(List<ClassNode> result, InputStream stream) throws IOException {
         ClassNode classNode = new ClassNode(ASM5);
-        new ClassReader(stream).accept(classNode, SKIP_CODE);
+        ClassReader classReader = new ClassReader(stream);
+        classReader.accept(classNode, SKIP_CODE);
         AnnotationMap annotationMap = AnnotationUtils.annotationOf(classNode);
-        if (annotationMap.contains(HookContainer.class) && isValidSide(annotationMap))
+        if (annotationMap.contains(HookContainer.class) && isValidSide(annotationMap)) {
+            if (haveExpressionHooks(classNode)) {
+                classNode = new ClassNode(ASM5);
+                classReader.accept(classNode, 0);
+            }
             result.add(classNode);
+        }
+    }
+
+    private boolean haveExpressionHooks(ClassNode classNode) {
+        return classNode.methods.stream().map(AnnotationUtils::annotationOf).anyMatch(a -> a.contains(OnExpression.class));
     }
 }

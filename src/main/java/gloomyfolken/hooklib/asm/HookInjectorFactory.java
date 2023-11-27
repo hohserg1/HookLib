@@ -1,7 +1,12 @@
 package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.api.Shift;
+import lombok.Value;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.tree.AbstractInsnNode;
+
+import java.util.List;
 
 /**
  * Фабрика, задающая тип инжектора хуков. Фактически, от выбора фабрики зависит то, в какие участки кода попадёт хук.
@@ -17,8 +22,8 @@ public abstract class HookInjectorFactory {
      */
     protected boolean isPriorityInverted = false;
 
-    abstract HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc,
-                                                          AsmHook hook, HookInjectorClassVisitor cv);
+    abstract MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
+                                              AsmHook hook, HookInjectorClassVisitor cv);
 
 
     static class BeginFactory extends HookInjectorFactory {
@@ -29,8 +34,8 @@ public abstract class HookInjectorFactory {
         }
 
         @Override
-        public HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc,
-                                                            AsmHook hook, HookInjectorClassVisitor cv) {
+        public MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
+                                                AsmHook hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.BeginVisitor(mv, access, name, desc, hook, cv);
         }
 
@@ -45,28 +50,38 @@ public abstract class HookInjectorFactory {
         }
 
         @Override
-        public HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc,
-                                                            AsmHook hook, HookInjectorClassVisitor cv) {
+        public MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
+                                                AsmHook hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.ReturnVisitor(mv, access, name, desc, hook, cv, ordinal);
         }
     }
 
+    @Value
     static class MethodCallFactory extends HookInjectorFactory {
-        public final String methodName;
-        public final String methodDesc;
-        public final int ordinal;
-        public final Shift shift;
-
-        MethodCallFactory(String methodName, String methodDesc, int ordinal, Shift shift) {
-            this.methodName = methodName;
-            this.methodDesc = methodDesc;
-            this.ordinal = ordinal;
-            this.shift = shift;
-        }
+        public String methodName;
+        public String methodDesc;
+        public int ordinal;
+        public Shift shift;
 
         @Override
-        HookInjectorMethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor cv) {
+        MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
+                                         AsmHook hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.MethodCallVisitor(mv, access, name, desc, hook, cv, methodName, methodDesc, ordinal, shift);
+        }
+    }
+
+    @Value
+    static class ExpressionFactory extends HookInjectorFactory {
+        public List<AbstractInsnNode> expressionPattern;
+        public Shift shift;
+        public int ordinal;
+        public Type patternType;
+
+        @Override
+        MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
+                                         AsmHook hook, HookInjectorClassVisitor cv) {
+            return new HookInjectorMethodVisitor.ExpressionVisitor(mv, access, name, desc, signature, exceptions,
+                    hook, cv, expressionPattern, ordinal, shift, patternType);
         }
     }
 

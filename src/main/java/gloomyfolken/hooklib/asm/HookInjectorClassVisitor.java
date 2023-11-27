@@ -27,6 +27,10 @@ public class HookInjectorClassVisitor extends ClassVisitor {
         this.transformer = transformer;
     }
 
+    public void markInjected(AsmInjection injection) {
+        injectedHooks.add(injection);
+    }
+
     @Override
     public void visit(int version, int access, String name,
                       String signature, String superName, String[] interfaces) {
@@ -63,8 +67,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
                 AsmHook hook = (AsmHook) injection;
                 if (isTargetMethod(hook, name, desc) && !injectedHooks.contains(hook)) {
                     // добавляет MethodVisitor в цепочку
-                    mv = hook.getInjectorFactory().createHookInjector(mv, access, name, desc, hook, this);
-                    injectedHooks.add(hook);
+                    mv = hook.getInjectorFactory().createHookInjector(mv, access, name, desc, signature, exceptions, hook, this);
                     Logger.instance.debug("Patching method " + ((AsmHook) injection).getPatchedMethodName());
                 }
             } else if (injection instanceof AsmLensHook) {
@@ -72,7 +75,6 @@ public class HookInjectorClassVisitor extends ClassVisitor {
                 if (isTargetMethod(hook, name, desc) && !injectedHooks.contains(hook)) {
                     // добавляет MethodVisitor в цепочку
                     mv = hook.createHookInjector(mv, access, name, desc, hook, this);
-                    injectedHooks.add(hook);
                     Logger.instance.debug("Patching lens " + ((AsmLensHook) injection).getPatchedMethodName());
                 }
             }
