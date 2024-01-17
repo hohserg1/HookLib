@@ -16,7 +16,10 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
 
@@ -203,6 +206,13 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         }
 
         @Override
+        public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
+            super.visitLocalVariable(name, desc, signature, start, end, index);
+            if (hook.isRequiredPrintLocalVariables())
+                Logger.instance.info(this.name + ":  @LocalVariable(" + index + ") " + Type.getType(desc).getClassName() + " " + name);
+        }
+
+        @Override
         public void visitEnd() {
             List<Pair<AbstractInsnNode, AbstractInsnNode>> foundNodes = findSimilarCode();
 
@@ -279,26 +289,33 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
             AbstractInsnNode start = null;
             int findingPosition = 0;
-            ListIterator<AbstractInsnNode> iter = instructions.iterator();
-            while (iter.hasNext()) {
-                AbstractInsnNode current = iter.next();
+
+            AbstractInsnNode current = instructions.getFirst();
+            while (current != null) {
                 if (isPatternSensitive(current)) {
                     AbstractInsnNode currentExpectation = expressionPattern.get(findingPosition);
 
                     if (findingPosition == 0)
                         start = current;
 
-                    if (equalsWithVarColor(current, currentExpectation, colorCompliance))
+                    if (equalsWithVarColor(current, currentExpectation, colorCompliance)) {
                         findingPosition++;
-                    else
-                        findingPosition = 0;
 
-                    if (findingPosition == expressionPattern.size()) {
-                        r.add(Pair.of(start, current));
+                        if (findingPosition == expressionPattern.size()) {
+                            r.add(Pair.of(start, current));
+                            findingPosition = 0;
+                            colorCompliance.clear();
+                        }
+
+                        current = current.getNext();
+
+                    } else {
                         findingPosition = 0;
                         colorCompliance.clear();
+                        current = start.getNext();
                     }
-                }
+                } else
+                    current = current.getNext();
             }
 
             return r;

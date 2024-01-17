@@ -75,4 +75,20 @@ public class AsmLens implements AsmInjection {
     public int hashCode() {
         return Objects.hash(targetClassName, targetFieldName, targetFieldType, isMandatory, createField, defaultValue);
     }
+
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("AsmLens: ");
+
+        sb.append(targetClassName).append('#').append(targetFieldName).append(": ");
+        sb.append(targetFieldType);
+
+        sb.append(", CreateField = " + createField);
+        sb.append(", defaultValue = " + defaultValue);
+
+        return sb.toString();
+    }
+
 }

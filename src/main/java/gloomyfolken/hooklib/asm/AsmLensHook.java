@@ -66,10 +66,27 @@ public class AsmLensHook implements AsmInjection {
                     visitVarInsn(Opcodes.ALOAD, 0);
                     visitVarInsn(targetFieldType.getOpcode(Opcodes.ILOAD), 1);
                     visitFieldInsn(Opcodes.PUTFIELD, targetClassName, targetFieldName, targetFieldType.getDescriptor());
-                    visitInsn(targetFieldType.getOpcode(Opcodes.RETURN));
+                    visitInsn(Opcodes.RETURN);
                 }
                 hookInjectorClassVisitor.markInjected(hook);
             }
         };
+    }
+
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("AsmLensHook: ");
+
+        sb.append(targetClassName).append('#').append(targetFieldName).append(": ");
+        sb.append(targetFieldType);
+        sb.append(" -> ");
+        sb.append(hookClassName).append('#').append(hookMethodName);
+        sb.append(hookMethodDesc);
+
+        sb.append(", isGetter=" + isGetter);
+
+        return sb.toString();
     }
 }
