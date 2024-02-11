@@ -11,15 +11,13 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
+import org.objectweb.asm.tree.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
 
@@ -285,7 +283,8 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
         private List<Pair<AbstractInsnNode, AbstractInsnNode>> findSimilarCode() {
             List<Pair<AbstractInsnNode, AbstractInsnNode>> r = new ArrayList<>();
-            Map<Integer, Integer> colorCompliance = new HashMap<>();
+            Map<Integer, Integer> variableColors = new HashMap<>();
+            Map<LabelNode, LabelNode> jumpColors = new HashMap<>();
 
             AbstractInsnNode start = null;
             int findingPosition = 0;
@@ -298,20 +297,22 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                     if (findingPosition == 0)
                         start = current;
 
-                    if (equalsWithVarColor(current, currentExpectation, colorCompliance)) {
+                    if (fuzzyEquals(current, currentExpectation, variableColors, jumpColors)) {
                         findingPosition++;
 
                         if (findingPosition == expressionPattern.size()) {
                             r.add(Pair.of(start, current));
                             findingPosition = 0;
-                            colorCompliance.clear();
+                            variableColors.clear();
+                            jumpColors.clear();
                         }
 
                         current = current.getNext();
 
                     } else {
                         findingPosition = 0;
-                        colorCompliance.clear();
+                        variableColors.clear();
+                        jumpColors.clear();
                         current = start.getNext();
                     }
                 } else
@@ -321,28 +322,36 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
             return r;
         }
 
-        private boolean equalsWithVarColor(AbstractInsnNode current, AbstractInsnNode currentExpectation, Map<Integer, Integer> colorCompliance) {
+        private boolean fuzzyEquals(AbstractInsnNode current, AbstractInsnNode currentExpectation, Map<Integer, Integer> variableColors, Map<LabelNode, LabelNode> jumpColors) {
             if (current instanceof VarInsnNode && currentExpectation instanceof VarInsnNode) {
-                if (current.getOpcode() == currentExpectation.getOpcode()) {
-                    VarInsnNode currentExpectation1 = (VarInsnNode) currentExpectation;
-                    VarInsnNode current1 = (VarInsnNode) current;
+                return equalsWithVarColor(((VarInsnNode) current), (VarInsnNode) currentExpectation, i -> i.var, variableColors);
 
-                    Integer ePair = colorCompliance.get(currentExpectation1.var);
-                    boolean colorEquals;
-                    if (ePair == null) {
-                        if (!colorCompliance.containsValue(current1.var)) {
-                            colorCompliance.put(currentExpectation1.var, current1.var);
-                            colorEquals = true;
-                        } else
-                            colorEquals = false;
-                    } else
-                        colorEquals = ePair == current1.var;
-                    return colorEquals;
-                } else
-                    return false;
+            } else if (current instanceof JumpInsnNode && currentExpectation instanceof JumpInsnNode) {
+                return equalsWithVarColor(((JumpInsnNode) current), (JumpInsnNode) currentExpectation, i -> i.label, jumpColors);
+
             } else {
                 return current.getType() == currentExpectation.getType() &&
                         EqualsBuilder.reflectionEquals(current, currentExpectation, "prev", "next", "index", "previousInsn", "nextInsn");
+            }
+        }
+
+        private <A, Node extends AbstractInsnNode> boolean equalsWithVarColor(Node current, Node currentExpectation, Function<Node, A> colorExtractor, Map<A, A> colorCompliance) {
+            if (current.getOpcode() == currentExpectation.getOpcode()) {
+                A patternColor = colorExtractor.apply(currentExpectation);
+                A currentColor = colorExtractor.apply(current);
+                A ePair = colorCompliance.get(patternColor);
+                boolean colorEquals;
+                if (ePair == null) {
+                    if (!colorCompliance.containsValue(currentColor)) {
+                        colorCompliance.put(patternColor, currentColor);
+                        colorEquals = true;
+                    } else
+                        colorEquals = false;
+                } else
+                    colorEquals = ePair == currentColor;
+                return colorEquals;
+            } else {
+                return false;
             }
         }
     }
