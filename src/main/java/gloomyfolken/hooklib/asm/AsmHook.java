@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.asm;
 
+import gloomyfolken.hooklib.api.LocalVariable;
 import gloomyfolken.hooklib.api.ReturnConstant;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -8,7 +9,10 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.DOUBLE;
@@ -36,6 +40,7 @@ public class AsmHook implements AsmInjection, Cloneable {
     private String hookMethodName;
     // -1 - значение return
     private List<Integer> transmittableVariableIds = new ArrayList<Integer>(2);
+    private Set<Type> requiredToFindLocalVariableTypes = new HashSet<>();
     private List<Type> hookMethodParameters = new ArrayList<Type>(2);
     private Type hookMethodReturnType = Type.VOID_TYPE;
     private boolean hasReturnValueParameter; // если в хук-метод передается значение из return
@@ -85,6 +90,14 @@ public class AsmHook implements AsmInjection, Cloneable {
 
     protected boolean isRequiredPrintLocalVariables() {
         return requiredPrintLocalVariables;
+    }
+
+    protected boolean isRequiredFindLocalVariables() {
+        return !requiredToFindLocalVariableTypes.isEmpty();
+    }
+
+    public Set<Type> getRequiredToFindLocalVariableTypes() {
+        return requiredToFindLocalVariableTypes;
     }
 
     protected HookInjectorFactory getInjectorFactory() {
@@ -413,7 +426,21 @@ public class AsmHook implements AsmInjection, Cloneable {
                 // иначе сдвигаем номер локальной переменной
                 if (variableId > 0) variableId--;
             }
-            if (variableId == -1) variableId = returnLocalId;
+            if (variableId == LocalVariable.returnValue)
+                variableId = returnLocalId;
+            else if (variableId == LocalVariable.onlyOneWithSameType) {
+                List<LocalVariableNode> availableVarsWithType =
+                        methodNode.localVariables.stream()
+                                .filter(lv -> lv.desc.equals(parameterType.getDescriptor()))
+                                .collect(Collectors.toList());
+                if (availableVarsWithType.size() != 1) {
+                    throw new IllegalArgumentException(
+                            "Hook expected only one local variable of target method with type " + parameterType +
+                                    ", but target method have " + availableVarsWithType.size() + " with save type"
+                    );
+                }
+                variableId = availableVarsWithType.get(0).index;
+            }
             r.add(new VarInsnNode(parameterType.getOpcode(ILOAD), variableId));
         }
 
@@ -435,7 +462,18 @@ public class AsmHook implements AsmInjection, Cloneable {
                 // иначе сдвигаем номер локальной переменной
                 if (variableId > 0) variableId--;
             }
-            if (variableId == -1) variableId = returnLocalId;
+            if (variableId == LocalVariable.returnValue)
+                variableId = returnLocalId;
+            else if (variableId == LocalVariable.onlyOneWithSameType) {
+                List<Integer> availableVarsWithType = inj.visitedLocalVariables.get(parameterType);
+                if (availableVarsWithType.size() != 1) {
+                    throw new IllegalArgumentException(
+                            "Hook expected only one local variable of target method with type " + parameterType +
+                                    ", but target method have " + availableVarsWithType.size() + " with save type"
+                    );
+                }
+                variableId = availableVarsWithType.get(0);
+            }
             injectLoad(inj, parameterType, variableId);
         }
 
@@ -643,6 +681,9 @@ public class AsmHook implements AsmInjection, Cloneable {
         public Builder addHookMethodParameter(Type parameterType, int variableId) {
             AsmHook.this.hookMethodParameters.add(parameterType);
             AsmHook.this.transmittableVariableIds.add(variableId);
+            if (variableId == LocalVariable.onlyOneWithSameType) {
+                requiredToFindLocalVariableTypes.add(parameterType);
+            }
             return this;
         }
 
@@ -692,7 +733,7 @@ public class AsmHook implements AsmInjection, Cloneable {
                         "transmit its return value to hook method.");
             }
             AsmHook.this.hookMethodParameters.add(AsmHook.this.targetMethodReturnType);
-            AsmHook.this.transmittableVariableIds.add(-1);
+            AsmHook.this.transmittableVariableIds.add(LocalVariable.returnValue);
             AsmHook.this.hasReturnValueParameter = true;
             return this;
         }

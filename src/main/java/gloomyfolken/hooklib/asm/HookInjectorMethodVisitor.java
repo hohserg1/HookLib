@@ -32,6 +32,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     public final String methodName;
     public final Type methodType;
     public final boolean isStatic;
+    protected Map<Type, List<Integer>> visitedLocalVariables;
 
     protected HookInjectorMethodVisitor(MethodVisitor mv, int access, String name, String desc,
                                         AsmHook hook, HookInjectorClassVisitor cv) {
@@ -41,6 +42,12 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         isStatic = (access & Opcodes.ACC_STATIC) != 0;
         this.methodName = name;
         this.methodType = Type.getMethodType(desc);
+        if (hook.isRequiredFindLocalVariables()) {
+            visitedLocalVariables = new HashMap<>();
+            for (Type type : hook.getRequiredToFindLocalVariableTypes()) {
+                visitedLocalVariables.put(type, new ArrayList<>(1));
+            }
+        }
     }
 
     @Override
@@ -48,6 +55,11 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         super.visitLocalVariable(name, desc, signature, start, end, index);
         if (hook.isRequiredPrintLocalVariables())
             Logger.instance.info(methodName + ":  @LocalVariable(" + index + ") " + Type.getType(desc).getClassName() + " " + name);
+        if (hook.isRequiredFindLocalVariables()) {
+            List<Integer> foundVars = visitedLocalVariables.get(Type.getType(desc));
+            if (foundVars != null)
+                foundVars.add(index);
+        }
     }
 
     /**
