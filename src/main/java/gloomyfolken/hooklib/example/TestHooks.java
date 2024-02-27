@@ -1,45 +1,25 @@
 package gloomyfolken.hooklib.example;
 
 import gloomyfolken.hooklib.api.*;
+import gloomyfolken.hooklib.asm.ReturnCondition;
+import net.minecraft.block.BlockTorch;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.World;
+import net.minecraftforge.common.ForgeHooks;
+
+import javax.annotation.Nullable;
+import java.util.Random;
 
 @HookContainer
 public class TestHooks {
 
-    public static void renderRainSnow(float partialTicks) {
-        BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
 
-        blockpos$mutableblockpos.setPos(0, 0, 0);
-        Biome biome = Minecraft.getMinecraft().world.getBiome(blockpos$mutableblockpos);
-
-        if (biome.canRain() || biome.getEnableSnow()) {
-            System.out.println("bruh");
-            System.out.println("test");
-            System.out.println("lol");
-        }
-    }
-
-
-    @Hook(targetMethod = "renderRainSnow")
-    @OnExpression(expressionPattern = "originalRainCondition", shift = Shift.INSTEAD)
-    public static boolean preventRainInDesert(TestHooks entityRenderer, float partialTicks,
-                                              @LocalVariable(1) BlockPos.MutableBlockPos pos, @LocalVariable(2) Biome biome) {
-        //@LocalVariable(21) BlockPos.MutableBlockPos pos, @LocalVariable(29) Biome biome) {
-        return false;
-    }
-
-    private static void originalRainCondition(Biome biome) {
-        if (biome.canRain() || biome.getEnableSnow()) ;
-    }
-
-    @Hook
-    @OnBegin
-    public static void resize(Minecraft mc, int x, int y) {
-        System.out.println("Resize, x=" + x + ", y=" + y);
-    }
-/*
     @Hook(targetMethod = "randomDisplayTick")
     @OnExpression(expressionPattern = "randomDisplayTickPattern", shift = Shift.INSTEAD)
     public static EnumParticleTypes randomDisplayTick(BlockTorch torch, IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
@@ -72,6 +52,14 @@ public class TestHooks {
         return 0;
     }
 
+    @Hook
+    @OnBegin
+    public static void resize(Minecraft mc, int x, int y) {
+        System.out.println("prevX=" + prevX(mc));
+        prevX(mc, x);
+        System.out.println("Resize, x=" + x + ", y=" + y);
+    }
+
 
     @Hook
     @OnMethodCall(value = "resize", shift = Shift.AFTER)
@@ -79,6 +67,10 @@ public class TestHooks {
         System.out.println("init resize, x=" + mc.displayWidth + ", y=" + mc.displayHeight);
     }
 
+    /**
+     * Цель: уменьшить вдвое показатели брони у всех игроков.
+     * P.S: фордж перехватывает получение показателя брони, ну а мы перехватим перехватчик :D
+     */
     @Hook(returnCondition = ReturnCondition.ALWAYS, returnConstant = @ReturnConstant(intValue = 1))
     @OnReturn
     public static void getTotalArmorValue(ForgeHooks fh, EntityPlayer player) {
@@ -93,5 +85,4 @@ public class TestHooks {
         }
         return false;
     }
-    */
 }
