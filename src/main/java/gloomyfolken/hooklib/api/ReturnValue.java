@@ -4,9 +4,11 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 /**
- * Перехватывает значение, которое изначально шло в return, и передает его хук-методу.
- * Говоря более формально, передает последнее значение в стаке.
- * Можно использовать только когда injectOnExit() == true и целевой метод возвращает не void.
+ * Allow to capture return value.
+ * <p>
+ * Use it with {@link OnReturn}.
+ * <p>
+ * Add additional argument with type of target method return type to hook-method and mark with this annotation.
  */
 @Target(ElementType.PARAMETER)
 public @interface ReturnValue {

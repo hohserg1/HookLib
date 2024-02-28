@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.asm;
 
+import gloomyfolken.hooklib.api.HookPriority;
 import gloomyfolken.hooklib.api.ReturnConstant;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;

@@ -1,95 +1,94 @@
 package gloomyfolken.hooklib.api;
 
-import gloomyfolken.hooklib.asm.HookPriority;
-import gloomyfolken.hooklib.asm.ReturnCondition;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
+
 /**
- * Чтобы сделать метод хуком, нужно повесить над ним эту аннотацию и зарегистрировать класс с хуком.
- * <p/>
- * Целевой класс определяется первым параметром хук-метода. Если целевой метод static, то туда прилетает null,
- * иначе - this.
- * <p/>
- * Название целевого метода по умолчанию такое же, как название хук-метода, но его можно переопределить через
- * targetMethod.
- * <p/>
- * Список параметров целевого метода определяется списком параметров хук-метода. Нужно добавить все те же параметры
- * в том же порядке.
- * <p/>
- * Возвращаемый тип целевого метода по умолчанию не указывается вообще. Предполагается, что методов с одинаковым
- * названием и списком параметров нет. Если всё же нужно указать, то это можно сделать через returnType.
+ * Mark method with this annotation for make it hook-method.
+ * <p>
+ * Hook-methods calls will be inserted to target method, so you can handle some stuff in foreign code.
+ * <p>
+ * Also mark hook-method with one of annotations: @OnBegin, @OnExpression, @OnMethodCall or @OnReturn, it will determine injection point in target method code.
+ * <p>
+ * Target class will be determined by type of first argument. First argument will be `this` value of target method, or null if target method is static.
+ * <p>
+ * Name of target method will be determined by hook-method name or by `targetMethod` parameter of @Hook annotation if present.
+ * <p>
+ * Next arguments of hook-method should be same as target method.
+ * <p>
+ * Return type of hook-method can be ReturnSolve if it's need to override return logic sometimes at injection point.
+ * <p>
+ * Return type of hook-method can be void if it doesn't need to override return logic at injection point.
+ * <p>
+ * Return type of hook-method can be same with target method return type if it's need to always return at injection point. It doesn't work if target method return type is void.
+ * <p>
+ * For example, if target class looks like:
+ * <blockquote><pre>{@code public class Bruh {
+ *      public String kek(int arg) {
+ *          //wanna inject hook here
+ *          return "lol" + arg;
+ *      }
+ * }}
+ * </pre></blockquote>
+ * Then hook should be:
+ * <blockquote><pre>{@code @HookContainer
+ * public class MyHooks {
+ *      @Hook
+ *      @OnBegin
+ *      public static kek(Bruh self, int arg) {
+ *          System.out.println("here!");
+ *      }
+ * }}</pre></blockquote>
+ * And result code of target class in runtime will be:
+ * <blockquote><pre>{@code public class Bruh {
+ *      public String kek(int arg) {
+ *          MyHooks.kek(this, arg); //hook-method call inserted
+ *          return "lol" + arg;
+ *      }
+ * }}
+ * </pre></blockquote>
  */
 @Target(ElementType.METHOD)
 public @interface Hook {
 
-
     /**
-     * Задает условие, по которому после вызова хука будет вызван return.
-     * Если целевой метод возвращает не void, то по умолчанию будет возвращено то, что вернул хук-метод.
-     * Это можно переопредилить несколькими элементами аннотации:
-     * returnAnotherMethod, returnNull и %type%ReturnConstant.
-     */
-    ReturnCondition returnCondition() default ReturnCondition.NEVER;
-
-    /**
-     * Задает приоритет хука.
-     * Хуки с большим приоритетом вызаваются раньше.
+     * Determines order of hook injection
+     * <p>
+     * Hooks with {@link HookPriority#HIGHEST} priority  will be called earlier
+     * <p>
+     * Hooks with {@link HookPriority#LOWEST} priority  will be called later
      */
     HookPriority priority() default HookPriority.NORMAL;
 
     /**
-     * Задает название целевого метода.
-     * По умолчанию используется название хук-метода.
-     * Эта опция полезна, когда нужно вставить хук в конструктор или инициализацию класса.
-     * Для конструктора targetMethod должен быть "<init>", для инициализации класса - "<clinit>"
+     * Determines target method name.
+     * If empty string, hook-method name will be used.
+     * <p>
+     * It's useful if it's need to hook to constructor or static initializer.
+     *
+     * @see Constants#CONSTRUCTOR_NAME
+     * @see Constants#STATIC_INITIALIZER_NAME
      */
     String targetMethod() default "";
 
     /**
-     * Задает тип, возвращаемый целевым методом.
-     * С точки зрения JVM могут быть методы, которые отличаются только возращаемым типом.
-     * На практике компиляторы таких методов не генерируют, но в некоторых случаях они
-     * могут встретиться (например, это можно сделать при обфускации через ProGuard)
-     * Если возвращаемый тип не указан, то хук применяется к первому методу, подходящему
-     * по названию и списку параметров.
+     * Allow to create new method in target class.
      * <p>
-     * Основной предполагаемый способ использования этого параметра - вместе с createMethod = true.
-     * В этом случае созданный метод будет по умолчанию иметь тот же возвращаемый тип, что и хук-метод,
-     * а с помощью этого параметра это можно изменить.
+     * Useful for override some method of super-class.
      * <p>
-     * Указывать нужно полное название класса: java.lang.String, void, int и т.д.
-     */
-    String returnType() default "";
-
-    /**
-     * Позволяет не только вставлять хуки в существующие методы, но и добавлять новые. Это может понадобиться,
-     * когда нужно переопределить метод суперкласса. Если супер-метод найден, то тело генерируемого метода
-     * представляет собой вызов супер-метода. Иначе это просто пустой метод или return false/0/null в зависимости
-     * от возвращаемого типа.
+     * Super-method call be inserted to new method.
      */
     boolean createMethod() default false;
 
 
     /**
-     * Позволяет объявить хук "обязательным" для запуска игры. В случае неудачи во время вставки такого хука
-     * будет не просто выведено сообщение в лог, а крашнется игра.
+     * Game will crash if HookLib can't find target method or suitable injection point for mandatory hook.
+     * <p>
+     * Turn it to false if your hook-method is optional.
+     * <p>
+     * Optional hooks will be only warned if not possible to inject.
      */
     boolean isMandatory() default true;
-
-    /**
-     * Если указано это название, то при вызове return в целевом методе будет сначала вызван этот метод.
-     * Он должен находиться в том же классе и иметь тот же список параметров, что и хук-метод.
-     * В итоге будет возвращено значение, которое вернёт этот метод.
-     */
-    String returnAnotherMethod() default "";
-
-    /**
-     * Если true, то при вызове return в целевом методе будет возвращено null
-     */
-    boolean returnNull() default false;
-
-    ReturnConstant[] returnConstant() default {};
 
 }
