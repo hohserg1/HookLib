@@ -75,7 +75,7 @@ public class HookContainerParser {
                         builder.setTargetMethodReturnType(argType);
                         builder.addReturnValueToHookMethodParameters();
                     } else if (localVariable != null)
-                        builder.addHookMethodParameter(argType, localVariable.value());
+                        builder.addHookMethodParameter(argType, localVariable.id());
                     else {
                         builder.addTargetMethodParameters(argType);
                         builder.addHookMethodParameter(argType, currentParameterId);
