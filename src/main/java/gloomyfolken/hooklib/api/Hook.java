@@ -48,6 +48,12 @@ import java.lang.annotation.Target;
  *      }
  * }}
  * </pre></blockquote>
+ *
+ * @see HookContainer
+ * @see OnBegin
+ * @see OnMethodCall
+ * @see OnExpression
+ * @see OnReturn
  */
 @Target(ElementType.METHOD)
 public @interface Hook {

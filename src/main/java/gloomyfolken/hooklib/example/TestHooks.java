@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.example;
 
 import gloomyfolken.hooklib.api.*;
-import gloomyfolken.hooklib.asm.ReturnCondition;
 import net.minecraft.block.BlockTorch;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -44,19 +43,13 @@ public class TestHooks {
     }
 
     @FieldLens(createField = true)
-    public static void prevX(Minecraft mc, int x) {
-    }
-
-    @FieldLens(createField = true)
-    public static int prevX(Minecraft mc) {
-        return 0;
-    }
+    public static FieldAccessor<Minecraft, Integer> prevX;
 
     @Hook
     @OnBegin
     public static void resize(Minecraft mc, int x, int y) {
-        System.out.println("prevX=" + prevX(mc));
-        prevX(mc, x);
+        System.out.println("prevX=" + prevX.get(mc));
+        prevX.set(mc, x);
         System.out.println("Resize, x=" + x + ", y=" + y);
     }
 
@@ -71,18 +64,18 @@ public class TestHooks {
      * Цель: уменьшить вдвое показатели брони у всех игроков.
      * P.S: фордж перехватывает получение показателя брони, ну а мы перехватим перехватчик :D
      */
-    @Hook(returnCondition = ReturnCondition.ALWAYS, returnConstant = @ReturnConstant(intValue = 1))
+    @Hook
     @OnReturn
-    public static void getTotalArmorValue(ForgeHooks fh, EntityPlayer player) {
-        //return returnValue / 2;
+    public static ReturnSolve<@ReturnSolve.Primitive Integer> getTotalArmorValue(ForgeHooks fh, EntityPlayer player) {
+        return ReturnSolve.yes(1);
     }
 
-    @Hook(returnCondition = ReturnCondition.ON_TRUE, returnConstant = @ReturnConstant(booleanValue = false))
+    @Hook
     @OnMethodCall(value = "trigger", shift = Shift.BEFORE)
-    public static boolean attemptDamageItem(ItemStack stack, int amount, Random rand, @Nullable EntityPlayerMP damager) {
-        if (amount > 0) {
-            return rand.nextFloat() > 0.5;
-        }
-        return false;
+    public static ReturnSolve<@ReturnSolve.Primitive Boolean> attemptDamageItem(ItemStack stack, int amount, Random rand, @Nullable EntityPlayerMP damager) {
+        if (amount > 0)
+            return ReturnSolve.yes(false);
+
+        return ReturnSolve.no();
     }
 }

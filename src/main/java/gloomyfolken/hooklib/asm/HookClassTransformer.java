@@ -12,9 +12,11 @@ import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.Opcodes.ASM5;
@@ -77,13 +79,22 @@ public class HookClassTransformer {
                 Logger.instance.error("Stack trace:", e);
             }
 
+            List<AsmInjection> mandatoryMissed = new ArrayList<>();
+
             for (AsmInjection hook : hooks) {
                 if (!injectedHooks.contains(hook))
                     if (hook.isMandatory()) {
-                        throw new RuntimeException("Can not find target method of mandatory hook " + hook);
+                        mandatoryMissed.add(hook);
                     } else {
                         Logger.instance.warning("Can not find target method of hook " + hook);
                     }
+            }
+
+            if (!mandatoryMissed.isEmpty()) {
+                throw new RuntimeException("Can not find target method of mandatory hooks: [\n" +
+                        mandatoryMissed.stream().map(AsmInjection::toString).collect(Collectors.joining("\n")) +
+                        "\n]"
+                );
             }
         }
 

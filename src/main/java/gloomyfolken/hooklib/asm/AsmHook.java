@@ -1,7 +1,9 @@
 package gloomyfolken.hooklib.asm;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import gloomyfolken.hooklib.api.HookPriority;
-import gloomyfolken.hooklib.api.ReturnConstant;
+import gloomyfolken.hooklib.api.ReturnSolve;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -10,6 +12,7 @@ import org.objectweb.asm.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.DOUBLE;
@@ -42,18 +45,15 @@ public class AsmHook implements AsmInjection, Cloneable {
     private boolean hasReturnValueParameter; // если в хук-метод передается значение из return
 
     private ReturnCondition returnCondition = ReturnCondition.NEVER;
-    private ReturnSort returnSort = ReturnSort.VOID;
-    private Object primitiveConstant;
 
     private HookInjectorFactory injectorFactory = HookInjectorFactory.BeginFactory.INSTANCE;
     private HookPriority priority = HookPriority.NORMAL;
 
     // может быть без возвращаемого типа
-    private String targetMethodDescription;
+    private String targetMethodDescription1;
+    private String targetMethodDescription2;
+
     private String hookMethodDescription;
-    private String returnMethodName;
-    // может быть без возвращаемого типа
-    private String returnMethodDescription;
 
     private boolean createMethod;
     private boolean isMandatory = true;
@@ -72,8 +72,13 @@ public class AsmHook implements AsmInjection, Cloneable {
     }
 
     protected boolean isTargetMethod(String name, String desc) {
-        return (targetMethodReturnType == null && desc.startsWith(targetMethodDescription) ||
-                desc.equals(targetMethodDescription)) && name.equals(targetMethodName);
+        if (!name.equals(targetMethodName))
+            return false;
+
+        if (targetMethodReturnType == null)
+            return desc.startsWith(targetMethodDescription1);
+
+        return desc.equals(targetMethodDescription1) || desc.equals(targetMethodDescription2);
     }
 
     public boolean needToCreate() {
@@ -98,10 +103,10 @@ public class AsmHook implements AsmInjection, Cloneable {
 
     public void create(HookInjectorClassVisitor classVisitor) {
         ClassMetadataReader.MethodReference superMethod = classVisitor.transformer.classMetadataReader
-                .findVirtualMethod(getTargetClassInternalName(), targetMethodName, targetMethodDescription);
+                .findVirtualMethod(getTargetClassInternalName(), targetMethodName, targetMethodDescription1);
         // юзаем название суперметода, потому что findVirtualMethod может вернуть метод с другим названием
         MethodVisitor mv = classVisitor.visitMethod(Opcodes.ACC_PUBLIC,
-                superMethod == null ? targetMethodName : superMethod.name, targetMethodDescription, null, null);
+                superMethod == null ? targetMethodName : superMethod.name, targetMethodDescription1, null, null);
         if (mv instanceof HookInjectorMethodVisitor) {
             HookInjectorMethodVisitor inj = (HookInjectorMethodVisitor) mv;
             inj.visitCode();
@@ -124,7 +129,6 @@ public class AsmHook implements AsmInjection, Cloneable {
         InsnList r = new InsnList();
         Type targetMethodReturnType = Type.getReturnType(methodNode.desc);
 
-        // сохраняем значение, которое было передано return в локальную переменную
         int returnLocalId = -1;
         if (hasReturnValueParameter) {
             returnLocalId = methodNode.maxLocals;
@@ -132,91 +136,36 @@ public class AsmHook implements AsmInjection, Cloneable {
             r.add(new VarInsnNode(targetMethodReturnType.getOpcode(ISTORE), returnLocalId)); //storeLocal
         }
 
-        // вызываем хук-метод
-        int hookResultLocalId = -1;
         r.add(injectInvokeStaticNode(methodNode, returnLocalId, hookMethodName, hookMethodDescription));
 
-        if (returnSort == ReturnSort.HOOK_RETURN_VALUE || returnCondition.requiresCondition) {
-            hookResultLocalId = methodNode.maxLocals;
-            methodNode.maxLocals++;
-            r.add(new VarInsnNode(targetMethodReturnType.getOpcode(ISTORE), hookResultLocalId)); //storeLocal
-        }
 
-        // вызываем return
-        if (returnCondition != ReturnCondition.NEVER) {
-            LabelNode label = new LabelNode(new Label());
-
-            // вставляем GOTO-переход к label'у после вызова return
-            if (returnCondition != ReturnCondition.ALWAYS) {
-                r.add(new VarInsnNode(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId));
-                if (returnCondition == ReturnCondition.ON_TRUE) {
-                    r.add(new JumpInsnNode(IFEQ, label));
-                } else if (returnCondition == ReturnCondition.ON_NULL) {
-                    r.add(new JumpInsnNode(IFNONNULL, label));
-                } else if (returnCondition == ReturnCondition.ON_NOT_NULL) {
-                    r.add(new JumpInsnNode(IFNULL, label));
-                }
-            }
-
-            // вставляем в стак значение, которое необходимо вернуть
-            if (returnSort == ReturnSort.NULL) {
-                r.add(new InsnNode(ACONST_NULL));
-
-            } else if (returnSort == ReturnSort.PRIMITIVE_CONSTANT) {
-                if (primitiveConstant instanceof ReturnConstant) {
-                    ReturnConstant hook = (ReturnConstant) this.primitiveConstant;
-                    switch (targetMethodReturnType.getSort()) {
-                        case BOOLEAN:
-                            r.add(new LdcInsnNode(hook.booleanValue()));
-                            break;
-                        case CHAR:
-                            r.add(new LdcInsnNode(hook.charValue()));
-                            break;
-                        case BYTE:
-                            r.add(new LdcInsnNode(hook.byteValue()));
-                            break;
-                        case SHORT:
-                            r.add(new LdcInsnNode(hook.shortValue()));
-                            break;
-                        case INT:
-                            r.add(new LdcInsnNode(hook.intValue()));
-                            break;
-                        case FLOAT:
-                            r.add(new LdcInsnNode(hook.floatValue()));
-                            break;
-                        case LONG:
-                            r.add(new LdcInsnNode(hook.longValue()));
-                            break;
-                        case DOUBLE:
-                            r.add(new LdcInsnNode(hook.doubleValue()));
-                            break;
-                        default:
-                            if (targetMethodReturnType.equals(Type.getType(String.class)))
-                                r.add(new LdcInsnNode(hook.stringValue()));
-                            else
-                                throw new IllegalArgumentException("Hook have primitive return constant, but target method return type is not primitive or String");
-                    }
-                } else {
-                    r.add(new LdcInsnNode(primitiveConstant));
-                }
-
-            } else if (returnSort == ReturnSort.HOOK_RETURN_VALUE) {
-                r.add(new VarInsnNode(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId)); //loadLocal
-
-            } else if (returnSort == ReturnSort.ANOTHER_METHOD_RETURN_VALUE) {
-                String returnMethodDescription = this.returnMethodDescription;
-                // если не был определён заранее нужный возвращаемый тип, то добавляем его к описанию
-                if (returnMethodDescription.endsWith(")")) {
-                    returnMethodDescription += targetMethodReturnType.getDescriptor();
-                }
-                injectInvokeStaticNode(methodNode, returnLocalId, returnMethodName, returnMethodDescription);
-            }
-
-            // вызываем return
+        if (returnCondition == ReturnCondition.ALWAYS) {
             r.add(new InsnNode(targetMethodReturnType.getOpcode(IRETURN)));
 
-            // вставляем label, к которому идет GOTO-переход
-            r.add(label);
+        } else if (returnCondition == ReturnCondition.ON_SOLVE) {
+            LabelNode doNotReturn = new LabelNode(new Label());
+
+            int hookResultLocalId = methodNode.maxLocals;
+            methodNode.maxLocals++;
+            r.add(new VarInsnNode(hookMethodReturnType.getOpcode(ISTORE), hookResultLocalId));
+
+            r.add(new VarInsnNode(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId));
+            r.add(new TypeInsnNode(INSTANCEOF, Type.getDescriptor(ReturnSolve.Yes.class)));
+            r.add(new JumpInsnNode(IFEQ, doNotReturn));
+
+            if (targetMethodReturnType != VOID_TYPE) {
+                r.add(new VarInsnNode(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId));
+                r.add(new TypeInsnNode(CHECKCAST, Type.getInternalName(ReturnSolve.Yes.class)));
+                Type boxed = objectToPrimitive.inverse().getOrDefault(targetMethodReturnType, targetMethodReturnType);
+                r.add(new FieldInsnNode(GETFIELD, Type.getInternalName(ReturnSolve.Yes.class), "value", Type.getDescriptor(Object.class)));
+                r.add(new TypeInsnNode(CHECKCAST, boxed.getInternalName()));
+                if (boxed != targetMethodReturnType)
+                    r.add(new MethodInsnNode(INVOKEVIRTUAL, boxed.getInternalName(), primitiveToUnboxingMethod.get(targetMethodReturnType), Type.getMethodDescriptor(targetMethodReturnType), false));
+            }
+
+            r.add(new InsnNode(targetMethodReturnType.getOpcode(IRETURN)));
+
+            r.add(doNotReturn);
         }
 
         //кладем в стек значение, которое шло в return
@@ -237,86 +186,33 @@ public class AsmHook implements AsmInjection, Cloneable {
             inj.visitVarInsn(targetMethodReturnType.getOpcode(ISTORE), returnLocalId); //storeLocal
         }
 
-        // вызываем хук-метод
-        int hookResultLocalId = -1;
         injectInvokeStatic(inj, returnLocalId, hookMethodName, hookMethodDescription);
 
-        if (returnSort == ReturnSort.HOOK_RETURN_VALUE || returnCondition.requiresCondition) {
-            hookResultLocalId = inj.newLocal(hookMethodReturnType);
-            inj.visitVarInsn(hookMethodReturnType.getOpcode(ISTORE), hookResultLocalId); //storeLocal
-        }
-
-        // вызываем return
-        if (returnCondition != ReturnCondition.NEVER) {
-            Label label = inj.newLabel();
-
-            // вставляем GOTO-переход к label'у после вызова return
-            if (returnCondition != ReturnCondition.ALWAYS) {
-                inj.visitVarInsn(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId); //loadLocal
-                if (returnCondition == ReturnCondition.ON_TRUE) {
-                    inj.visitJumpInsn(IFEQ, label);
-                } else if (returnCondition == ReturnCondition.ON_NULL) {
-                    inj.visitJumpInsn(IFNONNULL, label);
-                } else if (returnCondition == ReturnCondition.ON_NOT_NULL) {
-                    inj.visitJumpInsn(IFNULL, label);
-                }
-            }
-
-            // вставляем в стак значение, которое необходимо вернуть
-            if (returnSort == ReturnSort.NULL) {
-                inj.visitInsn(Opcodes.ACONST_NULL);
-            } else if (returnSort == ReturnSort.PRIMITIVE_CONSTANT) {
-                if (primitiveConstant instanceof ReturnConstant) {
-                    ReturnConstant hook = (ReturnConstant) this.primitiveConstant;
-                    switch (targetMethodReturnType.getSort()) {
-                        case BOOLEAN:
-                            inj.visitLdcInsn(hook.booleanValue());
-                            break;
-                        case CHAR:
-                            inj.visitLdcInsn(hook.charValue());
-                            break;
-                        case BYTE:
-                            inj.visitLdcInsn(hook.byteValue());
-                            break;
-                        case SHORT:
-                            inj.visitLdcInsn(hook.shortValue());
-                            break;
-                        case INT:
-                            inj.visitLdcInsn(hook.intValue());
-                            break;
-                        case FLOAT:
-                            inj.visitLdcInsn(hook.floatValue());
-                            break;
-                        case LONG:
-                            inj.visitLdcInsn(hook.longValue());
-                            break;
-                        case DOUBLE:
-                            inj.visitLdcInsn(hook.doubleValue());
-                            break;
-                        default:
-                            if (targetMethodReturnType.equals(Type.getType(String.class)))
-                                inj.visitLdcInsn(hook.stringValue());
-                            else
-                                throw new IllegalArgumentException("Hook have primitive return constant, but target method return type is not primitive or String");
-                    }
-                } else
-                    inj.visitLdcInsn(primitiveConstant);
-            } else if (returnSort == ReturnSort.HOOK_RETURN_VALUE) {
-                inj.visitVarInsn(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId); //loadLocal
-            } else if (returnSort == ReturnSort.ANOTHER_METHOD_RETURN_VALUE) {
-                String returnMethodDescription = this.returnMethodDescription;
-                // если не был определён заранее нужный возвращаемый тип, то добавляем его к описанию
-                if (returnMethodDescription.endsWith(")")) {
-                    returnMethodDescription += targetMethodReturnType.getDescriptor();
-                }
-                injectInvokeStatic(inj, returnLocalId, returnMethodName, returnMethodDescription);
-            }
-
-            // вызываем return
+        if (returnCondition == ReturnCondition.ALWAYS) {
             injectReturn(inj, targetMethodReturnType);
 
-            // вставляем label, к которому идет GOTO-переход
-            inj.visitLabel(label);
+        } else if (returnCondition == ReturnCondition.ON_SOLVE) {
+            Label doNotReturn = inj.newLabel();
+
+            int hookResultLocalId = inj.newLocal(hookMethodReturnType);
+            inj.visitVarInsn(hookMethodReturnType.getOpcode(ISTORE), hookResultLocalId);
+
+            inj.visitVarInsn(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId);
+            inj.visitTypeInsn(INSTANCEOF, Type.getInternalName(ReturnSolve.Yes.class));
+            inj.visitJumpInsn(IFEQ, doNotReturn);
+
+            if (targetMethodReturnType != VOID_TYPE) {
+                inj.visitVarInsn(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId);
+                inj.visitTypeInsn(CHECKCAST, Type.getInternalName(ReturnSolve.Yes.class));
+                Type boxed = objectToPrimitive.inverse().getOrDefault(targetMethodReturnType, targetMethodReturnType);
+                inj.visitFieldInsn(GETFIELD, Type.getInternalName(ReturnSolve.Yes.class), "value", Type.getDescriptor(Object.class));
+                inj.visitTypeInsn(CHECKCAST, boxed.getInternalName());
+                if (boxed != targetMethodReturnType)
+                    inj.visitMethodInsn(INVOKEVIRTUAL, boxed.getInternalName(), primitiveToUnboxingMethod.get(targetMethodReturnType), Type.getMethodDescriptor(targetMethodReturnType), false);
+            }
+            injectReturn(inj, targetMethodReturnType);
+
+            inj.visitLabel(doNotReturn);
         }
 
         //кладем в стек значение, которое шло в return
@@ -383,21 +279,7 @@ public class AsmHook implements AsmInjection, Cloneable {
     }
 
     private void injectReturn(HookInjectorMethodVisitor inj, Type targetMethodReturnType) {
-        if (targetMethodReturnType == INT_TYPE || targetMethodReturnType == SHORT_TYPE ||
-                targetMethodReturnType == BOOLEAN_TYPE || targetMethodReturnType == BYTE_TYPE
-                || targetMethodReturnType == CHAR_TYPE) {
-            inj.visitInsn(IRETURN);
-        } else if (targetMethodReturnType == LONG_TYPE) {
-            inj.visitInsn(LRETURN);
-        } else if (targetMethodReturnType == FLOAT_TYPE) {
-            inj.visitInsn(FRETURN);
-        } else if (targetMethodReturnType == DOUBLE_TYPE) {
-            inj.visitInsn(DRETURN);
-        } else if (targetMethodReturnType == VOID_TYPE) {
-            inj.visitInsn(RETURN);
-        } else {
-            inj.visitInsn(ARETURN);
-        }
+        inj.visitInsn(targetMethodReturnType.getOpcode(IRETURN));
     }
 
     private InsnList injectInvokeStaticNode(MethodNode methodNode, int returnLocalId, String name, String desc) {
@@ -444,7 +326,7 @@ public class AsmHook implements AsmInjection, Cloneable {
     }
 
     public String getPatchedMethodName() {
-        return targetClassName + '#' + targetMethodName + targetMethodDescription;
+        return targetClassName + '#' + targetMethodName + targetMethodDescription1;
     }
 
     @Override
@@ -453,14 +335,12 @@ public class AsmHook implements AsmInjection, Cloneable {
         sb.append("AsmHook: ");
 
         sb.append(targetClassName).append('#').append(targetMethodName);
-        sb.append(targetMethodDescription);
+        sb.append(targetMethodDescription1);
         sb.append(" -> ");
         sb.append(hooksClassName).append('#').append(hookMethodName);
         sb.append(hookMethodDescription);
 
         sb.append(", ReturnCondition=" + returnCondition);
-        sb.append(", ReturnValue=" + returnSort);
-        if (returnSort == ReturnSort.PRIMITIVE_CONSTANT) sb.append(", Constant=" + primitiveConstant);
         sb.append(", InjectorFactory: " + injectorFactory.getClass().getName());
         sb.append(", CreateMethod = " + createMethod);
 
@@ -564,11 +444,11 @@ public class AsmHook implements AsmInjection, Cloneable {
          * Чтобы однозначно определить целевой метод, недостаточно только его названия - нужно ещё и описание.
          * По умолчанию хук применяется ко всем методам, подходящим по названию и списку параметров.
          *
-         * @param returnType Тип, возвращаемый целевым методом
+         * @param type Тип, возвращаемый целевым методом
          * @see TypeHelper
          */
-        public Builder setTargetMethodReturnType(Type returnType) {
-            AsmHook.this.targetMethodReturnType = returnType;
+        public Builder setTargetMethodReturnType(Type type) {
+            AsmHook.this.targetMethodReturnType = type;
             return this;
         }
 
@@ -698,41 +578,8 @@ public class AsmHook implements AsmInjection, Cloneable {
             return this;
         }
 
-        /**
-         * Задает условие, при котором после вызова хук-метода вызывается return.
-         * По умолчанию return не вызывается вообще.
-         * Кроме того, этот метод изменяет тип возвращаемого значения хук-метода:
-         * NEVER -> void
-         * ALWAYS -> void
-         * ON_TRUE -> boolean
-         * ON_NULL -> Object
-         * ON_NOT_NULL -> Object
-         *
-         * @param condition Условие выхода после вызова хук-метода
-         * @throws IllegalArgumentException если condition == ON_TRUE, ON_NULL или ON_NOT_NULL, но не задан хук-метод.
-         * @see ReturnCondition
-         */
         public Builder setReturnCondition(ReturnCondition condition) {
-            if (condition.requiresCondition && AsmHook.this.hookMethodName == null) {
-                throw new IllegalArgumentException("Hook method is not specified, so can not use return " +
-                        "condition that depends on hook method.");
-            }
-
             AsmHook.this.returnCondition = condition;
-            Type returnType;
-            switch (condition) {
-                case NEVER:
-                case ALWAYS:
-                    returnType = VOID_TYPE;
-                    break;
-                case ON_TRUE:
-                    returnType = BOOLEAN_TYPE;
-                    break;
-                default:
-                    returnType = getType(Object.class);
-                    break;
-            }
-            AsmHook.this.hookMethodReturnType = returnType;
             return this;
         }
 
@@ -774,7 +621,7 @@ public class AsmHook implements AsmInjection, Cloneable {
                         "to return NULL.");
             }
 
-            AsmHook.this.returnSort = value;
+            //AsmHook.this.returnSort = value;
             if (value == ReturnSort.HOOK_RETURN_VALUE) {
                 AsmHook.this.hookMethodReturnType = AsmHook.this.targetMethodReturnType;
             }
@@ -801,58 +648,6 @@ public class AsmHook implements AsmInjection, Cloneable {
 
         private boolean isPrimitive(Type type) {
             return type.getSort() > 0 && type.getSort() < 9;
-        }
-
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ, ЕСЛИ ВОЗВРАЩАЕМОЕ ЗНАЧЕНИЕ УСТАНОВЛЕНО НА PRIMITIVE_CONSTANT ---
-         * Следует вызывать после setReturnValue(ReturnValue.PRIMITIVE_CONSTANT)
-         * Задает константу, которая будет возвращена при вызове return.
-         * Класс заданного объекта должен соответствовать примитивному типу.
-         * Например, если целевой метод возвращает int, то в этот метод должен быть передан объект класса Integer.
-         *
-         * @param constant Объект, класс которого соответствует примитиву, который следует возвращать.
-         * @throws IllegalStateException    если возвращаемое значение не установлено на PRIMITIVE_CONSTANT
-         * @throws IllegalArgumentException если класс объекта constant не является обёрткой
-         *                                  для примитивного типа, который возвращает целевой метод.
-         */
-        public Builder setPrimitiveConstant(Object constant) {
-            if (AsmHook.this.returnSort != ReturnSort.PRIMITIVE_CONSTANT) {
-                throw new IllegalStateException("Return value is not PRIMITIVE_CONSTANT, so it does not make sence" +
-                        "to specify that constant.");
-            }
-            Type returnType = AsmHook.this.targetMethodReturnType;
-            if (!(constant instanceof ReturnConstant))
-                if (returnType == BOOLEAN_TYPE && !(constant instanceof Boolean) ||
-                        returnType == CHAR_TYPE && !(constant instanceof Character) ||
-                        returnType == BYTE_TYPE && !(constant instanceof Byte) ||
-                        returnType == SHORT_TYPE && !(constant instanceof Short) ||
-                        returnType == INT_TYPE && !(constant instanceof Integer) ||
-                        returnType == LONG_TYPE && !(constant instanceof Long) ||
-                        returnType == FLOAT_TYPE && !(constant instanceof Float) ||
-                        returnType == DOUBLE_TYPE && !(constant instanceof Double)) {
-                    throw new IllegalArgumentException("Given object class does not math target method return type.");
-                }
-
-            AsmHook.this.primitiveConstant = constant;
-            return this;
-        }
-
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ, ЕСЛИ ВОЗВРАЩАЕМОЕ ЗНАЧЕНИЕ УСТАНОВЛЕНО НА ANOTHER_METHOD_RETURN_VALUE ---
-         * Следует вызывать после setReturnValue(ReturnValue.ANOTHER_METHOD_RETURN_VALUE)
-         * Задает метод, результат вызова которого будет возвращён при вызове return.
-         *
-         * @param methodName название метода, результат вызова которого следует возвращать
-         * @throws IllegalStateException если возвращаемое значение не установлено на ANOTHER_METHOD_RETURN_VALUE
-         */
-        public Builder setReturnMethod(String methodName) {
-            if (AsmHook.this.returnSort != ReturnSort.ANOTHER_METHOD_RETURN_VALUE) {
-                throw new IllegalStateException("Return value is not ANOTHER_METHOD_RETURN_VALUE, " +
-                        "so it does not make sence to specify that method.");
-            }
-
-            AsmHook.this.returnMethodName = methodName;
-            return this;
         }
 
         /**
@@ -926,14 +721,15 @@ public class AsmHook implements AsmInjection, Cloneable {
             if (hook.createMethod && hook.targetMethodReturnType == null) {
                 hook.targetMethodReturnType = hook.hookMethodReturnType;
             }
-            hook.targetMethodDescription = getMethodDesc(hook.targetMethodReturnType, hook.targetMethodParameters);
-
-            hook.hookMethodDescription = Type.getMethodDescriptor(hook.hookMethodReturnType,
-                    hook.hookMethodParameters.toArray(new Type[0]));
-
-            if (hook.returnSort == ReturnSort.ANOTHER_METHOD_RETURN_VALUE) {
-                hook.returnMethodDescription = getMethodDesc(hook.targetMethodReturnType, hook.hookMethodParameters);
+            hook.targetMethodDescription1 = getMethodDesc(hook.targetMethodReturnType, hook.targetMethodParameters);
+            Type maybePrimitive = objectToPrimitive.get(hook.targetMethodReturnType);
+            if (maybePrimitive == null)
+                hook.targetMethodDescription2 = hook.targetMethodDescription1;
+            else {
+                hook.targetMethodDescription2 = getMethodDesc(maybePrimitive, hook.targetMethodParameters);
             }
+
+            hook.hookMethodDescription = Type.getMethodDescriptor(hook.hookMethodReturnType, hook.hookMethodParameters.toArray(new Type[0]));
 
             try {
                 hook = (AsmHook) AsmHook.this.clone();
@@ -950,16 +746,6 @@ public class AsmHook implements AsmInjection, Cloneable {
                         "Call setTargetMethodName() before build().");
             }
 
-            if (hook.returnSort == ReturnSort.PRIMITIVE_CONSTANT && hook.primitiveConstant == null) {
-                throw new IllegalStateException("Return value is PRIMITIVE_CONSTANT, but the constant is not " +
-                        "specified. Call setReturnValue() before build().");
-            }
-
-            if (hook.returnSort == ReturnSort.ANOTHER_METHOD_RETURN_VALUE && hook.returnMethodName == null) {
-                throw new IllegalStateException("Return value is ANOTHER_METHOD_RETURN_VALUE, but the method is not " +
-                        "specified. Call setReturnMethod() before build().");
-            }
-
             if (!(hook.injectorFactory instanceof HookInjectorFactory.ReturnFactory) && hook.hasReturnValueParameter) {
                 throw new IllegalStateException("Can not pass return value to hook method " +
                         "because hook location is not return insn.");
@@ -967,7 +753,28 @@ public class AsmHook implements AsmInjection, Cloneable {
 
             return hook;
         }
-
     }
 
+    public static BiMap<Type, Type> objectToPrimitive = ImmutableBiMap.<Type, Type>builder()
+            .put(Type.getType(Void.class), VOID_TYPE)
+            .put(Type.getType(Boolean.class), BOOLEAN_TYPE)
+            .put(Type.getType(Character.class), CHAR_TYPE)
+            .put(Type.getType(Byte.class), BYTE_TYPE)
+            .put(Type.getType(Short.class), SHORT_TYPE)
+            .put(Type.getType(Integer.class), INT_TYPE)
+            .put(Type.getType(Float.class), FLOAT_TYPE)
+            .put(Type.getType(Long.class), LONG_TYPE)
+            .put(Type.getType(Double.class), DOUBLE_TYPE)
+            .build();
+
+    public static Map<Type, String> primitiveToUnboxingMethod = ImmutableBiMap.<Type, String>builder()
+            .put(BOOLEAN_TYPE, "booleanValue")
+            .put(CHAR_TYPE, "charValue")
+            .put(BYTE_TYPE, "byteValue")
+            .put(SHORT_TYPE, "shortValue")
+            .put(INT_TYPE, "intValue")
+            .put(FLOAT_TYPE, "floatValue")
+            .put(LONG_TYPE, "longValue")
+            .put(DOUBLE_TYPE, "doubleValue")
+            .build();
 }
