@@ -18,6 +18,10 @@ import java.util.Random;
 @HookContainer
 public class TestHooks {
 
+    static {
+        
+    }
+
 
     @Hook(targetMethod = "randomDisplayTick")
     @OnExpression(expressionPattern = "randomDisplayTickPattern", shift = Shift.INSTEAD)
