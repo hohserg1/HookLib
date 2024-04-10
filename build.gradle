@@ -62,6 +62,7 @@ jar {
     }
     if (!testBuild) {
         exclude('gloomyfolken/hooklib/example/**')
+        exclude('gloomyfolken/hooklib/helper/DictionaryGenerator.class')
     }
     destinationDirectory = file("$rootDir/production")
 }
