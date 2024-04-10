@@ -1,8 +1,8 @@
 package gloomyfolken.hooklib.minecraft;
 
 import com.google.common.collect.ListMultimap;
-import gloomyfolken.hooklib.asm.AsmHook;
 import gloomyfolken.hooklib.asm.AsmInjection;
+import gloomyfolken.hooklib.asm.AsmMethodInjection;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -48,7 +48,7 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
         // соответственно, и костыли для деобфускации названий методов тут не нужны.
         return new HookInjectorClassVisitor(this, finalizeVisitor, hooks) {
             @Override
-            protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
+            protected boolean isTargetMethod(AsmMethodInjection hook, String name, String desc) {
                 return super.isTargetMethod(hook, name, mapDesc(desc));
             }
         };

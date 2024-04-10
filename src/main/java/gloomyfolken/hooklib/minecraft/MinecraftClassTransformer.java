@@ -74,7 +74,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
     protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         return new HookInjectorClassVisitor(this, finalizeVisitor, hooks) {
             @Override
-            protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
+            protected boolean isTargetMethod(AsmMethodInjection hook, String name, String desc) {
                 if (HookLibPlugin.getObfuscated()) {
                     String mcpName = methodNames.get(getMemberId("func_", name));
                     if (mcpName != null && super.isTargetMethod(hook, mcpName, desc)) {

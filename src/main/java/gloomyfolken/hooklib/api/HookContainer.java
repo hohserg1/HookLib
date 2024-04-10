@@ -4,7 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 /**
- * Mark class with this annotation for make HookLib can find hooks here
+ * Mark class with this annotation to make HookLib can find hooks here
  *
  * @see Hook
  * @see FieldLens

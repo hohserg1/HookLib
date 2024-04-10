@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.asm;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.minecraft.Config;
@@ -70,13 +69,11 @@ public class HookClassTransformer {
                 bytecode = cw.toByteArray();
                 injectedHooks = hooksWriter.injectedHooks;
             } catch (Exception e) {
-                injectedHooks = ImmutableSet.of();
-                Logger.instance.error("A problem has occurred during transformation of class " + className + ".");
-                Logger.instance.error("Attached hooks:");
-                for (AsmInjection hook : hooks) {
-                    Logger.instance.error("    " + hook.toString());
-                }
-                Logger.instance.error("Stack trace:", e);
+                throw new RuntimeException("A problem has occurred during transformation of class " + className + ". Plz report to https://github.com/hohserg1/HookLib/issues\n" +
+                        "Attached hooks: [\n" +
+                        hooksToString(hooks) + "\n" +
+                        "]\n" +
+                        "Stack trace:", e);
             }
 
             List<AsmInjection> mandatoryMissed = new ArrayList<>();
@@ -92,18 +89,17 @@ public class HookClassTransformer {
 
             if (!mandatoryMissed.isEmpty()) {
                 throw new RuntimeException("Can not find target method of mandatory hooks: [\n" +
-                        mandatoryMissed.stream().map(AsmInjection::toString).collect(Collectors.joining("\n")) +
+                        hooksToString(mandatoryMissed) +
                         "\n]"
                 );
             }
         }
 
-        /*
-        LoadedIndex.instance.index.add(className);
-        if (LoadedIndex.instance.init)
-            Connector.notified(className);*/
-
         return bytecode;
+    }
+
+    private String hooksToString(List<AsmInjection> mandatoryMissed) {
+        return mandatoryMissed.stream().map(AsmInjection::toString).collect(Collectors.joining("\n"));
     }
 
     /**

@@ -4,7 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 /**
- * Use it with {@link Hook} annotation for insert hook-method call at specific point in code of target method.
+ * Use it with {@link Hook} annotation to insert hook-method call at specific point in code of target method.
  * <p>
  * Specific point determines by code pattern which need to write in separated method in same hook container and specify that method name by {@link #expressionPattern} parameter
  * <p>

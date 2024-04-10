@@ -41,7 +41,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 public @interface LocalVariable {
     /**
-     * It's id of local variable.
+     * This is id of local variable.
      * <p>
      * In example it was 2 because of:
      * <p>

@@ -4,7 +4,9 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 /**
- * Use it for call private method of some class
+ * This is WIP feature!
+ * <p>
+ * Use it to call private method of some class
  * <p>
  * <p>
  * For example, if target class looks like:

@@ -5,23 +5,23 @@ import java.lang.annotation.Target;
 
 
 /**
- * Mark method with this annotation for make it hook-method.
+ * Mark method with this annotation to make it hook-method.
  * <p>
  * Hook-methods calls will be inserted to target method, so you can handle some stuff in foreign code.
  * <p>
  * Also mark hook-method with one of annotations: @OnBegin, @OnExpression, @OnMethodCall or @OnReturn, it will determine injection point in target method code.
  * <p>
- * Target class will be determined by type of first argument. First argument will be `this` value of target method, or null if target method is static.
+ * Target class will be determined by type of first argument. The first argument will be `this` value of target method, or null if target method is static.
  * <p>
- * Name of target method will be determined by hook-method name or by `targetMethod` parameter of @Hook annotation if present.
+ * The name of target method will be determined by hook-method name or by `targetMethod` parameter of @Hook annotation if present.
  * <p>
- * Next arguments of hook-method should be same as target method.
+ * The next arguments of hook-method should be same as target method.
  * <p>
- * Return type of hook-method can be ReturnSolve if it's need to override return logic sometimes at injection point.
+ * Return type of hook-method can be ReturnSolve if it sometimes needs to override return logic sometimes at injection point.
  * <p>
  * Return type of hook-method can be void if it doesn't need to override return logic at injection point.
  * <p>
- * Return type of hook-method can be same with target method return type if it's need to always return at injection point. It doesn't work if target method return type is void.
+ * Return type of hook-method can be same with target method return type if it always needs to return at injection point. It doesn't work if target method's return type is void.
  * <p>
  * For example, if target class looks like:
  * <blockquote><pre>{@code public class Bruh {
@@ -71,7 +71,7 @@ public @interface Hook {
      * Determines target method name.
      * If empty string, hook-method name will be used.
      * <p>
-     * It's useful if it's need to hook to constructor or static initializer.
+     * It's useful if it's need to hook to constructor or static initializer. Or if its need few hooks to same method.
      *
      * @see Constants#CONSTRUCTOR_NAME
      * @see Constants#STATIC_INITIALIZER_NAME

@@ -18,11 +18,6 @@ import java.util.Random;
 @HookContainer
 public class TestHooks {
 
-    static {
-        
-    }
-
-
     @Hook(targetMethod = "randomDisplayTick")
     @OnExpression(expressionPattern = "randomDisplayTickPattern", shift = Shift.INSTEAD)
     public static EnumParticleTypes randomDisplayTick(BlockTorch torch, IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
@@ -70,7 +65,7 @@ public class TestHooks {
      */
     @Hook
     @OnReturn
-    public static ReturnSolve<@ReturnSolve.Primitive Integer> getTotalArmorValue(ForgeHooks fh, EntityPlayer player) {
+    public static ReturnSolve<Integer> getTotalArmorValue(ForgeHooks fh, EntityPlayer player) {
         return ReturnSolve.yes(1);
     }
 

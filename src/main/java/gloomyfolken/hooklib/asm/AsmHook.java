@@ -29,7 +29,7 @@ import static org.objectweb.asm.Type.*;
  * hookMethod (хук-метод) - ваш статический метод, который вызывается из стороннего кода
  * hookClass (класс с хуком) - класс, в котором содержится хук-метод
  */
-public class AsmHook implements AsmInjection, Cloneable {
+public class AsmHook implements AsmMethodInjection, Cloneable {
 
     private String targetClassName; // через точки
     private String targetMethodName;
@@ -71,7 +71,7 @@ public class AsmHook implements AsmInjection, Cloneable {
         return hooksClassName.replace('.', '/');
     }
 
-    protected boolean isTargetMethod(String name, String desc) {
+    public boolean isTargetMethod(String name, String desc) {
         if (!name.equals(targetMethodName))
             return false;
 
@@ -89,11 +89,11 @@ public class AsmHook implements AsmInjection, Cloneable {
         return isMandatory;
     }
 
-    protected boolean isRequiredPrintLocalVariables() {
+    public boolean isRequiredPrintLocalVariables() {
         return requiredPrintLocalVariables;
     }
 
-    protected HookInjectorFactory getInjectorFactory() {
+    public HookInjectorFactory getInjectorFactory() {
         return injectorFactory;
     }
 
@@ -125,7 +125,7 @@ public class AsmHook implements AsmInjection, Cloneable {
         }
     }
 
-    protected InsnList injectNode(MethodNode methodNode) {
+    public InsnList injectNode(MethodNode methodNode, HookInjectorClassVisitor cv) {
         InsnList r = new InsnList();
         Type targetMethodReturnType = Type.getReturnType(methodNode.desc);
 
@@ -176,7 +176,7 @@ public class AsmHook implements AsmInjection, Cloneable {
         return r;
     }
 
-    protected void inject(HookInjectorMethodVisitor inj) {
+    public void inject(HookInjectorMethodVisitor inj) {
         Type targetMethodReturnType = inj.methodType.getReturnType();
 
         // сохраняем значение, которое было передано return в локальную переменную
@@ -325,8 +325,8 @@ public class AsmHook implements AsmInjection, Cloneable {
         inj.visitMethodInsn(INVOKESTATIC, getHookClassInternalName(), name, desc, false);
     }
 
-    public String getPatchedMethodName() {
-        return targetClassName + '#' + targetMethodName + targetMethodDescription1;
+    public String getPatchedMethodName(String actualName, String actualDescription) {
+        return targetClassName + '#' + actualName + actualDescription;
     }
 
     @Override
@@ -359,7 +359,7 @@ public class AsmHook implements AsmInjection, Cloneable {
                 return injectorFactory.isPriorityInverted ? 1 : -1;
             }
         } else
-            return AsmInjection.super.compareTo(o);
+            return 0;
     }
 
     public static Builder newBuilder() {
@@ -581,60 +581,6 @@ public class AsmHook implements AsmInjection, Cloneable {
         public Builder setReturnCondition(ReturnCondition condition) {
             AsmHook.this.returnCondition = condition;
             return this;
-        }
-
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ, ЕСЛИ ЦЕЛЕВОЙ МЕТОД ВОЗВРАЩАЕТ НЕ void, И ВЫЗВАН setReturnCondition ---
-         * Задает значение, которое возвращается при вызове return после вызова хук-метода.
-         * Следует вызывать после setReturnCondition.
-         * По умолчанию возвращается void.
-         * Кроме того, если value == ReturnValue.HOOK_RETURN_VALUE, то этот метод изменяет тип возвращаемого
-         * значения хук-метода на тип, указанный в setTargetMethodReturnType()
-         *
-         * @param value возвращаемое значение
-         * @throws IllegalStateException    если returnCondition == NEVER (т. е. если setReturnCondition() не вызывался).
-         *                                  Нет смысла указывать возвращаемое значение, если return не вызывается.
-         * @throws IllegalArgumentException если value == ReturnValue.HOOK_RETURN_VALUE, а тип возвращаемого значения
-         *                                  целевого метода указан как void (или setTargetMethodReturnType ещё не вызывался).
-         *                                  Нет смысла использовать значение, которое вернул хук-метод, если метод возвращает void.
-         */
-        public Builder setReturnValue(ReturnSort value) {
-            if (AsmHook.this.returnCondition == ReturnCondition.NEVER) {
-                throw new IllegalStateException("Current return condition is ReturnCondition.NEVER, so it does not " +
-                        "make sense to specify the return value.");
-            }
-            Type returnType = AsmHook.this.targetMethodReturnType;
-            if (value != ReturnSort.VOID && returnType == VOID_TYPE && AsmHook.this.returnCondition == ReturnCondition.ALWAYS) {
-                throw new IllegalArgumentException("Target method return value is void, so it does not make sense to " +
-                        "return anything else.");
-            }
-            if (value == ReturnSort.VOID && returnType != VOID_TYPE) {
-                throw new IllegalArgumentException("Target method return value is not void, so it is impossible " +
-                        "to return VOID.");
-            }
-            if (value == ReturnSort.PRIMITIVE_CONSTANT && returnType != null && !isPrimitive(returnType)) {
-                throw new IllegalArgumentException("Target method return value is not a primitive, so it is " +
-                        "impossible to return PRIVITIVE_CONSTANT.");
-            }
-            if (value == ReturnSort.NULL && returnType != null && isPrimitive(returnType)) {
-                throw new IllegalArgumentException("Target method return value is a primitive, so it is impossible " +
-                        "to return NULL.");
-            }
-
-            //AsmHook.this.returnSort = value;
-            if (value == ReturnSort.HOOK_RETURN_VALUE) {
-                AsmHook.this.hookMethodReturnType = AsmHook.this.targetMethodReturnType;
-            }
-            return this;
-        }
-
-        /**
-         * Возвращает тип возвращаемого значения хук-метода, если кому-то сложно "вычислить" его самостоятельно.
-         *
-         * @return тип возвращаемого значения хук-метода
-         */
-        public Type getHookMethodReturnType() {
-            return hookMethodReturnType;
         }
 
         /**

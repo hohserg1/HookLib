@@ -27,14 +27,14 @@ import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
  */
 public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
-    protected final AsmHook hook;
+    protected final AsmMethodInjection hook;
     protected final HookInjectorClassVisitor cv;
     public final String methodName;
     public final Type methodType;
     public final boolean isStatic;
 
     protected HookInjectorMethodVisitor(MethodVisitor mv, int access, String name, String desc,
-                                        AsmHook hook, HookInjectorClassVisitor cv) {
+                                        AsmMethodInjection hook, HookInjectorClassVisitor cv) {
         super(Opcodes.ASM5, mv, access, name, desc);
         this.hook = hook;
         this.cv = cv;
@@ -46,8 +46,9 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     @Override
     public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
         super.visitLocalVariable(name, desc, signature, start, end, index);
-        if (hook.isRequiredPrintLocalVariables())
-            Logger.instance.info(methodName + ":  @LocalVariable(" + index + ") " + Type.getType(desc).getClassName() + " " + name);
+        if (hook instanceof AsmHook)
+            if (((AsmHook) hook).isRequiredPrintLocalVariables())
+                Logger.instance.info(methodName + ":  @LocalVariable(" + index + ") " + Type.getType(desc).getClassName() + " " + name);
     }
 
     /**
@@ -70,7 +71,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
         private int ordinal;
 
-        protected OrderedVisitor(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor cv, int ordinal) {
+        protected OrderedVisitor(MethodVisitor mv, int access, String name, String desc, AsmMethodInjection hook, HookInjectorClassVisitor cv, int ordinal) {
             super(mv, access, name, desc, hook, cv);
             this.ordinal = ordinal;
         }
@@ -102,7 +103,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     static class BeginVisitor extends HookInjectorMethodVisitor {
 
         public BeginVisitor(MethodVisitor mv, int access, String name, String desc,
-                            AsmHook hook, HookInjectorClassVisitor cv) {
+                            AsmMethodInjection hook, HookInjectorClassVisitor cv) {
             super(mv, access, name, desc, hook, cv);
         }
 
@@ -119,7 +120,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     static class ReturnVisitor extends OrderedVisitor {
 
         public ReturnVisitor(MethodVisitor mv, int access, String name, String desc,
-                             AsmHook hook, HookInjectorClassVisitor cv, int ordinal) {
+                             AsmMethodInjection hook, HookInjectorClassVisitor cv, int ordinal) {
             super(mv, access, name, desc, hook, cv, ordinal);
         }
 
@@ -136,7 +137,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         private final String methodDesc;
         private final Shift shift;
 
-        protected MethodCallVisitor(MethodVisitor mv, int access, String name, String desc, AsmHook hook, HookInjectorClassVisitor cv,
+        protected MethodCallVisitor(MethodVisitor mv, int access, String name, String desc, AsmMethodInjection hook, HookInjectorClassVisitor cv,
                                     String methodName, String methodDesc, int ordinal, Shift shift) {
             super(mv, access, name, desc, hook, cv, ordinal);
             this.methodName = methodName;
@@ -183,7 +184,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
     static class ExpressionVisitor extends MethodNode {
         private final MethodVisitor targetVisitor;
-        private final AsmHook hook;
+        private final AsmMethodInjection hook;
         private final HookInjectorClassVisitor cv;
         private final List<AbstractInsnNode> expressionPattern;
         private final int ordinal;
@@ -191,7 +192,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         private final Type patternType;
 
         public ExpressionVisitor(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
-                                 AsmHook hook, HookInjectorClassVisitor cv,
+                                 AsmMethodInjection hook, HookInjectorClassVisitor cv,
                                  List<AbstractInsnNode> expressionPattern, int ordinal, Shift shift, Type patternType) {
             super(Opcodes.ASM5, access, name, desc, signature, exceptions);
             targetVisitor = mv;
@@ -235,7 +236,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
             switch (shift) {
                 case BEFORE:
-                    instructions.insertBefore(found.getLeft(), hook.injectNode(this));
+                    instructions.insertBefore(found.getLeft(), hook.injectNode(this, cv));
 
                     break;
                 case INSTEAD:
@@ -245,7 +246,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                         instructions.insertBefore(found.getLeft(), new InsnNode(getPopOpcode(in)));
                     }*/
 
-                    instructions.insert(found.getRight(), hook.injectNode(this));
+                    instructions.insert(found.getRight(), hook.injectNode(this, cv));
                     instructions.insert(found.getRight(), new InsnNode(getPopOpcode(patternType.getReturnType())));
 
                     /*
@@ -275,7 +276,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
                     break;
                 case AFTER:
-                    instructions.insert(found.getRight(), hook.injectNode(this));
+                    instructions.insert(found.getRight(), hook.injectNode(this, cv));
 
                     break;
             }

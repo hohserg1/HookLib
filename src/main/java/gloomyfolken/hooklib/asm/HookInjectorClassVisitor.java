@@ -63,19 +63,12 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
         for (AsmInjection injection : hooks) {
-            if (injection instanceof AsmHook) {
-                AsmHook hook = (AsmHook) injection;
+            if (injection instanceof AsmMethodInjection) {
+                AsmMethodInjection hook = (AsmMethodInjection) injection;
                 if (isTargetMethod(hook, name, desc) && !injectedHooks.contains(hook)) {
                     // добавляет MethodVisitor в цепочку
                     mv = hook.getInjectorFactory().createHookInjector(mv, access, name, desc, signature, exceptions, hook, this);
-                    Logger.instance.debug("Patching method " + ((AsmHook) injection).getPatchedMethodName());
-                }
-            } else if (injection instanceof AsmLensHook) {
-                AsmLensHook hook = (AsmLensHook) injection;
-                if (isTargetMethod(hook, name, desc) && !injectedHooks.contains(hook)) {
-                    // добавляет MethodVisitor в цепочку
-                    mv = hook.createHookInjector(mv, access, name, desc, hook, this);
-                    Logger.instance.debug("Patching lens " + ((AsmLensHook) injection).getPatchedMethodName());
+                    Logger.instance.debug("Patching method " + hook.getPatchedMethodName(name, desc));
                 }
             }
         }
@@ -92,11 +85,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
         super.visitEnd();
     }
 
-    private boolean isTargetMethod(AsmLensHook hook, String name, String desc) {
-        return hook.isTargetMethod(name, desc);
-    }
-
-    protected boolean isTargetMethod(AsmHook hook, String name, String desc) {
+    protected boolean isTargetMethod(AsmMethodInjection hook, String name, String desc) {
         return hook.isTargetMethod(name, desc);
     }
 

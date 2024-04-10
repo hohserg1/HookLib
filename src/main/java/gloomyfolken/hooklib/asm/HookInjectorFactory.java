@@ -23,7 +23,7 @@ public abstract class HookInjectorFactory {
     protected boolean isPriorityInverted = false;
 
     abstract MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
-                                              AsmHook hook, HookInjectorClassVisitor cv);
+                                              AsmMethodInjection hook, HookInjectorClassVisitor cv);
 
 
     static class BeginFactory extends HookInjectorFactory {
@@ -35,7 +35,7 @@ public abstract class HookInjectorFactory {
 
         @Override
         public MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
-                                                AsmHook hook, HookInjectorClassVisitor cv) {
+                                                AsmMethodInjection hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.BeginVisitor(mv, access, name, desc, hook, cv);
         }
 
@@ -51,7 +51,7 @@ public abstract class HookInjectorFactory {
 
         @Override
         public MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
-                                                AsmHook hook, HookInjectorClassVisitor cv) {
+                                                AsmMethodInjection hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.ReturnVisitor(mv, access, name, desc, hook, cv, ordinal);
         }
     }
@@ -65,7 +65,7 @@ public abstract class HookInjectorFactory {
 
         @Override
         MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
-                                         AsmHook hook, HookInjectorClassVisitor cv) {
+                                         AsmMethodInjection hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.MethodCallVisitor(mv, access, name, desc, hook, cv, methodName, methodDesc, ordinal, shift);
         }
     }
@@ -79,7 +79,7 @@ public abstract class HookInjectorFactory {
 
         @Override
         MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
-                                         AsmHook hook, HookInjectorClassVisitor cv) {
+                                         AsmMethodInjection hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.ExpressionVisitor(mv, access, name, desc, signature, exceptions,
                     hook, cv, expressionPattern, ordinal, shift, patternType);
         }

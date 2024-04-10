@@ -4,7 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 /**
- * Use it for access to private field of some class
+ * Use it to access to private field of some class
  * <p>
  * For example, if target class looks like:
  * <blockquote><pre>{@code public class Bruh {

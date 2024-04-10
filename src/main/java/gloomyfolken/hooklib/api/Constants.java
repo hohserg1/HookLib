@@ -2,7 +2,7 @@ package gloomyfolken.hooklib.api;
 
 public interface Constants {
     /**
-     * It's name of constructor method. Use it with {@link Hook#targetMethod} and {@link MethodLens#targetMethod()}
+     * This is name of constructor method. Use it with {@link Hook#targetMethod} and {@link MethodLens#targetMethod()}
      * <p>
      * For example, if target class looks like:
      * <blockquote><pre>{@code public class Bruh {
@@ -22,7 +22,7 @@ public interface Constants {
     String CONSTRUCTOR_NAME = "<init>";
 
     /**
-     * It's name of constructor method. Use it with {@link Hook#targetMethod}
+     * This is name of constructor method. Use it with {@link Hook#targetMethod}
      * <p>
      * For example, if target class looks like:
      * <blockquote><pre>{@code public class Bruh {

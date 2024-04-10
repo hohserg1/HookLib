@@ -4,7 +4,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
 /**
- * Use it with {@link Hook} annotation for insert hook-method call at other method call
+ * Use it with {@link Hook} annotation to insert hook-method call at other method call
  * <p>
  * For example, if target class looks like:
  * <blockquote><pre>{@code public class Bruh {
