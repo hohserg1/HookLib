@@ -1,77 +1,78 @@
 [![](https://jitpack.io/v/hohserg1/HookLib.svg)](https://jitpack.io/#hohserg1/HookLib)
+
 # HookLib
-Мод, делающий разработку трансформеров необычайно лёгкой.
 
-Благодаря этому моду становится возможно вставлять хуки (вызовы своих статических методов) в код майнкрафта, форджа и других модов, при этом не обладая никакими познаниями ни в JVM-байткоде, ни в использовании библиотеки ASM.
+This is framework for coremods at MinecraftForge.
 
-## Обновления
-Добавлены якоря, позволяющие точнее задавать точки вставки хуков
+Goal of this project is to provide an easy way to modify existing logic without directly changing code of it, but by writing your additional code.
 
-Добавлена поддержка Shift.INSTEAD для якорей
+Doesn't require knowledge of jvm bytecode.
 
-Запуск в IDE
------------
-Чтобы запустить HookLib и пример к ней в IDE, необходимо дописать в VM arguments: 
-```
--Dfml.coreMods.load=gloomyfolken.hooklib.example.ExampleHookLoader
-```
-В IntelliJ IDEA: Run -> Edit configurations
+*Welp, kinda I'm late with publishing it project, bc of Mixins took over the world, but I found out HookLib more handy, and I still have unimplemented
+good ideas, which will make it even better. So maybe it makes sense*
 
-В Eclipse: Run -> Run (Debug) configurations
+## Getting started
 
-Запуск из .jar-файла
---------------------
-Чтобы кормод запускался из джарника, лежащего в папке mods, в джарнике должен быть файл META-INF/MANIFEST.MF с таким содержимым:
-```
-Manifest-Version: 1.0
-FMLCorePlugin: name.of.YourHookLoader
-FMLCorePluginContainsFMLMod: true
-Created-By: 1.7.0 (Oracle Corporation)
-```
+### Understanding of hooks
 
-Подключение к проекту
----------------------
-Добавить в build.gradle
-```
-allprojects {
-    repositories {
-        maven { url "https://jitpack.io" }
-    }
-}
+When exists some code which you wanna to change, but its part of Minecraft or other mod, you can write something like:
 
-project.ext.hooklibVersion = "master-SNAPSHOT"
-
-shadowJar {
-    classifier = ''
-
-    dependencies {
-        include(dependency("com.github.hohserg1:HookLib:$hooklibVersion"))
-    }
-}
-
-dependencies {
-	...
-    compile "com.github.hohserg1:HookLib:$hooklibVersion"
-}
-```
-$hooklibVersion должна соответсвовать имени ветки или коммита(посмотреть на jitpack)
-Выполнить Gradle refresh в ide, либо пересобрать проект
-
-Сборка при помощи `gradlew build shadowJar`
-
-Пример использования
--------------------
-Полный код и больше примеров есть в gloomyfolken.hooklib.example
 ```java
-@Hook(at = @At(point = InjectionPoint.RETURN), returnCondition = ReturnCondition.ALWAYS)
-public static int getTotalArmorValue(ForgeHooks fh, EntityPlayer player, @ReturnValue int returnValue) {
-    return returnValue/2;
+
+@HookContainer
+public class MyHooks {
+    @Hook
+    @OnBegin
+    public static void resize(Minecraft mc, int x, int y) {
+        System.out.println("Resize, x=" + x + ", y=" + y);
+    }
 }
 ```
 
-Поддержка версий Minecraft
---------------------------
-HookLib не использует никаких классов Майнкрафта, поэтому с выходом новых версий ничего переписывать не надо. Небольшой проблемой являются обновления форджа: он слегка меняется со временем, и с очередной версий может потребоваться какой-нибудь фикс. Для использования начиная с версий Minecraft 1.8 необходимо пройтись по всему пакету gloomyfolken.hooklib.minecraft и заменить cpw.mods.fml на net.minecraftforge.fml (разработчики форджа сменили название пакета).
+HookLib will find method with name `resize` with two int's arguments in class `Minecraft` and will insert call of MyHooks#resize to begin of found
+target method.
 
-Подробный туториал
-https://goo.gl/kZyfiE
+Then you will see in console message when window resized.
+
+### Adding to project
+
+1. Add dependency to build.gradle:
+
+```groovy
+repositories {
+    maven {
+        url "https://cursemaven.com"
+    }
+}
+dependencies {
+    implementation "curse.maven:hooklib:12345"
+}
+```
+
+2. Add VM option `-Dfml.coreMods.load=gloomyfolken.hooklib.minecraft.MainHookLoader`
+
+It's possible by gradle too:
+
+```groovy
+minecraft {
+    mappings channel: 'snapshot', version: '20171003-1.12'
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property "fml.coreMods.load", "gloomyfolken.hooklib.minecraft.MainHookLoader" //here
+        }
+
+        server {
+            workingDirectory project.file('run')
+            property "fml.coreMods.load", "gloomyfolken.hooklib.minecraft.MainHookLoader" //here
+        }
+    }
+}
+```
+
+3. Perform Gradle Refresh in your ide
+
+### Next learning
+
+Check our wiki for api details and advanced techniques
