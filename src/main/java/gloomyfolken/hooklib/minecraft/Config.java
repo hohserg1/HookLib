@@ -16,7 +16,6 @@ public enum Config {
     instance;
 
     public boolean useClasspathCandidates = false;
-    public boolean useCheckClassAdapter = false;
 
     private final File file = new File("./config/hooklib.cfg");
 
@@ -62,8 +61,6 @@ public enum Config {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write("# Find hook-containers in classpath\n");
             writer.write("B:useClasspathCandidates=" + useClasspathCandidates + "\n\n");
-            writer.write("# Validate bytecode after injecting\n");
-            writer.write("B:useCheckClassAdapter=" + useCheckClassAdapter + "\n\n");
         }
     }
 }

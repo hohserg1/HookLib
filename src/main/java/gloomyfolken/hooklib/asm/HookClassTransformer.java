@@ -3,12 +3,10 @@ package gloomyfolken.hooklib.asm;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.helper.Logger;
-import gloomyfolken.hooklib.minecraft.Config;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.util.CheckClassAdapter;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,10 +59,7 @@ public class HookClassTransformer {
 
                 ClassReader cr = new ClassReader(bytecode);
                 ClassWriter cw = createClassWriter(java7 ? ClassWriter.COMPUTE_FRAMES : ClassWriter.COMPUTE_MAXS);
-                HookInjectorClassVisitor hooksWriter = createInjectorClassVisitor(
-                        Config.instance.useCheckClassAdapter ? new CheckClassAdapter(cw) : cw,
-                        hooks
-                );
+                HookInjectorClassVisitor hooksWriter = createInjectorClassVisitor(cw, hooks);
                 cr.accept(hooksWriter, java7 ? ClassReader.SKIP_FRAMES : ClassReader.EXPAND_FRAMES);
                 bytecode = cw.toByteArray();
                 injectedHooks = hooksWriter.injectedHooks;
