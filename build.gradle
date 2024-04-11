@@ -15,7 +15,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '3.2'
+version = '3.3'
 group = 'io.gitlab.hohserg' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'hooklib'
 
