@@ -8,7 +8,7 @@ Goal of this project is to provide an easy way to modify existing logic without 
 
 Doesn't require knowledge of jvm bytecode.
 
-*Welp, kinda I'm late with publishing it project, bc of Mixins took over the world, but I found out HookLib more handy, and I still have unimplemented
+*Welp, kinda I'm late with publishing it project, bc Mixins took over the world, but I found out HookLib more handy, and I still have unimplemented
 good ideas, which will make it even better. So maybe it makes sense*
 
 ## Getting started
