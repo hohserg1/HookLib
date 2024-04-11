@@ -9,22 +9,20 @@ import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Этот трансформер занимается вставкой хуков с момента запуска майнкрафта. Здесь сосредоточены все костыли,
- * которые необходимы для правильной работы с обфусцированными названиями методов.
+ * This transformer uses after Minecraft classes have started loading
+ * will be applied after all other transformers
+ * kinda have no sense to separate it
  */
 public class MinecraftClassTransformer extends HookClassTransformer implements IClassTransformer {
 
     public static MinecraftClassTransformer instance;
     private Map<Integer, String> methodNames;
     private Map<Integer, String> fieldNames;
-
-    private static List<IClassTransformer> postTransformers = new ArrayList<IClassTransformer>();
 
     public MinecraftClassTransformer() {
         instance = this;
@@ -63,11 +61,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
 
     @Override
     public byte[] transform(String oldName, String newName, byte[] bytecode) {
-        bytecode = transform(newName, bytecode);
-        for (int i = 0; i < postTransformers.size(); i++) {
-            bytecode = postTransformers.get(i).transform(oldName, newName, bytecode);
-        }
-        return bytecode;
+        return transform(newName, bytecode);
     }
 
     @Override
@@ -111,10 +105,4 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
         }
     }
 
-    /**
-     * Регистрирует трансформер, который будет запущен после обычных, и в том числе после деобфусцирующего трансформера.
-     */
-    public static void registerPostTransformer(IClassTransformer transformer) {
-        postTransformers.add(transformer);
-    }
 }

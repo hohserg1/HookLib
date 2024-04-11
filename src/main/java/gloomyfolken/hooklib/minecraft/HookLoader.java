@@ -7,10 +7,7 @@ import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
 
 import java.util.Map;
 
-/**
- * Удобная базовая реализация IFMLLoadingPlugin для использования HookLib.
- * Регистрировать хуки и контейнеры нужно в registerHooks().
- */
+
 public abstract class HookLoader implements IFMLLoadingPlugin {
 
     private static DeobfuscationTransformer deobfuscationTransformer;

@@ -9,10 +9,10 @@ package gloomyfolken.hooklib.api;
  */
 public enum HookPriority {
 
-    HIGHEST, // Вызывается первым
+    HIGHEST,
     HIGH,
     NORMAL,
     LOW,
-    LOWEST // Вызывается последним
+    LOWEST
 
 }

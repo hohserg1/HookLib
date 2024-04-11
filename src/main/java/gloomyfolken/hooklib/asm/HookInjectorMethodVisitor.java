@@ -21,10 +21,6 @@ import java.util.function.Function;
 
 import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
 
-/**
- * Класс, непосредственно вставляющий хук в метод.
- * Чтобы указать конкретное место вставки хука, нужно создать класс extends HookInjector.
- */
 public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
     protected final AsmMethodInjection hook;
@@ -46,14 +42,10 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     @Override
     public void visitLocalVariable(String name, String desc, String signature, Label start, Label end, int index) {
         super.visitLocalVariable(name, desc, signature, start, end, index);
-        if (hook instanceof AsmHook)
-            if (((AsmHook) hook).isRequiredPrintLocalVariables())
-                Logger.instance.info(methodName + ":  @LocalVariable(" + index + ") " + Type.getType(desc).getClassName() + " " + name);
+        if (hook.isRequiredPrintLocalVariables())
+            Logger.instance.info(methodName + ":  @LocalVariable(" + index + ") " + Type.getType(desc).getClassName() + " " + name);
     }
 
-    /**
-     * Вставляет хук в байткод.
-     */
     protected final void visitHook() {
         if (!cv.visitingHook) {
             cv.visitingHook = true;
@@ -61,10 +53,6 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
             cv.visitingHook = false;
             cv.markInjected(hook);
         }
-    }
-
-    MethodVisitor getBasicVisitor() {
-        return mv;
     }
 
     static class OrderedVisitor extends HookInjectorMethodVisitor {
@@ -97,9 +85,6 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         }
     }
 
-    /**
-     * Вставляет хук в начале метода.
-     */
     static class BeginVisitor extends HookInjectorMethodVisitor {
 
         public BeginVisitor(MethodVisitor mv, int access, String name, String desc,
@@ -114,9 +99,6 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
     }
 
-    /**
-     * Вставляет хук на каждом выходе из метода, кроме выходов через throw.
-     */
     static class ReturnVisitor extends OrderedVisitor {
 
         public ReturnVisitor(MethodVisitor mv, int access, String name, String desc,
@@ -258,9 +240,9 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                     }
                     */
 
-                    //N значений есть на стеке до инструкций
-                    //1 или 0 значений есть на стеке после инструкций
-                    //нужно добавить N операций POP или POP2 вместо инструкций
+                    //N value at stack before instructions
+                    //1 or  0 values at stack after instructions
+                    //need to add N opcodes POP or POP2 instead of instructions
 
                     /*
                     InsnList pops = new InsnList();

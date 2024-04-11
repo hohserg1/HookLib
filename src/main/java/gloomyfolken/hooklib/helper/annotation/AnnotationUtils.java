@@ -69,7 +69,7 @@ public class AnnotationUtils {
             return annotation(annotationClass, map);
         } catch (ClassNotFoundException | NullPointerException e) {
             System.out.println("Error with annotation " + className + " parsing");
-            //e.printStackTrace();
+            e.printStackTrace();
             return null;
         }
     }

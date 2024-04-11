@@ -169,7 +169,6 @@ public class HookContainerParser {
                                 builder.setReturnCondition(ReturnCondition.ALWAYS);
                             }
 
-                            // setReturnCondition и setReturnValue сетают тип хук-метода, поэтому сетнуть его вручную можно только теперь
                             builder.setHookMethodReturnType(returnType);
 
                             builder.setPriority(hookAnnotation.priority());

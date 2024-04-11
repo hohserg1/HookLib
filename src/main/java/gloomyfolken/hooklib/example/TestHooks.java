@@ -59,10 +59,6 @@ public class TestHooks {
         System.out.println("init resize, x=" + mc.displayWidth + ", y=" + mc.displayHeight);
     }
 
-    /**
-     * Цель: уменьшить вдвое показатели брони у всех игроков.
-     * P.S: фордж перехватывает получение показателя брони, ну а мы перехватим перехватчик :D
-     */
     @Hook
     @OnReturn
     public static ReturnSolve<Integer> getTotalArmorValue(ForgeHooks fh, EntityPlayer player) {

@@ -8,18 +8,9 @@ import org.objectweb.asm.tree.AbstractInsnNode;
 
 import java.util.List;
 
-/**
- * Фабрика, задающая тип инжектора хуков. Фактически, от выбора фабрики зависит то, в какие участки кода попадёт хук.
- * "Из коробки" доступно два типа инжекторов: MethodEnter, который вставляет хук на входе в метод,
- * и MethodExit, который вставляет хук на каждом выходе.
- */
 public abstract class HookInjectorFactory {
 
-    /**
-     * Метод AdviceAdapter#visitInsn() - штука странная. Там почему-то вызов следующего MethodVisitor'a
-     * производится после логики, а не до, как во всех остальных случаях. Поэтому для MethodExit приоритет
-     * хуков инвертируется.
-     */
+    //MethodExit have inverted hooks priority, bc at AdviceAdapter#visitInsn next MethodVisitor call will be after, not before like other cases. Or kinda
     protected boolean isPriorityInverted = false;
 
     abstract MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,

@@ -9,9 +9,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 /**
- * Позволяет при помощи велосипеда из костылей искать методы внутри незагруженных классов
- * и общие суперклассы для чего угодно. Работает через поиск class-файлов в classpath, и, в случае провала -
- * ищет через рефлексию. Для работы с майнкрафтом используется сабкласс под названием DeobfuscationMetadataReader,
+ * Allow to fing methods inside still not loaded classes and mutual super-classes.
+ * Will find class in classpath, or by reflection.
+ *
+ * @see gloomyfolken.hooklib.minecraft.DeobfuscationMetadataReader
  */
 public class ClassMetadataReader {
     private static Method m;
@@ -40,7 +41,7 @@ public class ClassMetadataReader {
 
     public MethodReference findVirtualMethod(String owner, String name, String desc) {
         ArrayList<String> superClasses = getSuperClasses(owner);
-        for (int i = superClasses.size() - 1; i > 0; i--) { // чекать текущий класс смысла нет
+        for (int i = superClasses.size() - 1; i > 0; i--) {
             String className = superClasses.get(i);
             MethodReference methodReference = getMethodReference(className, name, desc);
             if (methodReference != null) {
@@ -85,8 +86,7 @@ public class ClassMetadataReader {
     }
 
     /**
-     * Возвращает суперклассы в порядке возрастающей конкретности (начиная с java/lang/Object
-     * и заканчивая данным типом)
+     * @return super-classes in order from java/lang/Object to `type` argument
      */
     public ArrayList<String> getSuperClasses(String type) {
         ArrayList<String> superclasses = new ArrayList<String>(1);

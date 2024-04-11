@@ -13,14 +13,12 @@ import org.objectweb.asm.Type;
 import java.util.List;
 
 /**
- * Этим трансформером трансформятся все классы, которые грузятся раньше майновских.
- * В момент начала загрузки майна (точнее, чуть раньше - в Loader.injectData) все хуки отсюда переносятся в
- * MinecraftClassTransformer. Такой перенос нужен, чтобы трансформеры хуклибы применялись последними - в частности,
- * после деобфускации, которую делает фордж.
+ * This transformer uses for all classes which loaded before Minecraft classes.
+ * kinda have no sense to separate it
  */
 public class PrimaryClassTransformer extends HookClassTransformer implements IClassTransformer {
 
-    // костыль для случая, когда другой мод дергает хуклиб раньше, чем она запустилась
+    //if some mod accessed to HookLib before it loaded
     static PrimaryClassTransformer instance = new PrimaryClassTransformer();
     boolean registeredSecondTransformer;
 
@@ -28,7 +26,6 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
         classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
 
         if (instance != null) {
-            // переносим хуки, которые уже успели нарегистрировать
             hooksMap.putAll(instance.getHooksMap());
             instance.getHooksMap().clear();
         } else {
@@ -44,8 +41,6 @@ public class PrimaryClassTransformer extends HookClassTransformer implements ICl
 
     @Override
     protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
-        // Если ничего не сломается, то никакие майновские классы не должны грузиться этим трансформером -
-        // соответственно, и костыли для деобфускации названий методов тут не нужны.
         return new HookInjectorClassVisitor(this, finalizeVisitor, hooks) {
             @Override
             protected boolean isTargetMethod(AsmMethodInjection hook, String name, String desc) {

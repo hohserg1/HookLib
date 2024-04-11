@@ -10,6 +10,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -20,36 +21,28 @@ import static org.objectweb.asm.Type.FLOAT;
 import static org.objectweb.asm.Type.LONG;
 import static org.objectweb.asm.Type.*;
 
-/**
- * Класс, отвечающий за установку одного хука в один метод.
- * Терминология:
- * hook (хук) - вызов вашего статического метода из стороннего кода (майнкрафта, форджа, других модов)
- * targetMethod (целевой метод) - метод, куда вставляется хук
- * targetClass (целевой класс) - класс, где находится метод, куда вставляется хук
- * hookMethod (хук-метод) - ваш статический метод, который вызывается из стороннего кода
- * hookClass (класс с хуком) - класс, в котором содержится хук-метод
- */
+
 public class AsmHook implements AsmMethodInjection, Cloneable {
 
-    private String targetClassName; // через точки
+    private String targetClassName; //dots, regular class name
     private String targetMethodName;
     private List<Type> targetMethodParameters = new ArrayList<Type>(2);
-    private Type targetMethodReturnType; //если не задано, то не проверяется
+    @Nullable
+    private Type targetMethodReturnType;
 
-    private String hooksClassName; // через точки
+    private String hooksClassName; //dots, regular class name
     private String hookMethodName;
-    // -1 - значение return
+    // -1 is return value
     private List<Integer> transmittableVariableIds = new ArrayList<Integer>(2);
     private List<Type> hookMethodParameters = new ArrayList<Type>(2);
     private Type hookMethodReturnType = Type.VOID_TYPE;
-    private boolean hasReturnValueParameter; // если в хук-метод передается значение из return
+    private boolean hasReturnValueParameter;
 
     private ReturnCondition returnCondition = ReturnCondition.NEVER;
 
     private HookInjectorFactory injectorFactory = HookInjectorFactory.BeginFactory.INSTANCE;
     private HookPriority priority = HookPriority.NORMAL;
 
-    // может быть без возвращаемого типа
     private String targetMethodDescription1;
     private String targetMethodDescription2;
 
@@ -104,7 +97,7 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
     public void create(HookInjectorClassVisitor classVisitor) {
         ClassMetadataReader.MethodReference superMethod = classVisitor.transformer.classMetadataReader
                 .findVirtualMethod(getTargetClassInternalName(), targetMethodName, targetMethodDescription1);
-        // юзаем название суперметода, потому что findVirtualMethod может вернуть метод с другим названием
+        //findVirtualMethod may return other name
         MethodVisitor mv = classVisitor.visitMethod(Opcodes.ACC_PUBLIC,
                 superMethod == null ? targetMethodName : superMethod.name, targetMethodDescription1, null, null);
         if (mv instanceof HookInjectorMethodVisitor) {
@@ -133,7 +126,7 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
         if (hasReturnValueParameter) {
             returnLocalId = methodNode.maxLocals;
             methodNode.maxLocals++;
-            r.add(new VarInsnNode(targetMethodReturnType.getOpcode(ISTORE), returnLocalId)); //storeLocal
+            r.add(new VarInsnNode(targetMethodReturnType.getOpcode(ISTORE), returnLocalId));
         }
 
         r.add(injectInvokeStaticNode(methodNode, returnLocalId, hookMethodName, hookMethodDescription));
@@ -168,7 +161,6 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             r.add(doNotReturn);
         }
 
-        //кладем в стек значение, которое шло в return
         if (hasReturnValueParameter) {
             r.add(new VarInsnNode(targetMethodReturnType.getOpcode(ILOAD), returnLocalId));
         }
@@ -179,11 +171,10 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
     public void inject(HookInjectorMethodVisitor inj) {
         Type targetMethodReturnType = inj.methodType.getReturnType();
 
-        // сохраняем значение, которое было передано return в локальную переменную
         int returnLocalId = -1;
         if (hasReturnValueParameter) {
             returnLocalId = inj.newLocal(targetMethodReturnType);
-            inj.visitVarInsn(targetMethodReturnType.getOpcode(ISTORE), returnLocalId); //storeLocal
+            inj.visitVarInsn(targetMethodReturnType.getOpcode(ISTORE), returnLocalId);
         }
 
         injectInvokeStatic(inj, returnLocalId, hookMethodName, hookMethodDescription);
@@ -215,7 +206,6 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             inj.visitLabel(doNotReturn);
         }
 
-        //кладем в стек значение, которое шло в return
         if (hasReturnValueParameter) {
             injectLoad(inj, targetMethodReturnType, returnLocalId);
         }
@@ -288,12 +278,11 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             Type parameterType = hookMethodParameters.get(i);
             int variableId = transmittableVariableIds.get(i);
             if (AsmUtils.isStatic(methodNode)) {
-                // если попытка передачи this из статического метода, то передаем null
                 if (variableId == 0) {
                     r.add(new InsnNode(Opcodes.ACONST_NULL));
                     continue;
                 }
-                // иначе сдвигаем номер локальной переменной
+                //shift transmittable vars if static
                 if (variableId > 0) variableId--;
             }
             if (variableId == -1) variableId = returnLocalId;
@@ -310,12 +299,11 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             Type parameterType = hookMethodParameters.get(i);
             int variableId = transmittableVariableIds.get(i);
             if (inj.isStatic) {
-                // если попытка передачи this из статического метода, то передаем null
                 if (variableId == 0) {
                     inj.visitInsn(Opcodes.ACONST_NULL);
                     continue;
                 }
-                // иначе сдвигаем номер локальной переменной
+                //shift transmittable vars if static
                 if (variableId > 0) variableId--;
             }
             if (variableId == -1) variableId = returnLocalId;
@@ -362,59 +350,26 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             return 0;
     }
 
-    public static Builder newBuilder() {
+    static Builder newBuilder() {
         return new AsmHook().new Builder();
     }
 
-    public class Builder extends AsmHook {
+    class Builder extends AsmHook {
 
         private Builder() {
 
         }
 
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ ---
-         * Определяет название класса, в который необходимо установить хук.
-         *
-         * @param className Название класса с указанием пакета, разделенное точками.
-         *                  Например: net.minecraft.world.World
-         */
         public Builder setTargetClass(String className) {
             AsmHook.this.targetClassName = className;
             return this;
         }
 
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ ---
-         * Определяет название метода, в который необходимо вставить хук.
-         * Если нужно пропатчить конструктор, то в названии метода нужно указать <init>.
-         *
-         * @param methodName Название метода.
-         *                   Например: getBlockId
-         */
         public Builder setTargetMethod(String methodName) {
             AsmHook.this.targetMethodName = methodName;
             return this;
         }
 
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ, ЕСЛИ У ЦЕЛЕВОГО МЕТОДА ЕСТЬ ПАРАМЕТРЫ ---
-         * Добавляет один или несколько параметров к списку параметров целевого метода.
-         * <p/>
-         * Эти параметры используются, чтобы составить описание целевого метода.
-         * Чтобы однозначно определить целевой метод, недостаточно только его названия - нужно ещё и описание.
-         * <p/>
-         * Примеры использования:
-         * import static TypeHelper.*
-         * //...
-         * addTargetMethodParameters(Type.INT_TYPE)
-         * Type worldType = getType("net.minecraft.world.World")
-         * Type playerType = getType("net.minecraft.entity.player.EntityPlayer")
-         * addTargetMethodParameters(worldType, playerType, playerType)
-         *
-         * @param parameterTypes Типы параметров целевого метода
-         * @see TypeHelper
-         */
         public Builder addTargetMethodParameters(Type... parameterTypes) {
             for (Type type : parameterTypes) {
                 AsmHook.this.targetMethodParameters.add(type);
@@ -422,151 +377,33 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             return this;
         }
 
-        /**
-         * Добавляет один или несколько параметров к списку параметров целевого метода.
-         * Обёртка над addTargetMethodParameters(Type... parameterTypes), которая сама строит типы из названия.
-         *
-         * @param parameterTypeNames Названия классов параметров целевого метода.
-         *                           Например: net.minecraft.world.World
-         */
-
-        public Builder addTargetMethodParameters(String... parameterTypeNames) {
-            Type[] types = new Type[parameterTypeNames.length];
-            for (int i = 0; i < parameterTypeNames.length; i++) {
-                types[i] = TypeHelper.getType(parameterTypeNames[i]);
-            }
-            return addTargetMethodParameters(types);
-        }
-
-        /**
-         * Изменяет тип, возвращаемый целевым методом.
-         * Вовращаемый тип используется, чтобы составить описание целевого метода.
-         * Чтобы однозначно определить целевой метод, недостаточно только его названия - нужно ещё и описание.
-         * По умолчанию хук применяется ко всем методам, подходящим по названию и списку параметров.
-         *
-         * @param type Тип, возвращаемый целевым методом
-         * @see TypeHelper
-         */
         public Builder setTargetMethodReturnType(Type type) {
             AsmHook.this.targetMethodReturnType = type;
             return this;
         }
 
-        /**
-         * Изменяет тип, возвращаемый целевым методом.
-         * Обёртка над setTargetMethodReturnType(Type returnType)
-         *
-         * @param returnType Название класса, экземпляр которого возвращает целевой метод
-         */
-        public Builder setTargetMethodReturnType(String returnType) {
-            return setTargetMethodReturnType(TypeHelper.getType(returnType));
-        }
-
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ, ЕСЛИ НУЖЕН ХУК-МЕТОД, А НЕ ПРОСТО return SOME_CONSTANT ---
-         * Определяет название класса, в котором находится хук-метод.
-         *
-         * @param className Название класса с указанием пакета, разделенное точками.
-         *                  Например: net.myname.mymod.asm.MyHooks
-         */
         public Builder setHookClass(String className) {
             AsmHook.this.hooksClassName = className;
             return this;
         }
 
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ, ЕСЛИ НУЖЕН ХУК-МЕТОД, А НЕ ПРОСТО return SOME_CONSTANT ---
-         * Определяет название хук-метода.
-         * ХУК-МЕТОД ДОЛЖЕН БЫТЬ СТАТИЧЕСКИМ, А ПРОВЕРКИ НА ЭТО НЕТ. Будьте внимательны.
-         *
-         * @param methodName Название хук-метода.
-         *                   Например: myFirstHook
-         */
         public Builder setHookMethod(String methodName) {
             AsmHook.this.hookMethodName = methodName;
             return this;
         }
 
-        /**
-         * --- ОБЯЗАТЕЛЬНО ВЫЗВАТЬ, ЕСЛИ У ХУК-МЕТОДА ЕСТЬ ПАРАМЕТРЫ ---
-         * Добавляет параметр в список параметров хук-метода.
-         * В байткоде не сохраняются названия параметров. Вместо этого приходится использовать их номера.
-         * Например, в классе EntityLivingBase есть метод attackEntityFrom(DamageSource damageSource, float maybeDamage).
-         * В нём будут использоваться такие номера параметров:
-         * 1 - damageSource
-         * 2 - maybeDamage
-         * ВАЖНЫЙ МОМЕНТ: LONG И DOUBLE "ЗАНИМАЮТ" ДВА НОМЕРА.
-         * Теоретически, кроме параметров в хук-метод можно передать и локальные переменные, но их
-         * номера сложнее посчитать.
-         * Например, в классе Entity есть метод setPosition(double x, double y, double z).
-         * В нём будут такие номера параметров:
-         * 1 - x
-         * 2 - пропущено
-         * 3 - y
-         * 4 - пропущено
-         * 5 - z
-         * 6 - пропущено
-         * <p/>
-         * Код этого метода таков:
-         * //...
-         * float f = ...;
-         * float f1 = ...;
-         * //...
-         * В таком случае у f будет номер 7, а у f1 - 8.
-         * <p/>
-         * Если целевой метод static, то не нужно начинать отсчет локальных переменных с нуля, номера
-         * будут смещены автоматически.
-         *
-         * @param parameterType Тип параметра хук-метода
-         * @param variableId    ID значения, передаваемого в хук-метод
-         * @throws IllegalStateException если не задано название хук-метода или класса, который его содержит
-         */
         public Builder addHookMethodParameter(Type parameterType, int variableId) {
             AsmHook.this.hookMethodParameters.add(parameterType);
             AsmHook.this.transmittableVariableIds.add(variableId);
             return this;
         }
 
-        /**
-         * Добавляет параметр в список параметров целевого метода.
-         * Обёртка над addHookMethodParameter(Type parameterType, int variableId)
-         *
-         * @param parameterTypeName Название типа параметра хук-метода.
-         *                          Например: net.minecraft.world.World
-         * @param variableId        ID значения, передаваемого в хук-метод
-         */
-        public Builder addHookMethodParameter(String parameterTypeName, int variableId) {
-            return addHookMethodParameter(TypeHelper.getType(parameterTypeName), variableId);
-        }
-
-        /**
-         * Добавляет в список параметров хук-метода целевой класс и передает хук-методу this.
-         * Если целевой метод static, то будет передано null.
-         *
-         * @throws IllegalStateException если не задан хук-метод
-         */
         public Builder addThisToHookMethodParameters() {
             AsmHook.this.hookMethodParameters.add(TypeHelper.getType(targetClassName));
             AsmHook.this.transmittableVariableIds.add(0);
             return this;
         }
 
-        /**
-         * Добавляет в список параметров хук-метода тип, возвращаемый целевым методом и
-         * передает хук-методу значение, которое вернёт return.
-         * Более формально, при вызове хук-метода указывает в качестве этого параметра верхнее значение в стеке.
-         * На практике основное применение -
-         * Например, есть такой код метода:
-         * int foo = bar();
-         * return foo;
-         * Или такой:
-         * return bar()
-         * <p/>
-         * В обоих случаях хук-методу можно передать возвращаемое значение перед вызовом return.
-         *
-         * @throws IllegalStateException если целевой метод возвращает void
-         * @throws IllegalStateException если не задан хук-метод
-         */
         public Builder addReturnValueToHookMethodParameters() {
             if (AsmHook.this.targetMethodReturnType == Type.VOID_TYPE) {
                 throw new IllegalStateException("Target method's return type is void, it does not make sense to " +
@@ -583,58 +420,25 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             return this;
         }
 
-        /**
-         * Напрямую указывает тип, возвращаемый хук-методом.
-         *
-         * @param type
-         */
         protected void setHookMethodReturnType(Type type) {
             AsmHook.this.hookMethodReturnType = type;
         }
 
-        private boolean isPrimitive(Type type) {
-            return type.getSort() > 0 && type.getSort() < 9;
-        }
-
-        /**
-         * Задает фабрику, которая создаст инжектор для этого хука.
-         * Если говорить более человеческим языком, то этот метод определяет, где будет вставлен хук:
-         * в начале метода, в конце или где-то ещё.
-         * Если не создавать своих инжекторов, то можно использовать две фабрики:
-         * AsmHook.ON_ENTER_FACTORY (вставляет хук на входе в метод, используется по умолчанию)
-         * AsmHook.ON_EXIT_FACTORY (вставляет хук на выходе из метода)
-         *
-         * @param factory Фабрика, создающая инжектор для этого хука
-         */
         public Builder setInjectorFactory(HookInjectorFactory factory) {
             AsmHook.this.injectorFactory = factory;
             return this;
         }
 
-        /**
-         * Задает приоритет хука.
-         * Хуки с большим приоритетом вызаваются раньше.
-         */
         public Builder setPriority(HookPriority priority) {
             AsmHook.this.priority = priority;
             return this;
         }
 
-        /**
-         * Позволяет не только вставлять хуки в существующие методы, но и добавлять новые. Это может понадобиться,
-         * когда нужно переопределить метод суперкласса. Если супер-метод найден, то тело генерируемого метода
-         * представляет собой вызов супер-метода. Иначе это просто пустой метод или return false/0/null в зависимости
-         * от возвращаемого типа.
-         */
         public Builder setCreateMethod(boolean createMethod) {
             AsmHook.this.createMethod = createMethod;
             return this;
         }
 
-        /**
-         * Позволяет объявить хук "обязательным" для запуска игры. В случае неудачи во время вставки такого хука
-         * будет не просто выведено сообщение в лог, а крашнется игра.
-         */
         public Builder setMandatory(boolean isMandatory) {
             AsmHook.this.isMandatory = isMandatory;
             return this;
@@ -655,12 +459,6 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             }
         }
 
-        /**
-         * Создает хук по заданным параметрам.
-         *
-         * @return полученный хук
-         * @throws IllegalStateException если не был вызван какой-либо из обязательных методов
-         */
         public AsmHook build() {
             AsmHook hook = AsmHook.this;
 

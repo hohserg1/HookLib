@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 
 /**
- * Еще больше костылей вдобавок к ClassMetadataReader для работы с майновской обфускацией.
+ * ClassMetadataReader with support of Minecraft obfuscation
  */
 public class DeobfuscationMetadataReader extends ClassMetadataReader {
 
@@ -36,10 +36,9 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
         return checkSameMethod(sourceName, targetName) && sourceDesc.equals(targetDesc);
     }
 
-    // Фордж и прочее могут своими патчами добавлять методы, которые нужно уметь оверрайдить хуками.
-    // Для этого приходится применять трансформеры во время поиска супер-методов
-    // этот метод должен вызываться только во время загрузки сабклассов проверяемого класса,
-    // так что все должно быть норм
+    /**
+     * Forge and other coremods may add new methods which may be need to override, so finding in transformed bytecode
+     */
     @Override
     protected MethodReference getMethodReferenceASM(String type, String methodName, String desc) throws IOException {
         FindMethodClassVisitor cv = new FindMethodClassVisitor(methodName, desc);
@@ -69,7 +68,6 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
         return bytes;
     }
 
-    // возвращает из необфусцированного названия типа обфусцированное
     private static String unmap(String type) {
         if (HookLibPlugin.getObfuscated()) {
             return FMLDeobfuscatingRemapper.INSTANCE.unmap(type);

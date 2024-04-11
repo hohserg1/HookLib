@@ -9,7 +9,7 @@ import net.minecraftforge.fml.common.Loader;
 public class SecondaryTransformerHook {
 
     /**
-     * Регистрирует хук-трансформер последним.
+     * Register MinecraftClassTransformer as last transformer for apply it after all others transformers
      */
     @Hook
     @OnBegin
