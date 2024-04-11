@@ -36,7 +36,7 @@ import java.lang.annotation.Target;
  * public class MyHooks {
  *      @Hook
  *      @OnBegin
- *      public static kek(Bruh self, int arg) {
+ *      public static void kek(Bruh self, int arg) {
  *          System.out.println("here!");
  *      }
  * }}</pre></blockquote>
