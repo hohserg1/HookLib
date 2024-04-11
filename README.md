@@ -76,3 +76,15 @@ minecraft {
 ### Next learning
 
 Check our wiki for api details and advanced techniques
+
+## Roadmap
+
+- [x] make HookLib to modloader for coremods
+- [x] injection point at method call
+- [x] way to print possible @LocalVariable arguments
+- [x] injection point at expression
+- [x] way to access to private variables
+- [ ] port to new version of Minecraft
+- [ ] annotation processor for compile-time validation
+- [ ] configs for coremods
+- [ ] caching of target classes with applied hooks
