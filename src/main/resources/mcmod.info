@@ -11,8 +11,8 @@
       "GloomyFolken",
       "hohserg"
     ],
-    "credits": "Thx mcmodding forum for help with modding",
-    "logoFile": "",
+    "credits": "Thx mcmodding forum for help with modding. Thx @Foreck for cool logo",
+    "logoFile": "icon.png",
     "screenshots": [],
     "dependencies": []
   }
