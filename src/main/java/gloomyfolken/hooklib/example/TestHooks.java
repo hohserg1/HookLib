@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.example;
 
 import gloomyfolken.hooklib.api.*;
+import gloomyfolken.hooklib.api.ReturnSolve.Primitive;
 import net.minecraft.block.BlockTorch;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
@@ -67,7 +68,7 @@ public class TestHooks {
 
     @Hook
     @OnMethodCall(value = "trigger", shift = Shift.BEFORE)
-    public static ReturnSolve<@ReturnSolve.Primitive Boolean> attemptDamageItem(ItemStack stack, int amount, Random rand, @Nullable EntityPlayerMP damager) {
+    public static ReturnSolve<@Primitive Boolean> attemptDamageItem(ItemStack stack, int amount, Random rand, @Nullable EntityPlayerMP damager) {
         if (amount > 0)
             return ReturnSolve.yes(false);
 
