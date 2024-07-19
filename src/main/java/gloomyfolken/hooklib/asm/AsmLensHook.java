@@ -69,7 +69,7 @@ public class AsmLensHook implements AsmMethodInjection {
 
     @Override
     public HookInjectorFactory getInjectorFactory() {
-        return HookInjectorFactory.BeginFactory.INSTANCE;
+        return new HookInjectorFactory.ReturnFactory(-1);
     }
 
     @Override
