@@ -1,7 +1,7 @@
 package gloomyfolken.hooklib.api;
 
 /**
- * Use it for access to private field of some class
+ * Use it to access to private field of some class
  *
  * @see FieldLens
  */
