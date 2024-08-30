@@ -47,6 +47,11 @@ public class HookClassTransformer {
             Collections.sort(hooks);
             Logger.instance.debug("Injecting hooks into class " + className);
             try {
+                if (bytecode == null) {
+                    Logger.instance.error("wtf bytecode null " + className + ". skipping");
+                    new RuntimeException().printStackTrace();
+                    return bytecode;
+                }
                 //special flags for java7+. https://stackoverflow.com/questions/25109942
                 int majorVersion = ((bytecode[6] & 0xFF) << 8) | (bytecode[7] & 0xFF);
                 boolean java7 = majorVersion > 50;

@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.helper.annotation;
 
+import gloomyfolken.hooklib.helper.Logger;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import java.lang.annotation.Annotation;
@@ -50,6 +51,8 @@ class AnnotationInvocationHandler implements Annotation, InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (values.containsKey(method.getName()))
             return values.get(method.getName());
+        else
+            Logger.instance.error("wtf annotation " + this);
         return method.invoke(this, args);
     }
 
