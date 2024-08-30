@@ -5,6 +5,7 @@ import gloomyfolken.hooklib.asm.SignatureExtractor.FlatTypeRepr;
 import gloomyfolken.hooklib.asm.SignatureExtractor.ParametrizedTypeRepr;
 import gloomyfolken.hooklib.asm.SignatureExtractor.TypeRepr;
 import gloomyfolken.hooklib.helper.Logger;
+import gloomyfolken.hooklib.helper.SideOnlyUtils;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
 import org.objectweb.asm.Type;
@@ -55,6 +56,10 @@ public class HookContainerParser {
                 classNode.methods.stream().flatMap(methodNode -> {
                     try {
                         AnnotationMap annotationMap = AnnotationUtils.annotationOf(methodNode);
+
+                        if (!SideOnlyUtils.isValidSide(annotationMap))
+                            return Stream.empty();
+
                         Hook hookAnnotation = annotationMap.get(Hook.class);
                         if (hookAnnotation != null) {
                             AsmHook.Builder builder = AsmHook.newBuilder();
