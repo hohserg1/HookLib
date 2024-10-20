@@ -4,7 +4,7 @@ import org.objectweb.asm.Type;
 
 import java.util.Objects;
 
-public class AsmLens implements AsmInjection {
+public class AsmFieldLens implements AsmInjection {
     private final String targetClassName;
     private final String targetFieldName;
     private final Type targetFieldType;
@@ -13,7 +13,7 @@ public class AsmLens implements AsmInjection {
     private final boolean createField;
     private final Object defaultValue;
 
-    public AsmLens(String targetClassName, String targetFieldName, Type targetFieldType, boolean isMandatory, boolean createField, Object defaultValue) {
+    public AsmFieldLens(String targetClassName, String targetFieldName, Type targetFieldType, boolean isMandatory, boolean createField, Object defaultValue) {
         this.targetClassName = targetClassName;
         this.targetFieldName = targetFieldName;
         this.targetFieldType = targetFieldType;
@@ -50,11 +50,11 @@ public class AsmLens implements AsmInjection {
 
     @Override
     public int compareTo(AsmInjection o) {
-        if (o instanceof AsmLens) {
+        if (o instanceof AsmFieldLens) {
             if (createField)
                 return -1;
             else
-                return ((AsmLens) o).createField ? 1 : 0;
+                return ((AsmFieldLens) o).createField ? 1 : 0;
         }
         return AsmInjection.super.compareTo(o);
     }
@@ -67,7 +67,7 @@ public class AsmLens implements AsmInjection {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        AsmLens lens = (AsmLens) o;
+        AsmFieldLens lens = (AsmFieldLens) o;
         return isMandatory == lens.isMandatory && createField == lens.createField && targetClassName.equals(lens.targetClassName) && targetFieldName.equals(lens.targetFieldName) && targetFieldType.equals(lens.targetFieldType) && Objects.equals(defaultValue, lens.defaultValue);
     }
 

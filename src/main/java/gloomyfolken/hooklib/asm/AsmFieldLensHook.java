@@ -10,7 +10,7 @@ import org.objectweb.asm.tree.MethodNode;
 
 import static org.objectweb.asm.Opcodes.*;
 
-public class AsmLensHook implements AsmMethodInjection {
+public class AsmFieldLensHook implements AsmMethodInjection {
     private final String hookClassName;
     private final String hookFieldLensName;
     private final String targetClassName;
@@ -18,7 +18,7 @@ public class AsmLensHook implements AsmMethodInjection {
     private final Type targetFieldType;
     private final boolean isMandatory;
 
-    public AsmLensHook(String hookClassName, String hookFieldLensName, String targetClassName, String targetFieldName, Type targetFieldType, boolean isMandatory) {
+    public AsmFieldLensHook(String hookClassName, String hookFieldLensName, String targetClassName, String targetFieldName, Type targetFieldType, boolean isMandatory) {
         this.hookClassName = hookClassName.replace('/', '.');
         this.hookFieldLensName = hookFieldLensName;
         this.targetClassName = targetClassName.replace('.', '/');

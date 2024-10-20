@@ -41,11 +41,11 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
         for (AsmInjection injection : hooks) {
-            if (injection instanceof AsmLens) {
-                AsmLens lens = (AsmLens) injection;
+            if (injection instanceof AsmFieldLens) {
+                AsmFieldLens lens = (AsmFieldLens) injection;
                 if (isTargetField(lens, name, desc) && !injectedHooks.contains(lens)) {
                     injectedHooks.add(lens);
-                    Logger.instance.debug("Patching field " + ((AsmLens) injection).getPatchedFieldName());
+                    Logger.instance.debug("Patching field " + ((AsmFieldLens) injection).getPatchedFieldName());
 
                     access |= ACC_PUBLIC;
                     access &= ~ACC_PRIVATE;
@@ -88,7 +88,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
         return hook.isTargetMethod(name, desc);
     }
 
-    protected boolean isTargetField(AsmLens lens, String name, String desc) {
+    protected boolean isTargetField(AsmFieldLens lens, String name, String desc) {
         return lens.isTargetField(name, desc);
     }
 }

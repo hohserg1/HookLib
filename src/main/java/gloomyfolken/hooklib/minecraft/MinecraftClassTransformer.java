@@ -79,7 +79,7 @@ public class MinecraftClassTransformer extends HookClassTransformer implements I
             }
 
             @Override
-            protected boolean isTargetField(AsmLens lens, String name, String desc) {
+            protected boolean isTargetField(AsmFieldLens lens, String name, String desc) {
                 if (HookLibPlugin.getObfuscated()) {
                     String mcpName = fieldNames.get(getMemberId("field_", name));
                     if (mcpName != null && super.isTargetField(lens, mcpName, desc)) {
