@@ -9,13 +9,11 @@ import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.SideOnlyUtils;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
-import gloomyfolken.hooklib.minecraft.HookLoader;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 import org.objectweb.asm.TypeReference;
 import org.objectweb.asm.tree.*;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -154,34 +152,21 @@ public class HookContainerParser {
         String targetMethodName = methodLensAnnotation.targetMethod().isEmpty() ? methodNode.name : methodLensAnnotation.targetMethod();
         String targetMethodDesc = Type.getMethodDescriptor(returnType, Arrays.copyOfRange(argumentTypes, 1, argumentTypes.length));
 
-        try {
-            boolean isTargetMethodStatic = checkTargetMethodIsStatic(targetClassName, targetMethodName, targetMethodDesc);
+        AsmMethodLens targetClassInjection = new AsmMethodLens(
+                targetClassName, targetMethodName, targetMethodDesc,
+                methodNode.desc,
+                methodLensAnnotation.isMandatory()
+        );
+        AsmMethodLensHook hookClassInjection = new AsmMethodLensHook(
+                classNode.name, methodNode.name, methodNode.desc,
+                targetClassName, targetMethodName, targetMethodDesc,
+                methodLensAnnotation.isMandatory()
+        );
 
-            AsmMethodLens targetClassInjection = new AsmMethodLens(
-                    targetClassName, targetMethodName, targetMethodDesc, isTargetMethodStatic,
-                    methodLensAnnotation.isMandatory()
-            );
-            AsmMethodLensHook hookClassInjection = new AsmMethodLensHook(
-                    classNode.name, methodNode.name, methodNode.desc,
-                    targetClassName, targetMethodName, targetMethodDesc, isTargetMethodStatic,
-                    methodLensAnnotation.isMandatory()
-            );
-
-            return Stream.of(
-                    targetClassInjection,
-                    hookClassInjection
-            );
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            return invalidMethodLens("Target method " + targetClassName + "#" + targetMethodName + targetMethodName + " of method lens not found: " + e.getMessage(), classNode, methodNode);
-        }
-    }
-
-    private static boolean checkTargetMethodIsStatic(String targetClassName, String targetMethodName, String targetMethodDesc) throws IOException {
-        ClassMetadataReader.MethodReference methodReference =
-                HookLoader.getDeobfuscationMetadataReader().getMethodReferenceASM(targetClassName, targetMethodName, targetMethodDesc, true);
-        return AsmUtils.isStatic(methodReference.access);
+        return Stream.of(
+                targetClassInjection,
+                hookClassInjection
+        );
     }
 
     private static Stream<AsmHook> parseRegularHook(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, Hook hookAnnotation) {

@@ -2,6 +2,7 @@ package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.api.Shift;
 import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
+import gloomyfolken.hooklib.asm.injections.AsmMethodInjectionObserving;
 import lombok.Value;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -16,6 +17,20 @@ public abstract class HookInjectorFactory {
 
     abstract MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
                                               AsmMethodInjection hook, HookInjectorClassVisitor cv);
+
+    public static class ObservingFactory extends HookInjectorFactory {
+
+        public static final ObservingFactory INSTANCE = new ObservingFactory();
+
+        @Override
+        MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions, AsmMethodInjection hook, HookInjectorClassVisitor cv) {
+            if (hook instanceof AsmMethodInjectionObserving) {
+                ((AsmMethodInjectionObserving) hook).visitedMethod(access, name, desc, signature, exceptions);
+                return mv;
+            } else
+                throw new IllegalArgumentException("ObservingFactory should be used only with AsmMethodInjectionObserving");
+        }
+    }
 
     public static class BeginFactory extends HookInjectorFactory {
 

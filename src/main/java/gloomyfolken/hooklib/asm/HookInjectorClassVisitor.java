@@ -67,8 +67,12 @@ public class HookInjectorClassVisitor extends ClassVisitor {
             if (injection instanceof AsmMethodInjection) {
                 AsmMethodInjection hook = (AsmMethodInjection) injection;
                 if (isTargetMethod(hook, name, desc) && !injectedHooks.contains(hook)) {
+                    MethodVisitor prevMV = mv;
                     mv = hook.getInjectorFactory().createHookInjector(mv, access, name, desc, signature, exceptions, hook, this);
-                    Logger.instance.debug("Patching method " + hook.getPatchedMethodName(name, desc));
+                    if (prevMV != mv)
+                        Logger.instance.debug("Patching method " + hook.getPatchedMethodName(name, desc));
+                    else
+                        Logger.instance.debug("Observing method " + hook.getPatchedMethodName(name, desc));
                 }
             }
         }

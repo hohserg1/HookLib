@@ -19,6 +19,12 @@ import java.util.Random;
 @HookContainer
 public class TestHooks {
 
+    @FieldLens
+    public static FieldAccessor<Minecraft, Boolean> actionKeyF3;
+
+    @FieldLens
+    public static FieldAccessor<Minecraft, Long> debugUpdateTime;
+
     @MethodLens
     public static void staticTargetMethodVoid(TestTarget testTarget, int a, String b) {
     }

@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.asm.injections;
 
+import gloomyfolken.hooklib.asm.AsmUtils;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import gloomyfolken.hooklib.asm.HookInjectorFactory;
 import gloomyfolken.hooklib.asm.HookInjectorMethodVisitor;
@@ -13,20 +14,23 @@ import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.DOUBLE;
 import static org.objectweb.asm.Type.LONG;
 
-public class AsmMethodLens implements AsmMethodInjection {
+public class AsmMethodLens implements AsmMethodInjectionObserving {
+    static final String methodAccessorSuffix = "$hook$lens$invoke";
+
     private final String targetClassName;
     private final String targetMethodName;
     private final String targetMethodDescription;
-    private final boolean isTargetMethodStatic;
+    private final String invokerMethodDesc;
     private final boolean isMandatory;
 
-    static final String methodAccessorSuffix = "$hook$lens";
+    private boolean found = false;
+    private boolean isStaticMethod = false;
 
-    public AsmMethodLens(String targetClassName, String targetMethodName, String targetMethodDescription, boolean isTargetMethodStatic, boolean isMandatory) {
+    public AsmMethodLens(String targetClassName, String targetMethodName, String targetMethodDescription, String invokerMethodDesc, boolean isMandatory) {
         this.targetClassName = targetClassName;
         this.targetMethodName = targetMethodName;
         this.targetMethodDescription = targetMethodDescription;
-        this.isTargetMethodStatic = isTargetMethodStatic;
+        this.invokerMethodDesc = invokerMethodDesc;
         this.isMandatory = isMandatory;
     }
 
@@ -41,60 +45,61 @@ public class AsmMethodLens implements AsmMethodInjection {
     }
 
     @Override
+    public boolean isTargetMethod(String name, String desc) {
+        return name.equals(targetMethodName) && desc.equals(targetMethodDescription);
+    }
+
+    @Override
+    public HookInjectorFactory getInjectorFactory() {
+        return HookInjectorFactory.ObservingFactory.INSTANCE;
+    }
+
+    @Override
+    public void visitedMethod(int access, String name, String desc, String signature, String[] exceptions) {
+        found = true;
+        isStaticMethod = AsmUtils.isStatic(access);
+    }
+
+    @Override
     public boolean needToCreate() {
         return true;
     }
 
     @Override
     public void create(HookInjectorClassVisitor classVisitor) {
-        int access = ACC_PUBLIC;
-        if (isTargetMethodStatic)
-            access |= ACC_STATIC;
+        if (!found)
+            return;
 
-        MethodVisitor mv = classVisitor.visitMethod(access, targetMethodName + methodAccessorSuffix, targetMethodDescription, null, null);
-        if (mv instanceof HookInjectorMethodVisitor) {
-            Type methodType = Type.getMethodType(targetMethodDescription);
+        MethodVisitor mv = classVisitor.visitMethod(ACC_PUBLIC | ACC_STATIC, targetMethodName + methodAccessorSuffix, invokerMethodDesc, null, null);
+        Type methodType = Type.getMethodType(targetMethodDescription);
 
-            HookInjectorMethodVisitor inj = (HookInjectorMethodVisitor) mv;
-            inj.visitCode();
-            inj.visitLabel(new Label());
+        mv.visitCode();
+        mv.visitLabel(new Label());
 
-            int variableId = isTargetMethodStatic ? 0 : 1;
+        if (!isStaticMethod)
+            mv.visitVarInsn(ALOAD, 0);
 
-            if (!isTargetMethodStatic)
-                inj.visitVarInsn(ALOAD, 0);
+        int variableId = 1;
 
-            for (Type parameterType : methodType.getArgumentTypes()) {
-                inj.visitVarInsn(parameterType.getOpcode(ILOAD), variableId);
-                if (parameterType.getSort() == DOUBLE || parameterType.getSort() == LONG) {
-                    variableId += 2;
-                } else {
-                    variableId++;
-                }
+        for (Type parameterType : methodType.getArgumentTypes()) {
+            mv.visitVarInsn(parameterType.getOpcode(ILOAD), variableId);
+            if (parameterType.getSort() == DOUBLE || parameterType.getSort() == LONG) {
+                variableId += 2;
+            } else {
+                variableId++;
             }
-
-            int invokeOpcode = isTargetMethodStatic ? INVOKESTATIC : INVOKEVIRTUAL;
-            inj.visitMethodInsn(invokeOpcode, getTargetClassInternalName(), targetMethodName, targetMethodDescription, false);
-
-            inj.visitInsn(methodType.getReturnType().getOpcode(IRETURN));
-
-            inj.visitLabel(new Label());
-            inj.visitMaxs(0, 0);
-            inj.visitEnd();
-
-        } else {
-            throw new IllegalArgumentException("Hook injector not created");
         }
-    }
 
-    @Override
-    public boolean isTargetMethod(String name, String desc) {
-        return name.equals(targetMethodName + methodAccessorSuffix) && desc.equals(targetMethodDescription);
-    }
+        int invokeOpcode = isStaticMethod ? INVOKESTATIC : INVOKEVIRTUAL;
+        mv.visitMethodInsn(invokeOpcode, getTargetClassInternalName(), targetMethodName, targetMethodDescription, false);
 
-    @Override
-    public HookInjectorFactory getInjectorFactory() {
-        return HookInjectorFactory.BeginFactory.INSTANCE;
+        mv.visitInsn(methodType.getReturnType().getOpcode(IRETURN));
+
+        mv.visitLabel(new Label());
+        mv.visitMaxs(0, 0);
+        mv.visitEnd();
+
+        classVisitor.markInjected(this);
     }
 
     @Override

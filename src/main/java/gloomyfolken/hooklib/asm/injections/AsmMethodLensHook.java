@@ -5,7 +5,9 @@ import gloomyfolken.hooklib.asm.HookInjectorFactory;
 import gloomyfolken.hooklib.asm.HookInjectorMethodVisitor;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.InsnList;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.VarInsnNode;
 
 import static gloomyfolken.hooklib.asm.injections.AsmMethodLens.methodAccessorSuffix;
 import static org.objectweb.asm.Opcodes.*;
@@ -20,12 +22,11 @@ public class AsmMethodLensHook implements AsmMethodInjection {
     private final String targetClassInternalName;
     private final String targetMethodName;
     private final String targetMethodDescription;
-    private final boolean isTargetMethodStatic;
 
     private final boolean isMandatory;
 
     public AsmMethodLensHook(String hookClassName, String hookMethodLensName,
-                             String hookMethodLensDescription, String targetClassName, String targetMethodName, String targetMethodDescription, boolean isTargetMethodStatic,
+                             String hookMethodLensDescription, String targetClassName, String targetMethodName, String targetMethodDescription,
                              boolean isMandatory) {
         this.hookClassName = hookClassName.replace('/', '.');
         this.hookMethodLensName = hookMethodLensName;
@@ -34,7 +35,6 @@ public class AsmMethodLensHook implements AsmMethodInjection {
         this.targetClassInternalName = targetClassName.replace('.', '/');
         this.targetMethodName = targetMethodName;
         this.targetMethodDescription = targetMethodDescription;
-        this.isTargetMethodStatic = isTargetMethodStatic;
 
         this.isMandatory = isMandatory;
     }
@@ -67,12 +67,9 @@ public class AsmMethodLensHook implements AsmMethodInjection {
 
     @Override
     public void inject(HookInjectorMethodVisitor inj) {
-        Type methodType = Type.getMethodType(targetMethodDescription);
+        Type methodType = Type.getMethodType(hookMethodLensDescription);
 
-        if (!isTargetMethodStatic)
-            inj.visitVarInsn(ALOAD, 0);
-
-        int variableId = 1;
+        int variableId = 0;
 
         for (Type parameterType : methodType.getArgumentTypes()) {
             inj.visitVarInsn(parameterType.getOpcode(ILOAD), variableId);
@@ -83,15 +80,30 @@ public class AsmMethodLensHook implements AsmMethodInjection {
             }
         }
 
-        int invokeOpcode = isTargetMethodStatic ? INVOKESTATIC : INVOKEVIRTUAL;
-        inj.visitMethodInsn(invokeOpcode, targetClassInternalName, targetMethodName + methodAccessorSuffix, targetMethodDescription, false);
+        inj.visitMethodInsn(INVOKESTATIC, targetClassInternalName, targetMethodName + methodAccessorSuffix, hookMethodLensDescription, false);
 
         inj.visitInsn(methodType.getReturnType().getOpcode(IRETURN));
     }
 
     @Override
     public InsnList injectNode(MethodNode methodNode, HookInjectorClassVisitor cv) {
-        return null;
+        InsnList r = new InsnList();
+        Type methodType = Type.getMethodType(hookMethodLensDescription);
+
+        int variableId = 0;
+
+        for (Type parameterType : methodType.getArgumentTypes()) {
+            r.add(new VarInsnNode(parameterType.getOpcode(ILOAD), variableId));
+            if (parameterType.getSort() == DOUBLE || parameterType.getSort() == LONG) {
+                variableId += 2;
+            } else {
+                variableId++;
+            }
+        }
+
+        r.add(new MethodInsnNode(INVOKESTATIC, targetClassInternalName, targetMethodName + methodAccessorSuffix, targetMethodDescription, false));
+
+        return r;
     }
 
     @Override

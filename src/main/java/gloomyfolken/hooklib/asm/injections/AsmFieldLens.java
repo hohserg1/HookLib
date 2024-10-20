@@ -1,6 +1,5 @@
 package gloomyfolken.hooklib.asm.injections;
 
-import gloomyfolken.hooklib.api.Constants;
 import gloomyfolken.hooklib.asm.AsmUtils;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import org.objectweb.asm.Label;
@@ -97,7 +96,7 @@ public class AsmFieldLens implements AsmInjection {
             if (!isStaticField)
                 mv.visitVarInsn(ALOAD, 0);
             mv.visitVarInsn(ALOAD, 1);
-            if (boxedType != actualFieldType)
+            if (!boxedType.equals(actualFieldType))
                 mv.visitMethodInsn(INVOKEVIRTUAL, boxedType.getInternalName(), AsmUtils.primitiveToUnboxingMethod.get(actualFieldType), Type.getMethodDescriptor(actualFieldType), false);
             mv.visitFieldInsn(isStaticField ? PUTSTATIC : PUTFIELD, getTargetClassInternalName(), targetFieldName, actualFieldType.getDescriptor());
 
@@ -116,8 +115,8 @@ public class AsmFieldLens implements AsmInjection {
             if (!isStaticField)
                 mv.visitVarInsn(ALOAD, 0);
             mv.visitFieldInsn(isStaticField ? GETSTATIC : GETFIELD, getTargetClassInternalName(), targetFieldName, actualFieldType.getDescriptor());
-            if (boxedType != actualFieldType)
-                mv.visitMethodInsn(INVOKESPECIAL, boxedType.getInternalName(), Constants.CONSTRUCTOR_NAME, Type.getMethodDescriptor(boxedType, actualFieldType), false);
+            if (!boxedType.equals(actualFieldType))
+                mv.visitMethodInsn(INVOKESTATIC, boxedType.getInternalName(), "valueOf", Type.getMethodDescriptor(boxedType, actualFieldType), false);
 
             mv.visitInsn(ARETURN);
 
