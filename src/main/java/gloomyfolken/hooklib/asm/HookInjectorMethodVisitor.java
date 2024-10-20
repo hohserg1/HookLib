@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.api.Shift;
+import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.minecraft.HookLibPlugin;
 import gloomyfolken.hooklib.minecraft.MinecraftClassTransformer;
@@ -24,7 +25,7 @@ import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
 public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
     protected final AsmMethodInjection hook;
-    protected final HookInjectorClassVisitor cv;
+    public final HookInjectorClassVisitor cv;
     public final String methodName;
     public final Type methodType;
     public final boolean isStatic;

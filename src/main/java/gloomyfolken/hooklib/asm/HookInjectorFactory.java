@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.api.Shift;
+import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import lombok.Value;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
@@ -11,13 +12,13 @@ import java.util.List;
 public abstract class HookInjectorFactory {
 
     //MethodExit have inverted hooks priority, bc at AdviceAdapter#visitInsn next MethodVisitor call will be after, not before like other cases. Or kinda
-    protected boolean isPriorityInverted = false;
+    public boolean isPriorityInverted = false;
 
     abstract MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
                                               AsmMethodInjection hook, HookInjectorClassVisitor cv);
 
 
-    static class BeginFactory extends HookInjectorFactory {
+    public static class BeginFactory extends HookInjectorFactory {
 
         public static final BeginFactory INSTANCE = new BeginFactory();
 
@@ -32,7 +33,7 @@ public abstract class HookInjectorFactory {
 
     }
 
-    static class ReturnFactory extends HookInjectorFactory {
+    public static class ReturnFactory extends HookInjectorFactory {
         public final int ordinal;
 
         public ReturnFactory(int ordinal) {

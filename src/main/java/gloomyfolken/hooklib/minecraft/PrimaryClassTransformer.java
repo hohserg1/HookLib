@@ -1,10 +1,10 @@
 package gloomyfolken.hooklib.minecraft;
 
 import com.google.common.collect.ListMultimap;
-import gloomyfolken.hooklib.asm.AsmInjection;
-import gloomyfolken.hooklib.asm.AsmMethodInjection;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
+import gloomyfolken.hooklib.asm.injections.AsmInjection;
+import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.ClassVisitor;

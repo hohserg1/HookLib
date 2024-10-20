@@ -1,6 +1,10 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.*;
+import gloomyfolken.hooklib.asm.HookClassTransformer;
+import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
+import gloomyfolken.hooklib.asm.injections.AsmFieldLens;
+import gloomyfolken.hooklib.asm.injections.AsmInjection;
+import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import gloomyfolken.hooklib.helper.Logger;
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.ClassVisitor;

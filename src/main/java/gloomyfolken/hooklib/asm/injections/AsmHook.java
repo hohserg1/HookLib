@@ -1,9 +1,10 @@
-package gloomyfolken.hooklib.asm;
+package gloomyfolken.hooklib.asm.injections;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import gloomyfolken.hooklib.api.HookPriority;
 import gloomyfolken.hooklib.api.ReturnSolve;
+import gloomyfolken.hooklib.asm.*;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -350,11 +351,11 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             return 0;
     }
 
-    static Builder newBuilder() {
+    public static Builder newBuilder() {
         return new AsmHook().new Builder();
     }
 
-    class Builder extends AsmHook {
+    public class Builder extends AsmHook {
 
         private Builder() {
 
@@ -420,7 +421,7 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             return this;
         }
 
-        protected void setHookMethodReturnType(Type type) {
+        public void setHookMethodReturnType(Type type) {
             AsmHook.this.hookMethodReturnType = type;
         }
 

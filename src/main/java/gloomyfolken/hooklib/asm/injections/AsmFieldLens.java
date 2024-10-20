@@ -1,5 +1,6 @@
-package gloomyfolken.hooklib.asm;
+package gloomyfolken.hooklib.asm.injections;
 
+import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;

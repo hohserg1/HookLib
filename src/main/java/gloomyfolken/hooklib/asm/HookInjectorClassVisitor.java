@@ -1,5 +1,8 @@
 package gloomyfolken.hooklib.asm;
 
+import gloomyfolken.hooklib.asm.injections.AsmFieldLens;
+import gloomyfolken.hooklib.asm.injections.AsmInjection;
+import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import gloomyfolken.hooklib.helper.Logger;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -17,7 +20,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     List<AsmInjection> hooks;
     Set<AsmInjection> injectedHooks = new HashSet<>(1);
     boolean visitingHook;
-    HookClassTransformer transformer;
+    public HookClassTransformer transformer;
 
     String superName;
 

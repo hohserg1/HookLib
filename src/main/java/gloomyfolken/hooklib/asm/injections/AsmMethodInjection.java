@@ -1,5 +1,8 @@
-package gloomyfolken.hooklib.asm;
+package gloomyfolken.hooklib.asm.injections;
 
+import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
+import gloomyfolken.hooklib.asm.HookInjectorFactory;
+import gloomyfolken.hooklib.asm.HookInjectorMethodVisitor;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 

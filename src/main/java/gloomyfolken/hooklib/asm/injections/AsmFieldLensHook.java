@@ -1,6 +1,7 @@
-package gloomyfolken.hooklib.asm;
+package gloomyfolken.hooklib.asm.injections;
 
 import gloomyfolken.hooklib.api.Constants;
+import gloomyfolken.hooklib.asm.*;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;

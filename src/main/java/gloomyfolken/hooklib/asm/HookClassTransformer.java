@@ -2,6 +2,7 @@ package gloomyfolken.hooklib.asm;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
+import gloomyfolken.hooklib.asm.injections.AsmInjection;
 import gloomyfolken.hooklib.helper.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -20,7 +21,7 @@ import static org.objectweb.asm.Opcodes.ASM5;
 
 public class HookClassTransformer {
     protected ListMultimap<String, AsmInjection> hooksMap = ArrayListMultimap.create(10, 2);
-    protected ClassMetadataReader classMetadataReader = new ClassMetadataReader();
+    public ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
     public void registerAllHooks(ListMultimap<String, AsmInjection> hooks) {
         hooksMap.putAll(hooks);

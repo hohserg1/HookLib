@@ -1,4 +1,6 @@
-package gloomyfolken.hooklib.asm;
+package gloomyfolken.hooklib.asm.injections;
+
+import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 
 public interface AsmInjection extends Comparable<AsmInjection> {
     String getTargetClassName();
