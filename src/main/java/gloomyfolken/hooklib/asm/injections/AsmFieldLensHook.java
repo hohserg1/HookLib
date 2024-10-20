@@ -38,11 +38,6 @@ public class AsmFieldLensHook implements AsmMethodInjection {
         return isMandatory;
     }
 
-
-    public String getPatchedMethodName() {
-        return hookClassName + '#' + hookFieldLensName;
-    }
-
     @Override
     public boolean needToCreate() {
         return true;
