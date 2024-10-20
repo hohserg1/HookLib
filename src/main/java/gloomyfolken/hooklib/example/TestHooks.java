@@ -19,6 +19,34 @@ import java.util.Random;
 @HookContainer
 public class TestHooks {
 
+    @MethodLens
+    public static void staticTargetMethodVoid(TestTarget testTarget, int a, String b) {
+    }
+
+    @MethodLens
+    public static String staticTargetMethodObject(TestTarget testTarget, int a, String b) {
+        return "";
+    }
+
+    @MethodLens
+    public static int staticTargetMethodPrimitive(TestTarget testTarget, int a, String b) {
+        return 0;
+    }
+
+    @MethodLens
+    public static void targetMethodVoid(TestTarget testTarget, int a, String b) {
+    }
+
+    @MethodLens
+    public static String targetMethodObject(TestTarget testTarget, int a, String b) {
+        return "";
+    }
+
+    @MethodLens
+    public static int targetMethodPrimitive(TestTarget testTarget, int a, String b) {
+        return 0;
+    }
+
     @Hook(targetMethod = "randomDisplayTick")
     @OnExpression(expressionPattern = "randomDisplayTickPattern", shift = Shift.INSTEAD)
     public static EnumParticleTypes randomDisplayTick(BlockTorch torch, IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
@@ -51,6 +79,10 @@ public class TestHooks {
         System.out.println("prevX=" + prevX.get(mc));
         prevX.set(mc, x);
         System.out.println("Resize, x=" + x + ", y=" + y);
+        System.out.println(staticTargetMethodObject(null, 1, "1"));
+        System.out.println(staticTargetMethodPrimitive(null, 1, "1"));
+        System.out.println(targetMethodObject(new TestTarget(), 1, "1"));
+        System.out.println(targetMethodPrimitive(new TestTarget(), 1, "1"));
     }
 
 

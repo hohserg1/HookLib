@@ -5,6 +5,11 @@ import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 public interface AsmInjection extends Comparable<AsmInjection> {
     String getTargetClassName();
 
+    default String getTargetClassInternalName() {
+        return getTargetClassName().replace('.', '/');
+    }
+
+
     boolean isMandatory();
 
     boolean needToCreate();

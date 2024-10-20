@@ -4,20 +4,20 @@ import gloomyfolken.hooklib.api.*;
 import gloomyfolken.hooklib.asm.SignatureExtractor.FlatTypeRepr;
 import gloomyfolken.hooklib.asm.SignatureExtractor.ParametrizedTypeRepr;
 import gloomyfolken.hooklib.asm.SignatureExtractor.TypeRepr;
-import gloomyfolken.hooklib.asm.injections.AsmFieldLens;
-import gloomyfolken.hooklib.asm.injections.AsmFieldLensHook;
-import gloomyfolken.hooklib.asm.injections.AsmHook;
-import gloomyfolken.hooklib.asm.injections.AsmInjection;
+import gloomyfolken.hooklib.asm.injections.*;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.SideOnlyUtils;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
+import gloomyfolken.hooklib.minecraft.HookLoader;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 import org.objectweb.asm.TypeReference;
 import org.objectweb.asm.tree.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -30,8 +30,14 @@ public class HookContainerParser {
         return Stream.empty();
     }
 
-    private static Stream<AsmHook> invalidLens(String message, ClassNode classNode, FieldNode fieldNode) {
+    private static Stream<AsmHook> invalidFieldLens(String message, ClassNode classNode, FieldNode fieldNode) {
         Logger.instance.warning("Found invalid hook lens " + classNode.name.replace('/', '.') + "#" + fieldNode.name);
+        Logger.instance.warning(message);
+        return Stream.empty();
+    }
+
+    private static Stream<AsmInjection> invalidMethodLens(String message, ClassNode classNode, MethodNode methodNode) {
+        Logger.instance.warning("Found invalid hook lens " + classNode.name.replace('/', '.') + "#" + methodNode.name);
         Logger.instance.warning(message);
         return Stream.empty();
     }
@@ -55,6 +61,25 @@ public class HookContainerParser {
         return true;
     }
 
+    private static boolean checkRegularConditionsMethodLens(ClassNode classNode, MethodNode methodNode, Type[] argumentTypes) {
+        if (!AsmUtils.isStatic(methodNode)) {
+            invalidMethodLens("Hook lens must be static.", classNode, methodNode);
+            return false;
+        }
+
+        if (argumentTypes.length < 1) {
+            invalidMethodLens("Hook lens has no parameters. First parameter of a lens method must belong the type of the target class.", classNode, methodNode);
+            return false;
+        }
+
+        if (argumentTypes[0].getSort() != Type.OBJECT) {
+            invalidMethodLens("First parameter of the hook lens is not an object. First parameter of a lens method must belong the type of the target class.", classNode, methodNode);
+            return false;
+        }
+
+        return true;
+    }
+
     public static Stream<AsmInjection> parseHooks(ClassNode classNode) {
         return Stream.concat(
                 classNode.methods.stream().flatMap(methodNode -> {
@@ -65,9 +90,13 @@ public class HookContainerParser {
                             return Stream.empty();
 
                         Hook hookAnnotation = annotationMap.get(Hook.class);
+                        MethodLens methodLensAnnotation = annotationMap.get(MethodLens.class);
 
                         if (hookAnnotation != null)
                             return parseRegularHook(classNode, methodNode, annotationMap, hookAnnotation);
+
+                        if (methodLensAnnotation != null)
+                            return parseMethodLens(classNode, methodNode, annotationMap, methodLensAnnotation);
 
 
                     } catch (Throwable e) {
@@ -93,7 +122,7 @@ public class HookContainerParser {
             TypeRepr typeRepr = SignatureExtractor.fromField(fieldNode);
 
             if (typeRepr instanceof FlatTypeRepr)
-                return invalidLens("field lens type is raw FieldAccessor, should be parametrized", classNode, fieldNode);
+                return invalidFieldLens("field lens type is raw FieldAccessor, should be parametrized", classNode, fieldNode);
 
             List<TypeRepr> parameters = ((ParametrizedTypeRepr) typeRepr).parameters;
             String targetClassName = parameters.get(0).getRawType().getClassName();
@@ -106,7 +135,49 @@ public class HookContainerParser {
                     new AsmFieldLens(targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory(), lensAnnotation.createField(), null)
             );
         } else
-            return invalidLens("field lens type should be FieldAccessor<TargetClass, TargetFieldType>", classNode, fieldNode);
+            return invalidFieldLens("field lens type should be FieldAccessor<TargetClass, TargetFieldType>", classNode, fieldNode);
+    }
+
+    private static Stream<AsmInjection> parseMethodLens(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, MethodLens methodLensAnnotation) {
+        Type methodType = Type.getMethodType(methodNode.desc);
+        Type[] argumentTypes = methodType.getArgumentTypes();
+        Type returnType = methodType.getReturnType();
+
+        if (!checkRegularConditionsMethodLens(classNode, methodNode, argumentTypes))
+            return Stream.empty();
+
+        String targetClassName = argumentTypes[0].getClassName();
+        String targetMethodName = methodLensAnnotation.targetMethod().isEmpty() ? methodNode.name : methodLensAnnotation.targetMethod();
+        String targetMethodDesc = Type.getMethodDescriptor(returnType, Arrays.copyOfRange(argumentTypes, 1, argumentTypes.length));
+
+        try {
+            boolean isTargetMethodStatic = checkTargetMethodIsStatic(targetClassName, targetMethodName, targetMethodDesc);
+
+            AsmMethodLens targetClassInjection = new AsmMethodLens(
+                    targetClassName, targetMethodName, targetMethodDesc, isTargetMethodStatic,
+                    methodLensAnnotation.isMandatory()
+            );
+            AsmMethodLensHook hookClassInjection = new AsmMethodLensHook(
+                    classNode.name, methodNode.name, methodNode.desc,
+                    targetClassName, targetMethodName, targetMethodDesc, isTargetMethodStatic,
+                    methodLensAnnotation.isMandatory()
+            );
+
+            return Stream.of(
+                    targetClassInjection,
+                    hookClassInjection
+            );
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return invalidMethodLens("Target method " + targetClassName + "#" + targetMethodName + targetMethodName + " of method lens not found: " + e.getMessage(), classNode, methodNode);
+        }
+    }
+
+    private static boolean checkTargetMethodIsStatic(String targetClassName, String targetMethodName, String targetMethodDesc) throws IOException {
+        ClassMetadataReader.MethodReference methodReference =
+                HookLoader.getDeobfuscationMetadataReader().getMethodReferenceASM(targetClassName, targetMethodName, targetMethodDesc, true);
+        return AsmUtils.isStatic(methodReference.access);
     }
 
     private static Stream<AsmHook> parseRegularHook(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, Hook hookAnnotation) {

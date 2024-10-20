@@ -17,5 +17,7 @@ public interface AsmMethodInjection extends AsmInjection {
 
     InsnList injectNode(MethodNode methodNode, HookInjectorClassVisitor cv);
 
-    String getPatchedMethodName(String actualName, String actualDescription);
+    default String getPatchedMethodName(String actualName, String actualDescription) {
+        return getTargetClassName() + '#' + actualName + actualDescription;
+    }
 }

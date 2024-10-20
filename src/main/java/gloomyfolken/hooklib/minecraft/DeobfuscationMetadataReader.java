@@ -40,11 +40,11 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
      * Forge and other coremods may add new methods which may be need to override, so finding in transformed bytecode
      */
     @Override
-    protected MethodReference getMethodReferenceASM(String type, String methodName, String desc) throws IOException {
-        FindMethodClassVisitor cv = new FindMethodClassVisitor(methodName, desc);
+    protected MethodReference getMethodReferenceASM(String type, String methodName, String desc, boolean privateToo) throws IOException {
+        FindMethodClassVisitor cv = new FindMethodClassVisitor(methodName, desc, privateToo);
         byte[] bytes = getTransformedBytes(type);
         acceptVisitor(bytes, cv);
-        return cv.found ? new MethodReference(type, cv.targetName, cv.targetDesc) : null;
+        return cv.found ? new MethodReference(type, cv.targetAccess, cv.targetName, cv.targetDesc) : null;
     }
 
     static byte[] deobfuscateClass(String className, byte[] bytes) {

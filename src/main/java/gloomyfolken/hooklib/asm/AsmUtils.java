@@ -20,7 +20,11 @@ public class AsmUtils {
     ));
 
     public static boolean isStatic(MethodNode methodNode) {
-        return (methodNode.access & Opcodes.ACC_STATIC) != 0;
+        return isStatic(methodNode.access);
+    }
+
+    public static boolean isStatic(int access) {
+        return (access & Opcodes.ACC_STATIC) != 0;
     }
 
     public static boolean isPublic(MethodNode methodNode) {

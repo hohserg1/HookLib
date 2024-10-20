@@ -47,7 +47,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
             if (injection instanceof AsmFieldLens) {
                 AsmFieldLens lens = (AsmFieldLens) injection;
                 if (isTargetField(lens, name, desc) && !injectedHooks.contains(lens)) {
-                    injectedHooks.add(lens);
+                    markInjected(lens);
                     Logger.instance.debug("Patching field " + ((AsmFieldLens) injection).getPatchedFieldName());
 
                     access |= ACC_PUBLIC;

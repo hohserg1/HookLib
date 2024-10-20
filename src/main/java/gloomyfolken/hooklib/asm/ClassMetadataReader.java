@@ -54,17 +54,17 @@ public class ClassMetadataReader {
 
     private MethodReference getMethodReference(String type, String methodName, String desc) {
         try {
-            return getMethodReferenceASM(type, methodName, desc);
+            return getMethodReferenceASM(type, methodName, desc, false);
         } catch (Exception e) {
             return getMethodReferenceReflect(type, methodName, desc);
         }
     }
 
-    protected MethodReference getMethodReferenceASM(String type, String methodName, String desc) throws IOException {
-        FindMethodClassVisitor cv = new FindMethodClassVisitor(methodName, desc);
+    protected MethodReference getMethodReferenceASM(String type, String methodName, String desc, boolean privateToo) throws IOException {
+        FindMethodClassVisitor cv = new FindMethodClassVisitor(methodName, desc, privateToo);
         acceptVisitor(type, cv);
         if (cv.found) {
-            return new MethodReference(type, cv.targetName, cv.targetDesc);
+            return new MethodReference(type, cv.targetAccess, cv.targetName, cv.targetDesc);
         }
         return null;
     }
@@ -74,7 +74,7 @@ public class ClassMetadataReader {
         if (loadedClass != null) {
             for (Method m : loadedClass.getDeclaredMethods()) {
                 if (checkSameMethod(methodName, desc, m.getName(), Type.getMethodDescriptor(m))) {
-                    return new MethodReference(type, m.getName(), Type.getMethodDescriptor(m));
+                    return new MethodReference(type, m.getModifiers(), m.getName(), Type.getMethodDescriptor(m));
                 }
             }
         }
@@ -150,20 +150,25 @@ public class ClassMetadataReader {
 
     protected class FindMethodClassVisitor extends ClassVisitor {
 
+        public final boolean privateToo;
+
+        public int targetAccess;
         public String targetName;
         public String targetDesc;
         public boolean found;
 
-        public FindMethodClassVisitor(String name, String desc) {
+        public FindMethodClassVisitor(String name, String desc, boolean privateToo) {
             super(Opcodes.ASM5);
             this.targetName = name;
             this.targetDesc = desc;
+            this.privateToo = privateToo;
         }
 
         @Override
         public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-            if ((access & Opcodes.ACC_PRIVATE) == 0 && checkSameMethod(name, desc, targetName, targetDesc)) {
+            if ((privateToo || (access & Opcodes.ACC_PRIVATE) == 0) && checkSameMethod(name, desc, targetName, targetDesc)) {
                 found = true;
+                targetAccess = access;
                 targetName = name;
                 targetDesc = desc;
             }
@@ -174,11 +179,13 @@ public class ClassMetadataReader {
     public static class MethodReference {
 
         public final String owner;
+        public final int access;
         public final String name;
         public final String desc;
 
-        public MethodReference(String owner, String name, String desc) {
+        public MethodReference(String owner, int access, String name, String desc) {
             this.owner = owner;
+            this.access = access;
             this.name = name;
             this.desc = desc;
         }
@@ -191,6 +198,7 @@ public class ClassMetadataReader {
         public String toString() {
             return "MethodReference{" +
                     "owner='" + owner + '\'' +
+                    ", access='" + access + '\'' +
                     ", name='" + name + '\'' +
                     ", desc='" + desc + '\'' +
                     '}';

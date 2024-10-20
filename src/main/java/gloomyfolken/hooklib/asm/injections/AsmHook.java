@@ -57,10 +57,6 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
         return targetClassName;
     }
 
-    private String getTargetClassInternalName() {
-        return targetClassName.replace('.', '/');
-    }
-
     private String getHookClassInternalName() {
         return hooksClassName.replace('.', '/');
     }
@@ -312,10 +308,6 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
         }
 
         inj.visitMethodInsn(INVOKESTATIC, getHookClassInternalName(), name, desc, false);
-    }
-
-    public String getPatchedMethodName(String actualName, String actualDescription) {
-        return targetClassName + '#' + actualName + actualDescription;
     }
 
     @Override
