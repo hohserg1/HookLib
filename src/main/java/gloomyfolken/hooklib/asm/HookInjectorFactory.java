@@ -17,6 +17,7 @@ public abstract class HookInjectorFactory {
     abstract MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
                                               AsmMethodInjection hook, HookInjectorClassVisitor cv);
 
+                ((AsmMethodInjectionTracking) hook).visited(access, name, desc, signature, exceptions);
 
     public static class BeginFactory extends HookInjectorFactory {
 
