@@ -65,9 +65,10 @@ public class HookContainerParser {
                             return Stream.empty();
 
                         Hook hookAnnotation = annotationMap.get(Hook.class);
-                        if (hookAnnotation != null) {
+
+                        if (hookAnnotation != null)
                             return parseRegularHook(classNode, methodNode, annotationMap, hookAnnotation);
-                        }
+
 
                     } catch (Throwable e) {
                         throw new UnexpectedHookParsingError(classNode.name, methodNode.name, e);
@@ -79,28 +80,33 @@ public class HookContainerParser {
                     AnnotationMap annotationMap = AnnotationUtils.annotationOf(fieldNode);
                     FieldLens lensAnnotation = annotationMap.get(FieldLens.class);
                     if (lensAnnotation != null) {
-                        if (Type.getType(fieldNode.desc).getClassName().equals(FieldAccessor.class.getCanonicalName())) {
-                            TypeRepr typeRepr = SignatureExtractor.fromField(fieldNode);
-
-                            if (typeRepr instanceof FlatTypeRepr)
-                                return invalidLens("field lens type is raw FieldAccessor, should be parametrized", classNode, fieldNode);
-
-                            List<TypeRepr> parameters = ((ParametrizedTypeRepr) typeRepr).parameters;
-                            String targetClassName = parameters.get(0).getRawType().getClassName();
-                            Type targetFieldType = parameters.get(1).getRawType();
-
-                            String targetFieldName = !lensAnnotation.targetField().isEmpty() ? lensAnnotation.targetField() : fieldNode.name;
-
-                            return Stream.of(
-                                    new AsmFieldLensHook(classNode.name, fieldNode.name, targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory()),
-                                    new AsmFieldLens(targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory(), lensAnnotation.createField(), null)
-                            );
-                        }
+                        return parseFieldLens(classNode, fieldNode, lensAnnotation);
                     }
 
                     return Stream.empty();
                 })
         );
+    }
+
+    private static Stream<? extends AsmInjection> parseFieldLens(ClassNode classNode, FieldNode fieldNode, FieldLens lensAnnotation) {
+        if (Type.getType(fieldNode.desc).getClassName().equals(FieldAccessor.class.getCanonicalName())) {
+            TypeRepr typeRepr = SignatureExtractor.fromField(fieldNode);
+
+            if (typeRepr instanceof FlatTypeRepr)
+                return invalidLens("field lens type is raw FieldAccessor, should be parametrized", classNode, fieldNode);
+
+            List<TypeRepr> parameters = ((ParametrizedTypeRepr) typeRepr).parameters;
+            String targetClassName = parameters.get(0).getRawType().getClassName();
+            Type targetFieldType = parameters.get(1).getRawType();
+
+            String targetFieldName = !lensAnnotation.targetField().isEmpty() ? lensAnnotation.targetField() : fieldNode.name;
+
+            return Stream.of(
+                    new AsmFieldLensHook(classNode.name, fieldNode.name, targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory()),
+                    new AsmFieldLens(targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory(), lensAnnotation.createField(), null)
+            );
+        } else
+            return invalidLens("field lens type should be FieldAccessor<TargetClass, TargetFieldType>", classNode, fieldNode);
     }
 
     private static Stream<AsmHook> parseRegularHook(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, Hook hookAnnotation) {
