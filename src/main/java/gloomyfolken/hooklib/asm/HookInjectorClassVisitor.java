@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.ACC_FINAL;
 
 public class HookInjectorClassVisitor extends ClassVisitor {
 
@@ -46,14 +46,12 @@ public class HookInjectorClassVisitor extends ClassVisitor {
         for (AsmInjection injection : hooks) {
             if (injection instanceof AsmFieldLens) {
                 AsmFieldLens lens = (AsmFieldLens) injection;
-                if (isTargetField(lens, name, desc) && !injectedHooks.contains(lens)) {
-                    markInjected(lens);
-                    Logger.instance.debug("Patching field " + ((AsmFieldLens) injection).getPatchedFieldName());
-
-                    access |= ACC_PUBLIC;
-                    access &= ~ACC_PRIVATE;
-                    access &= ~ACC_PROTECTED;
+                if (isTargetField(lens, name, desc)) {
                     access &= ~ACC_FINAL;
+
+                    lens.foundExistedField(access, desc);
+
+                    Logger.instance.debug("Patching field " + ((AsmFieldLens) injection).getPatchedFieldName());
 
                     return super.visitField(access, name, desc, signature, value);
                 }

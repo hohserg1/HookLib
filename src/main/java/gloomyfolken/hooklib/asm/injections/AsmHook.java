@@ -1,7 +1,5 @@
 package gloomyfolken.hooklib.asm.injections;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
 import gloomyfolken.hooklib.api.HookPriority;
 import gloomyfolken.hooklib.api.ReturnSolve;
 import gloomyfolken.hooklib.asm.*;
@@ -14,7 +12,6 @@ import org.objectweb.asm.tree.*;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.DOUBLE;
@@ -146,11 +143,11 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             if (targetMethodReturnType != VOID_TYPE) {
                 r.add(new VarInsnNode(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId));
                 r.add(new TypeInsnNode(CHECKCAST, Type.getInternalName(ReturnSolve.Yes.class)));
-                Type boxed = objectToPrimitive.inverse().getOrDefault(targetMethodReturnType, targetMethodReturnType);
+                Type boxed = AsmUtils.objectToPrimitive.inverse().getOrDefault(targetMethodReturnType, targetMethodReturnType);
                 r.add(new FieldInsnNode(GETFIELD, Type.getInternalName(ReturnSolve.Yes.class), "value", Type.getDescriptor(Object.class)));
                 r.add(new TypeInsnNode(CHECKCAST, boxed.getInternalName()));
                 if (boxed != targetMethodReturnType)
-                    r.add(new MethodInsnNode(INVOKEVIRTUAL, boxed.getInternalName(), primitiveToUnboxingMethod.get(targetMethodReturnType), Type.getMethodDescriptor(targetMethodReturnType), false));
+                    r.add(new MethodInsnNode(INVOKEVIRTUAL, boxed.getInternalName(), AsmUtils.primitiveToUnboxingMethod.get(targetMethodReturnType), Type.getMethodDescriptor(targetMethodReturnType), false));
             }
 
             r.add(new InsnNode(targetMethodReturnType.getOpcode(IRETURN)));
@@ -192,11 +189,11 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
             if (targetMethodReturnType != VOID_TYPE) {
                 inj.visitVarInsn(hookMethodReturnType.getOpcode(ILOAD), hookResultLocalId);
                 inj.visitTypeInsn(CHECKCAST, Type.getInternalName(ReturnSolve.Yes.class));
-                Type boxed = objectToPrimitive.inverse().getOrDefault(targetMethodReturnType, targetMethodReturnType);
+                Type boxed = AsmUtils.objectToPrimitive.inverse().getOrDefault(targetMethodReturnType, targetMethodReturnType);
                 inj.visitFieldInsn(GETFIELD, Type.getInternalName(ReturnSolve.Yes.class), "value", Type.getDescriptor(Object.class));
                 inj.visitTypeInsn(CHECKCAST, boxed.getInternalName());
                 if (boxed != targetMethodReturnType)
-                    inj.visitMethodInsn(INVOKEVIRTUAL, boxed.getInternalName(), primitiveToUnboxingMethod.get(targetMethodReturnType), Type.getMethodDescriptor(targetMethodReturnType), false);
+                    inj.visitMethodInsn(INVOKEVIRTUAL, boxed.getInternalName(), AsmUtils.primitiveToUnboxingMethod.get(targetMethodReturnType), Type.getMethodDescriptor(targetMethodReturnType), false);
             }
             injectReturn(inj, targetMethodReturnType);
 
@@ -459,7 +456,7 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
                 hook.targetMethodReturnType = hook.hookMethodReturnType;
             }
             hook.targetMethodDescription1 = getMethodDesc(hook.targetMethodReturnType, hook.targetMethodParameters);
-            Type maybePrimitive = objectToPrimitive.get(hook.targetMethodReturnType);
+            Type maybePrimitive = AsmUtils.objectToPrimitive.get(hook.targetMethodReturnType);
             if (maybePrimitive == null)
                 hook.targetMethodDescription2 = hook.targetMethodDescription1;
             else {
@@ -492,26 +489,4 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
         }
     }
 
-    public static BiMap<Type, Type> objectToPrimitive = ImmutableBiMap.<Type, Type>builder()
-            .put(Type.getType(Void.class), VOID_TYPE)
-            .put(Type.getType(Boolean.class), BOOLEAN_TYPE)
-            .put(Type.getType(Character.class), CHAR_TYPE)
-            .put(Type.getType(Byte.class), BYTE_TYPE)
-            .put(Type.getType(Short.class), SHORT_TYPE)
-            .put(Type.getType(Integer.class), INT_TYPE)
-            .put(Type.getType(Float.class), FLOAT_TYPE)
-            .put(Type.getType(Long.class), LONG_TYPE)
-            .put(Type.getType(Double.class), DOUBLE_TYPE)
-            .build();
-
-    public static Map<Type, String> primitiveToUnboxingMethod = ImmutableBiMap.<Type, String>builder()
-            .put(BOOLEAN_TYPE, "booleanValue")
-            .put(CHAR_TYPE, "charValue")
-            .put(BYTE_TYPE, "byteValue")
-            .put(SHORT_TYPE, "shortValue")
-            .put(INT_TYPE, "intValue")
-            .put(FLOAT_TYPE, "floatValue")
-            .put(LONG_TYPE, "longValue")
-            .put(DOUBLE_TYPE, "doubleValue")
-            .build();
 }

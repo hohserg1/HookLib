@@ -9,6 +9,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 
+import static gloomyfolken.hooklib.asm.injections.AsmFieldLens.getterSuffix;
+import static gloomyfolken.hooklib.asm.injections.AsmFieldLens.setterSuffix;
 import static org.objectweb.asm.Opcodes.*;
 
 public class AsmFieldLensHook implements AsmMethodInjection {
@@ -18,14 +20,19 @@ public class AsmFieldLensHook implements AsmMethodInjection {
     private final String targetFieldName;
     private final Type targetFieldType;
     private final boolean isMandatory;
+    private final String setterDesc;
+    private final String getterDesc;
 
-    public AsmFieldLensHook(String hookClassName, String hookFieldLensName, String targetClassName, String targetFieldName, Type targetFieldType, boolean isMandatory) {
+    public AsmFieldLensHook(String hookClassName, String hookFieldLensName, String targetClassName, String targetFieldName, Type targetFieldType, boolean isMandatory,
+                            String setterDesc, String getterDesc) {
         this.hookClassName = hookClassName.replace('/', '.');
         this.hookFieldLensName = hookFieldLensName;
         this.targetClassInternalName = targetClassName.replace('.', '/');
         this.targetFieldName = targetFieldName;
         this.targetFieldType = targetFieldType;
         this.isMandatory = isMandatory;
+        this.setterDesc = setterDesc;
+        this.getterDesc = getterDesc;
     }
 
     @Override
@@ -131,7 +138,7 @@ public class AsmFieldLensHook implements AsmMethodInjection {
             methodVisitor.visitLabel(label0);
             methodVisitor.visitLineNumber(11, label0);
             methodVisitor.visitVarInsn(ALOAD, 1);
-            methodVisitor.visitFieldInsn(GETFIELD, targetClassInternalName, targetFieldName, targetFieldType.getDescriptor());
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, targetClassInternalName, targetFieldName + getterSuffix, getterDesc, false);
             methodVisitor.visitInsn(ARETURN);
             Label label1 = new Label();
             methodVisitor.visitLabel(label1);
@@ -149,7 +156,7 @@ public class AsmFieldLensHook implements AsmMethodInjection {
             methodVisitor.visitLineNumber(16, label0);
             methodVisitor.visitVarInsn(ALOAD, 1);
             methodVisitor.visitVarInsn(ALOAD, 2);
-            methodVisitor.visitFieldInsn(PUTFIELD, targetClassInternalName, targetFieldName, targetFieldType.getDescriptor());
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, targetClassInternalName, targetFieldName + setterSuffix, setterDesc, false);
             Label label1 = new Label();
             methodVisitor.visitLabel(label1);
             methodVisitor.visitLineNumber(17, label1);

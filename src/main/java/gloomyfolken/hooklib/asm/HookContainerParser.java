@@ -125,14 +125,18 @@ public class HookContainerParser {
                 return invalidFieldLens("field lens type is raw FieldAccessor, should be parametrized", classNode, fieldNode);
 
             List<TypeRepr> parameters = ((ParametrizedTypeRepr) typeRepr).parameters;
-            String targetClassName = parameters.get(0).getRawType().getClassName();
+            Type targetClassType = parameters.get(0).getRawType();
+            String targetClassName = targetClassType.getClassName();
             Type targetFieldType = parameters.get(1).getRawType();
 
             String targetFieldName = !lensAnnotation.targetField().isEmpty() ? lensAnnotation.targetField() : fieldNode.name;
 
+            String setterDesc = Type.getMethodDescriptor(Type.VOID_TYPE, targetClassType, targetFieldType);
+            String getterDesc = Type.getMethodDescriptor(targetFieldType, targetClassType);
+
             return Stream.of(
-                    new AsmFieldLensHook(classNode.name, fieldNode.name, targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory()),
-                    new AsmFieldLens(targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory(), lensAnnotation.createField(), null)
+                    new AsmFieldLensHook(classNode.name, fieldNode.name, targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory(), setterDesc, getterDesc),
+                    new AsmFieldLens(targetClassName, targetFieldName, targetFieldType, lensAnnotation.isMandatory(), lensAnnotation.createField(), null, setterDesc, getterDesc)
             );
         } else
             return invalidFieldLens("field lens type should be FieldAccessor<TargetClass, TargetFieldType>", classNode, fieldNode);
@@ -279,7 +283,7 @@ public class HookContainerParser {
                                     isStrictlyPrimitive = true;
 
             if (isStrictlyPrimitive) {
-                Type maybePrimitive = AsmHook.objectToPrimitive.get(targetMethodReturnType);
+                Type maybePrimitive = AsmUtils.objectToPrimitive.get(targetMethodReturnType);
                 if (maybePrimitive == null)
                     return invalidHook("@ReturnSolve.Primitive used at non-primitive type", classNode, methodNode);
                 targetMethodReturnType = maybePrimitive;
