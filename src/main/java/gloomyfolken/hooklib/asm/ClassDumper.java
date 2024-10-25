@@ -29,8 +29,7 @@ public enum ClassDumper {
         File classLocation = new File(Config.instance.dumpLocation, className.replace('.', '/') + ".class");
         classLocation.getParentFile().mkdirs();
         try (FileOutputStream fos = new FileOutputStream(classLocation)) {
-            if (Config.instance.logDumpedClasses)
-                Logger.instance.info("Saving hooked class " + className + " to " + classLocation);
+            Logger.instance.info("Saving hooked class " + className + " to " + classLocation);
             fos.write(bytecode);
         } catch (IOException e) {
             Logger.instance.warning("Unable to save hooked class " + className);
