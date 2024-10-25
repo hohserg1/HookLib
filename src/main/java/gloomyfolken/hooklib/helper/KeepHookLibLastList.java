@@ -11,6 +11,7 @@ public class KeepHookLibLastList<A> extends ArrayList<A> {
     }
 
     private A hookTransformer = null;
+    private int hookTransformerFromLastIndex = 1;
 
     @Override
     public boolean add(A a) {
@@ -22,10 +23,12 @@ public class KeepHookLibLastList<A> extends ArrayList<A> {
         } else {
             if (a instanceof ModAPITransformer) {
                 super.add(a);
+                hookTransformerFromLastIndex = 2;
             } else {
-                remove(size() - 1);
+                remove(size() - hookTransformerFromLastIndex);
                 super.add(a);
                 super.add(hookTransformer);
+                hookTransformerFromLastIndex = 1;
             }
         }
         return true;
