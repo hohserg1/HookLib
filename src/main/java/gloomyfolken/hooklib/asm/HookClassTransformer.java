@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 
 public class HookClassTransformer implements IClassTransformer {
 
+    protected boolean active = true;
+    public static HookClassTransformer last = null;
 
     private static final ListMultimap<String, AsmInjection> hooksMap = ArrayListMultimap.create(10, 2);
     public ClassMetadataReader classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
@@ -30,15 +32,54 @@ public class HookClassTransformer implements IClassTransformer {
     public TransformingStage stage = new PrimaryClassTransformer();
 
     public HookClassTransformer() {
+        if (last != null)
+            last.deactivate();
+        last = this;
     }
 
+    protected void deactivate() {
+        active = false;
+    }
 
     public static void registerAllHooks(ListMultimap<String, AsmInjection> hooks) {
         hooksMap.putAll(hooks);
     }
 
+    private static List<IClassTransformer> transformers = null;
+    private static int prevSize = -1;
+
+    private void initTransformerList() {
+        if (transformers == null) {
+            try {
+                ClassLoader classLoader = HookClassTransformer.class.getClassLoader();
+                if (classLoader instanceof LaunchClassLoader) {
+                    Field field = LaunchClassLoader.class.getDeclaredField("transformers");
+                    field.setAccessible(true);
+                    List<IClassTransformer> originalList = (List<IClassTransformer>) field.get(classLoader);
+
+                    List<IClassTransformer> replacementList = new AppendWhileIterationList<>(originalList);
+
+                    transformers = replacementList;
+
+                    field.set(classLoader, replacementList);
+
+                    if (transformers.get(transformers.size() - 1) == this)
+                        prevSize = transformers.size();
+
+                } else {
+                    throw new IllegalStateException("HookLib was not loaded by LaunchClassLoader. Hooks will not be injected.");
+                }
+            } catch (Throwable e) {
+                throw new RuntimeException("failed to get LaunchClassLoader#transformers", e);
+            }
+        }
     }
 
+    private void raiseUpHookClassTransformer() {
+        initTransformerList();
+        if (prevSize != transformers.size()) {
+            transformers.add(new HookClassTransformer());
+            prevSize = transformers.size();
         }
     }
 
