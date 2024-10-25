@@ -92,7 +92,7 @@ public class HookClassTransformer implements IClassTransformer {
         if (!active)
             return bytecode;
 
-        //raiseUpHookClassTransformer();
+        raiseUpHookClassTransformer();
 
         if (!active)
             return bytecode;
