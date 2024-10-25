@@ -76,14 +76,7 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
     }
 
     private static boolean checkSameMethod(String srgName, String mcpName) {
-        if (HookLibPlugin.getObfuscated() && MinecraftClassTransformer.instance != null) {
-            int methodId = MinecraftClassTransformer.getMemberId("func_", srgName);
-            String remappedName = MinecraftClassTransformer.instance.getMethodNames().get(methodId);
-            if (remappedName != null && remappedName.equals(mcpName)) {
-                return true;
-            }
-        }
-        return srgName.equals(mcpName);
+        return Deobfuscation.instance.deobfMethod(srgName).equals(mcpName);
     }
 
 }

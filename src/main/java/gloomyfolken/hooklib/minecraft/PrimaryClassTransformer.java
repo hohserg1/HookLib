@@ -1,11 +1,9 @@
 package gloomyfolken.hooklib.minecraft;
 
-import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
 import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
-import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
@@ -16,41 +14,16 @@ import java.util.List;
  * This transformer uses for all classes which loaded before Minecraft classes.
  * kinda have no sense to separate it
  */
-public class PrimaryClassTransformer extends HookClassTransformer implements IClassTransformer {
-
-    //if some mod accessed to HookLib before it loaded
-    static PrimaryClassTransformer instance = new PrimaryClassTransformer();
-    boolean registeredSecondTransformer;
-
-    public PrimaryClassTransformer() {
-        classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
-
-        if (instance != null) {
-            hooksMap.putAll(instance.getHooksMap());
-            instance.getHooksMap().clear();
-        } else {
-            registerHookContainer("gloomyfolken.hooklib.minecraft.SecondaryTransformerHook");
-        }
-        instance = this;
-    }
+public class PrimaryClassTransformer implements TransformingStage {
 
     @Override
-    public byte[] transform(String oldName, String newName, byte[] bytecode) {
-        return transform(newName, bytecode);
-    }
-
-    @Override
-    protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
-        return new HookInjectorClassVisitor(this, finalizeVisitor, hooks) {
+    public HookInjectorClassVisitor createInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
+        return new HookInjectorClassVisitor(transformer, finalizeVisitor, hooks) {
             @Override
             protected boolean isTargetMethod(AsmMethodInjection hook, String name, String desc) {
                 return super.isTargetMethod(hook, name, mapDesc(desc));
             }
         };
-    }
-
-    ListMultimap<String, AsmInjection> getHooksMap() {
-        return hooksMap;
     }
 
     static String mapDesc(String desc) {

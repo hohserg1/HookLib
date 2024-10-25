@@ -3,45 +3,59 @@ package gloomyfolken.hooklib.asm;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
+import gloomyfolken.hooklib.helper.AppendWhileIterationList;
 import gloomyfolken.hooklib.helper.Logger;
+import gloomyfolken.hooklib.minecraft.HookLoader;
+import gloomyfolken.hooklib.minecraft.PrimaryClassTransformer;
+import gloomyfolken.hooklib.minecraft.TransformingStage;
+import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.tree.ClassNode;
 
-import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.objectweb.asm.ClassReader.SKIP_CODE;
-import static org.objectweb.asm.Opcodes.ASM5;
+public class HookClassTransformer implements IClassTransformer {
 
-public class HookClassTransformer {
-    protected ListMultimap<String, AsmInjection> hooksMap = ArrayListMultimap.create(10, 2);
-    public ClassMetadataReader classMetadataReader = new ClassMetadataReader();
 
-    public void registerAllHooks(ListMultimap<String, AsmInjection> hooks) {
+    private static final ListMultimap<String, AsmInjection> hooksMap = ArrayListMultimap.create(10, 2);
+    public ClassMetadataReader classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
+
+    public TransformingStage stage = new PrimaryClassTransformer();
+
+    public HookClassTransformer() {
+    }
+
+
+    public static void registerAllHooks(ListMultimap<String, AsmInjection> hooks) {
         hooksMap.putAll(hooks);
     }
 
-    public void registerHook(AsmInjection hook) {
-        hooksMap.put(hook.getTargetClassName(), hook);
     }
 
-    public void registerHookContainer(String className) {
-        try {
-            ClassNode classNode = new ClassNode(ASM5);
-            new ClassReader(classMetadataReader.getClassData(className)).accept(classNode, SKIP_CODE);
-            HookContainerParser.parseHooks(classNode).forEachOrdered(this::registerHook);
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
+    @Override
+    public byte[] transform(String name, String transformedName, byte[] basicClass) {
+        return transform(transformedName, basicClass);
+    }
+
     public byte[] transform(String className, byte[] bytecode) {
+        if (!active)
+            return bytecode;
+
+        //raiseUpHookClassTransformer();
+
+        if (!active)
+            return bytecode;
+
         if (hooksMap.containsKey(className)) {
             List<AsmInjection> hooks = hooksMap.get(className);
             Set<AsmInjection> injectedHooks;
@@ -99,7 +113,7 @@ public class HookClassTransformer {
     }
 
     protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
-        return new HookInjectorClassVisitor(this, finalizeVisitor, hooks);
+        return stage.createInjectorClassVisitor(this, finalizeVisitor, hooks);
     }
 
     protected ClassWriter createClassWriter(int flags) {

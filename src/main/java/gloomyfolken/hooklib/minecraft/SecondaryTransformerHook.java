@@ -1,11 +1,12 @@
 package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.api.Hook;
+import gloomyfolken.hooklib.api.HookContainer;
 import gloomyfolken.hooklib.api.OnBegin;
-import net.minecraft.launchwrapper.LaunchClassLoader;
+import gloomyfolken.hooklib.asm.HookClassTransformer;
 import net.minecraftforge.fml.common.Loader;
 
-
+@HookContainer
 public class SecondaryTransformerHook {
 
     /**
@@ -14,12 +15,6 @@ public class SecondaryTransformerHook {
     @Hook
     @OnBegin
     public static void injectData(Loader loader, Object... data) {
-        ClassLoader classLoader = SecondaryTransformerHook.class.getClassLoader();
-        if (classLoader instanceof LaunchClassLoader) {
-            ((LaunchClassLoader) classLoader).registerTransformer(MinecraftClassTransformer.class.getName());
-        } else {
-            System.out.println("HookLib was not loaded by LaunchClassLoader. Hooks will not be injected.");
-        }
+        HookClassTransformer.last.stage = new MinecraftClassTransformer();
     }
-
 }

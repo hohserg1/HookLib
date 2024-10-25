@@ -5,8 +5,10 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
 import gloomyfolken.hooklib.api.HookContainer;
 import gloomyfolken.hooklib.api.OnExpression;
+import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookContainerParser;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
+import gloomyfolken.hooklib.helper.AppendWhileIterationList;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
@@ -31,9 +33,18 @@ import static org.objectweb.asm.ClassReader.SKIP_CODE;
 import static org.objectweb.asm.Opcodes.ASM5;
 
 public class MainHookLoader extends HookLoader {
+
+    public MainHookLoader() {
+        fixCircularClassLoading();
+    }
+
+    private void fixCircularClassLoading() {
+        AppendWhileIterationList.class.getName();
+    }
+
     @Override
     public String[] getASMTransformerClass() {
-        return new String[]{PrimaryClassTransformer.class.getName()};
+        return new String[]{HookClassTransformer.class.getName()};
     }
 
     protected void registerHooks() {
@@ -41,7 +52,7 @@ public class MainHookLoader extends HookLoader {
                 .flatMap(HookContainerParser::parseHooks)
                 .distinct()
                 .collect(Multimaps.toMultimap(AsmInjection::getTargetClassName, Function.identity(), ArrayListMultimap::create));
-        getTransformer().registerAllHooks(hooks);
+        HookClassTransformer.registerAllHooks(hooks);
     }
 
     private List<ClassNode> findHookContainers() {
