@@ -8,10 +8,12 @@ import gloomyfolken.hooklib.api.OnExpression;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookContainerParser;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
-import gloomyfolken.hooklib.helper.AppendWhileIterationList;
+import gloomyfolken.hooklib.helper.KeepHookLibLastList;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
+import net.minecraft.launchwrapper.IClassTransformer;
+import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModClassLoader;
@@ -23,6 +25,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.function.Function;
 import java.util.zip.ZipEntry;
@@ -34,16 +37,30 @@ import static org.objectweb.asm.Opcodes.ASM5;
 
 public class MainHookLoader extends HookLoader {
 
-    public MainHookLoader() {
-        fixCircularClassLoading();
-    }
-
-    private void fixCircularClassLoading() {
-        AppendWhileIterationList.class.getName();
-    }
+    private boolean transformersListReplaced = false;
 
     @Override
     public String[] getASMTransformerClass() {
+        if (!transformersListReplaced)
+            try {
+                transformersListReplaced = true;
+                ClassLoader classLoader = MainHookLoader.class.getClassLoader();
+                if (classLoader instanceof LaunchClassLoader) {
+                    Field field = LaunchClassLoader.class.getDeclaredField("transformers");
+                    field.setAccessible(true);
+                    List<IClassTransformer> originalList = (List<IClassTransformer>) field.get(classLoader);
+
+                    List<IClassTransformer> replacementList = new KeepHookLibLastList<>(originalList);
+
+                    field.set(classLoader, replacementList);
+
+                } else {
+                    throw new IllegalStateException("HookLib was not loaded by LaunchClassLoader");
+                }
+            } catch (Throwable e) {
+                throw new RuntimeException("failed to replace transformers list", e);
+            }
+
         return new String[]{HookClassTransformer.class.getName()};
     }
 

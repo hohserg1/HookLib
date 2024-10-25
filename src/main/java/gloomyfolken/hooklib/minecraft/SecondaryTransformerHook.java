@@ -15,6 +15,7 @@ public class SecondaryTransformerHook {
     @Hook
     @OnBegin
     public static void injectData(Loader loader, Object... data) {
-        HookClassTransformer.last.stage = new MinecraftClassTransformer();
+        HookClassTransformer.stage = new MinecraftClassTransformer();
     }
+
 }
