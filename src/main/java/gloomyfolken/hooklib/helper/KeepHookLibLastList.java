@@ -23,7 +23,7 @@ public class KeepHookLibLastList<A> extends ArrayList<A> {
         } else {
             if (a instanceof ModAPITransformer) {
                 super.add(a);
-                hookTransformerFromLastIndex = 2;
+                hookTransformerFromLastIndex++;
             } else {
                 remove(size() - hookTransformerFromLastIndex);
                 super.add(a);
