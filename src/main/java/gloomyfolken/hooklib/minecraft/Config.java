@@ -16,8 +16,11 @@ public enum Config {
     instance;
 
     public boolean useClasspathCandidates = false;
+    public boolean dumpChangedClasses = false;
+    public boolean logDumpedClasses = true;
 
     private final File file = new File("./config/hooklib.cfg");
+    public final File dumpLocation = new File("./hooklib_dump");
 
     Config() {
         loadConfig();
@@ -61,6 +64,11 @@ public enum Config {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write("# Find hook-containers in classpath\n");
             writer.write("B:useClasspathCandidates=" + useClasspathCandidates + "\n\n");
+            writer.write("# Will save classes which have affected by hooks to " + dumpLocation + "\n");
+            writer.write("B:dumpChangedClasses=" + dumpChangedClasses + "\n\n");
+            writer.write("# Will print to log about saved classes. Doesn't do anything without dumpChangedClasses\n");
+            writer.write("B:logDumpedClasses=" + logDumpedClasses + "\n\n");
+
         }
     }
 }

@@ -25,8 +25,10 @@ public class GeneratedClassLoader extends ClassLoader {
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         byte[] bytecode = forLoad.get(name);
-        if (bytecode != null)
+        if (bytecode != null) {
+            ClassDumper.instance.dumpClass(name, bytecode);
             return defineClass(name, bytecode, 0, bytecode.length);
+        }
 
         return super.findClass(name);
     }

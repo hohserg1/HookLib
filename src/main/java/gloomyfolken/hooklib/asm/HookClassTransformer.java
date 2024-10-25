@@ -21,13 +21,14 @@ import java.util.stream.Collectors;
 public class HookClassTransformer implements IClassTransformer {
 
     private static final ListMultimap<String, AsmInjection> hooksMap = ArrayListMultimap.create(10, 2);
-    public ClassMetadataReader classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
 
     public static TransformingStage stage = new PrimaryClassTransformer();
 
     public static void registerAllHooks(ListMultimap<String, AsmInjection> hooks) {
         hooksMap.putAll(hooks);
     }
+
+    public ClassMetadataReader classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
 
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
@@ -75,6 +76,8 @@ public class HookClassTransformer implements IClassTransformer {
                         Logger.instance.warning("Can not find target method of hook " + hook);
                     }
             }
+
+            ClassDumper.instance.dumpClass(className, bytecode);
 
             if (!mandatoryMissed.isEmpty()) {
                 throw new RuntimeException("Can not find target method of mandatory hooks: [\n" +
