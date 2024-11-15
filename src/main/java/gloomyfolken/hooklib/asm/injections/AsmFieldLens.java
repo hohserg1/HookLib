@@ -83,9 +83,13 @@ public class AsmFieldLens implements AsmInjection {
     @Override
     public void create(HookInjectorClassVisitor hookInjectorClassVisitor) {
         if (!found) {
-            hookInjectorClassVisitor
-                    .visitField(0, targetFieldName, actualFieldType.getDescriptor(), null, defaultValue)
-                    .visitEnd();
+            if (createField) {
+                hookInjectorClassVisitor
+                        .visitField(0, targetFieldName, actualFieldType.getDescriptor(), null, defaultValue)
+                        .visitEnd();
+            } else {
+                return;
+            }
         }
 
         {
