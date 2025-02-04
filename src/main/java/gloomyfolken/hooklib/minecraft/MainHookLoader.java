@@ -17,6 +17,7 @@ import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.ModClassLoader;
+import net.minecraftforge.fml.relauncher.CoreModManager;
 import org.apache.commons.io.FileUtils;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.tree.ClassNode;
@@ -26,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.net.MalformedURLException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.zip.ZipEntry;
@@ -85,6 +87,8 @@ public class MainHookLoader extends HookLoader {
         if (Config.instance.useClasspathCandidates)
             addFromClasspath(jarCandidates, classCandidates);
 
+        Set<File> jarWithHooks = new HashSet<>();
+
         for (File jar : jarCandidates)
             try {
                 Logger.instance.info("Finding hooks in jar: " + jar);
@@ -96,18 +100,21 @@ public class MainHookLoader extends HookLoader {
                     ZipEntry entry = entries.nextElement();
                     if (!entry.isDirectory() && entry.getName().endsWith(".class"))
                         try (InputStream is = zipFile.getInputStream(entry)) {
-                            if (is != null)
-                                findHooksInStream(result, is);
+                            if (is != null) {
+                                if (findHooksInStream(result, is)) {
+                                    jarWithHooks.add(jar);
+                                }
+                            }
                         } catch (Throwable e) {
                             if (e instanceof IllegalArgumentException &&
-                                    e.getStackTrace()[0].getClassName().equals(ClassReader.class.getName()) &&
-                                    e.getStackTrace()[0].getMethodName().equals("<init>")) {
+                                e.getStackTrace()[0].getClassName().equals(ClassReader.class.getName()) &&
+                                e.getStackTrace()[0].getMethodName().equals("<init>")) {
                                 Logger.instance.error("Failed to parse java9+ class " + jar + "#" + entry.getName());
                             } else
                                 Logger.instance.error("Failed to parse class " + jar + "#" + entry.getName(), e);
                         }
                 }
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 Logger.instance.error("Failed to parse jar " + jar);
                 e.printStackTrace();
             }
@@ -118,6 +125,17 @@ public class MainHookLoader extends HookLoader {
             } catch (IOException e) {
                 Logger.instance.error("Failed to parse class " + classFile, e);
             }
+
+        for (File jar : jarWithHooks) {
+            Logger.instance.info("Jar contains hooks, adding to classpath: " + jar);
+            try {
+                ((LaunchClassLoader) getClass().getClassLoader()).addURL(jar.toURI().toURL());
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            if (HookLibPlugin.getObfuscated())
+                CoreModManager.getReparseableCoremods().add(jar.getName());
+        }
 
         return result;
     }
@@ -145,7 +163,7 @@ public class MainHookLoader extends HookLoader {
             jarCandidates.addAll(Arrays.asList(jarFiles));
     }
 
-    private void findHooksInStream(List<ClassNode> result, InputStream stream) throws IOException {
+    private boolean findHooksInStream(List<ClassNode> result, InputStream stream) throws IOException {
         ClassNode classNode = new ClassNode(ASM5);
         ClassReader classReader = new ClassReader(stream);
         classReader.accept(classNode, SKIP_CODE);
@@ -156,7 +174,9 @@ public class MainHookLoader extends HookLoader {
                 classReader.accept(classNode, 0);
             }
             result.add(classNode);
+            return true;
         }
+        return false;
     }
 
     private boolean haveExpressionHooks(ClassNode classNode) {
