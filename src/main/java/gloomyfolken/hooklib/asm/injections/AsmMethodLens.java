@@ -25,6 +25,8 @@ public class AsmMethodLens implements AsmMethodInjectionObserving {
 
     private boolean found = false;
     private boolean isStaticMethod = false;
+    private String actualTargetMethodName;
+    private String actualTargetMethodDescription;
 
     public AsmMethodLens(String targetClassName, String targetMethodName, String targetMethodDescription, String invokerMethodDesc, boolean isMandatory) {
         this.targetClassName = targetClassName;
@@ -32,6 +34,8 @@ public class AsmMethodLens implements AsmMethodInjectionObserving {
         this.targetMethodDescription = targetMethodDescription;
         this.invokerMethodDesc = invokerMethodDesc;
         this.isMandatory = isMandatory;
+        actualTargetMethodName = targetMethodName;
+        actualTargetMethodDescription = targetMethodDescription;
     }
 
     @Override
@@ -58,6 +62,8 @@ public class AsmMethodLens implements AsmMethodInjectionObserving {
     public void visitedMethod(int access, String name, String desc, String signature, String[] exceptions) {
         found = true;
         isStaticMethod = AsmUtils.isStatic(access);
+        actualTargetMethodName = name;
+        actualTargetMethodDescription = desc;
     }
 
     @Override
@@ -94,7 +100,7 @@ public class AsmMethodLens implements AsmMethodInjectionObserving {
         }
 
         int invokeOpcode = isStaticMethod ? INVOKESTATIC : INVOKEVIRTUAL;
-        mv.visitMethodInsn(invokeOpcode, getTargetClassInternalName(), targetMethodName, targetMethodDescription, false);
+        mv.visitMethodInsn(invokeOpcode, getTargetClassInternalName(), actualTargetMethodName, actualTargetMethodDescription, false);
 
         mv.visitInsn(methodType.getReturnType().getOpcode(IRETURN));
 
