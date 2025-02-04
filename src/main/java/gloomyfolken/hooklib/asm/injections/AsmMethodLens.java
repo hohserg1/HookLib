@@ -67,9 +67,12 @@ public class AsmMethodLens implements AsmMethodInjectionObserving {
 
     @Override
     public void create(HookInjectorClassVisitor classVisitor) {
-        if (!found)
-            return;
+        if (found) {
+            createAccessorMethod(classVisitor);
+        }
+    }
 
+    private void createAccessorMethod(HookInjectorClassVisitor classVisitor) {
         MethodVisitor mv = classVisitor.visitMethod(ACC_PUBLIC | ACC_STATIC, targetMethodName + methodAccessorSuffix, invokerMethodDesc, null, null);
         Type methodType = Type.getMethodType(targetMethodDescription);
 
