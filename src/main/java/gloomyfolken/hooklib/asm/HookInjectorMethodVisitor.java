@@ -115,21 +115,21 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
     static class MethodCallVisitor extends OrderedVisitor {
 
-        private final String methodName;
+        private final String requiredMethodName;
         private final String methodDesc;
         private final Shift shift;
 
         protected MethodCallVisitor(MethodVisitor mv, int access, String name, String desc, AsmMethodInjection hook, HookInjectorClassVisitor cv,
                                     String methodName, String methodDesc, int ordinal, Shift shift) {
             super(mv, access, name, desc, hook, cv, ordinal);
-            this.methodName = methodName;
+            this.requiredMethodName = methodName;
             this.methodDesc = methodDesc;
             this.shift = shift;
         }
 
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            String targetName = Deobfuscation.instance.deobfMethod(name);
-            if (methodName.equals(targetName) && (methodDesc.isEmpty() || desc.startsWith(methodDesc))) {
+            String actualMethodName = Deobfuscation.instance.deobfMethod(name);
+            if (requiredMethodName.equals(actualMethodName) && (methodDesc.isEmpty() || desc.startsWith(methodDesc))) {
                 switch (shift) {
                     case BEFORE:
                         visitOrderedHook();
