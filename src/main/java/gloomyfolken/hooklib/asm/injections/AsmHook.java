@@ -33,7 +33,7 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
     // -1 is return value
     private List<Integer> transmittableVariableIds = new ArrayList<Integer>(2);
     private List<Type> hookMethodParameters = new ArrayList<Type>(2);
-    private Type hookMethodReturnType = Type.VOID_TYPE;
+    public Type hookMethodReturnType = Type.VOID_TYPE;
     private boolean hasReturnValueParameter;
 
     private ReturnCondition returnCondition = ReturnCondition.NEVER;
@@ -90,10 +90,10 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
 
     public void create(HookInjectorClassVisitor classVisitor) {
         ClassMetadataReader.MethodReference superMethod = classVisitor.transformer.classMetadataReader
-                .findVirtualMethod(getTargetClassInternalName(), targetMethodName, targetMethodDescription1);
+            .findVirtualMethod(getTargetClassInternalName(), targetMethodName, targetMethodDescription1);
         //findVirtualMethod may return other name
         MethodVisitor mv = classVisitor.visitMethod(Opcodes.ACC_PUBLIC,
-                superMethod == null ? targetMethodName : superMethod.name, targetMethodDescription1, null, null);
+            superMethod == null ? targetMethodName : superMethod.name, targetMethodDescription1, null, null);
         if (mv instanceof HookInjectorMethodVisitor) {
             HookInjectorMethodVisitor inj = (HookInjectorMethodVisitor) mv;
             inj.visitCode();
@@ -208,7 +208,7 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
     private void injectLoad(HookInjectorMethodVisitor inj, Type parameterType, int variableId) {
         int opcode;
         if (parameterType == INT_TYPE || parameterType == BYTE_TYPE || parameterType == CHAR_TYPE ||
-                parameterType == BOOLEAN_TYPE || parameterType == SHORT_TYPE) {
+            parameterType == BOOLEAN_TYPE || parameterType == SHORT_TYPE) {
             opcode = ILOAD;
         } else if (parameterType == LONG_TYPE) {
             opcode = LLOAD;
@@ -397,7 +397,7 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
         public Builder addReturnValueToHookMethodParameters() {
             if (AsmHook.this.targetMethodReturnType == Type.VOID_TYPE) {
                 throw new IllegalStateException("Target method's return type is void, it does not make sense to " +
-                        "transmit its return value to hook method.");
+                    "transmit its return value to hook method.");
             }
             AsmHook.this.hookMethodParameters.add(AsmHook.this.targetMethodReturnType);
             AsmHook.this.transmittableVariableIds.add(-1);
@@ -472,17 +472,17 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
 
             if (hook.targetClassName == null) {
                 throw new IllegalStateException("Target class name is not specified. " +
-                        "Call setTargetClassName() before build().");
+                    "Call setTargetClassName() before build().");
             }
 
             if (hook.targetMethodName == null) {
                 throw new IllegalStateException("Target method name is not specified. " +
-                        "Call setTargetMethodName() before build().");
+                    "Call setTargetMethodName() before build().");
             }
 
             if (!(hook.injectorFactory instanceof HookInjectorFactory.ReturnFactory) && hook.hasReturnValueParameter) {
                 throw new IllegalStateException("Can not pass return value to hook method " +
-                        "because hook location is not return insn.");
+                    "because hook location is not return insn.");
             }
 
             return hook;

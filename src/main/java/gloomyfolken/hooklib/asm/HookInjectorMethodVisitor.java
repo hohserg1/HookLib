@@ -125,7 +125,10 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
             String actualMethodName = Deobfuscation.instance.deobfMethod(name);
-            if (requiredMethodName.equals(actualMethodName) && (methodDesc.isEmpty() || desc.startsWith(methodDesc))) {
+            if (requiredMethodName.equals(actualMethodName) &&
+                (methodDesc.isEmpty() || desc.startsWith(methodDesc)) &&
+                (shift != INSTEAD || !(hook instanceof AsmHook) || Type.getMethodType(desc).getReturnType().equals(((AsmHook) hook).hookMethodReturnType))) {
+
                 switch (shift) {
                     case BEFORE:
                         visitOrderedHook();
