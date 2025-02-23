@@ -105,12 +105,12 @@ public class AsmFieldLensHook implements AsmMethodInjection {
         String targetClassDescriptor = Type.getObjectType(targetClassInternalName).getDescriptor();
         String lensClassDescriptor = Type.getObjectType(lensClassInternalName).getDescriptor();
         classWriter.visit(
-                V1_8,
-                ACC_PUBLIC | ACC_SUPER,
-                lensClassInternalName,
-                "Ljava/lang/Object;Lgloomyfolken/hooklib/api/FieldAccessor<" + targetClassDescriptor + targetFieldType.getDescriptor() + ">;",
-                Type.getInternalName(Object.class),
-                new String[]{"gloomyfolken/hooklib/api/FieldAccessor"}
+            V1_8,
+            ACC_PUBLIC | ACC_SUPER,
+            lensClassInternalName,
+            "Ljava/lang/Object;Lgloomyfolken/hooklib/api/FieldAccessor<" + targetClassDescriptor + targetFieldType.getDescriptor() + ">;",
+            Type.getInternalName(Object.class),
+            new String[]{"gloomyfolken/hooklib/api/FieldAccessor"}
         );
 
         classWriter.visitSource(".dynamic", null);

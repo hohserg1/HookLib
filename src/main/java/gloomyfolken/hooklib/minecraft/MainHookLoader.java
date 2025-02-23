@@ -68,9 +68,9 @@ public class MainHookLoader extends HookLoader {
 
     protected void registerHooks() {
         ListMultimap<String, AsmInjection> hooks = findHookContainers().stream()
-                .flatMap(HookContainerParser::parseHooks)
-                .distinct()
-                .collect(Multimaps.toMultimap(AsmInjection::getTargetClassName, Function.identity(), ArrayListMultimap::create));
+            .flatMap(HookContainerParser::parseHooks)
+            .distinct()
+            .collect(Multimaps.toMultimap(AsmInjection::getTargetClassName, Function.identity(), ArrayListMultimap::create));
         HookClassTransformer.registerAllHooks(hooks);
     }
 
