@@ -30,6 +30,16 @@ public class HookClassTransformer implements IClassTransformer {
 
     public ClassMetadataReader classMetadataReader = HookLoader.getDeobfuscationMetadataReader();
 
+    private RuntimeException errorFatal(String msg, Throwable e) {
+        Logger.instance.error(msg, e);
+        return new RuntimeException(msg, e);
+    }
+
+    private RuntimeException errorFatal(String msg) {
+        Logger.instance.error(msg);
+        return new RuntimeException(msg);
+    }
+
     @Override
     public byte[] transform(String name, String transformedName, byte[] basicClass) {
         return transform(transformedName, basicClass);
@@ -59,11 +69,11 @@ public class HookClassTransformer implements IClassTransformer {
                 bytecode = cw.toByteArray();
                 injectedHooks = hooksWriter.injectedHooks;
             } catch (Exception e) {
-                throw new RuntimeException("A problem has occurred during transformation of class " + className + ". Plz report to https://github.com/hohserg1/HookLib/issues\n" +
-                        "Attached hooks: [\n" +
-                        hooksToString(hooks) + "\n" +
-                        "]\n" +
-                        "Stack trace:", e);
+                throw errorFatal("A problem has occurred during transformation of class " + className + ". Plz report to https://github.com/hohserg1/HookLib/issues\n" +
+                    "Attached hooks: [\n" +
+                    hooksToString(hooks) + "\n" +
+                    "]\n" +
+                    "Stack trace:", e);
             }
 
             List<AsmInjection> mandatoryMissed = new ArrayList<>();
@@ -80,9 +90,9 @@ public class HookClassTransformer implements IClassTransformer {
             ClassDumper.instance.dumpClass(className, bytecode);
 
             if (!mandatoryMissed.isEmpty()) {
-                throw new RuntimeException("Can not find target method of mandatory hooks: [\n" +
-                        hooksToString(mandatoryMissed) +
-                        "\n]"
+                throw errorFatal("Can not find target method of mandatory hooks: [\n" +
+                    hooksToString(mandatoryMissed) +
+                    "\n]"
                 );
             }
         }
