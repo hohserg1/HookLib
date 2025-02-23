@@ -15,7 +15,9 @@ public @interface OnReturn {
      * <p>
      * 1 for secord return.
      * <p>
-     * -1 for all return's.
+     * -1 or {} empty array for all return's.
+     * <p>
+     * it's possible to specify few return's
      */
-    int ordinal() default -1;
+    int[] ordinal() default {};
 }

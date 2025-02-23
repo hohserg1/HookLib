@@ -67,8 +67,10 @@ public @interface OnMethodCall {
      * <p>
      * 1 for secord call.
      * <p>
-     * -1 for all calls.
+     * -1 or {} empty array for all calls.
+     * <p>
+     * it's possible to specify few calls
      */
-    int ordinal() default -1;
+    int[] ordinal() default {};
 
 }

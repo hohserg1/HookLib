@@ -48,9 +48,9 @@ public abstract class HookInjectorFactory {
     }
 
     public static class ReturnFactory extends HookInjectorFactory {
-        public final int ordinal;
+        public final int[] ordinal;
 
-        public ReturnFactory(int ordinal) {
+        public ReturnFactory(int[] ordinal) {
             this.ordinal = ordinal;
             isPriorityInverted = true;
         }
@@ -66,7 +66,7 @@ public abstract class HookInjectorFactory {
     static class MethodCallFactory extends HookInjectorFactory {
         public String methodName;
         public String methodDesc;
-        public int ordinal;
+        public int[] ordinal;
         public Shift shift;
 
         @Override
@@ -80,14 +80,14 @@ public abstract class HookInjectorFactory {
     static class ExpressionFactory extends HookInjectorFactory {
         public List<AbstractInsnNode> expressionPattern;
         public Shift shift;
-        public int ordinal;
+        public int[] ordinal;
         public Type patternType;
 
         @Override
         MethodVisitor createHookInjector(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
                                          AsmMethodInjection hook, HookInjectorClassVisitor cv) {
             return new HookInjectorMethodVisitor.ExpressionVisitor(mv, access, name, desc, signature, exceptions,
-                    hook, cv, expressionPattern, ordinal, shift, patternType);
+                hook, cv, expressionPattern, ordinal, shift, patternType);
         }
     }
 

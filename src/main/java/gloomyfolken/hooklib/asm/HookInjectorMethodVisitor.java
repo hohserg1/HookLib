@@ -1,6 +1,7 @@
 package gloomyfolken.hooklib.asm;
 
 import gloomyfolken.hooklib.api.Shift;
+import gloomyfolken.hooklib.asm.injections.AsmHook;
 import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import gloomyfolken.hooklib.helper.Logger;
 import gloomyfolken.hooklib.minecraft.Deobfuscation;
@@ -13,12 +14,11 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
 import org.objectweb.asm.tree.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import static gloomyfolken.hooklib.api.Shift.INSTEAD;
 import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
 
 public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
@@ -57,23 +57,19 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
     static class OrderedVisitor extends HookInjectorMethodVisitor {
 
-        private int ordinal;
+        private final Set<Integer> suitableOrdinal;
+        private final boolean allSuitable;
+        private int currentOrdinal = -1;
 
-        protected OrderedVisitor(MethodVisitor mv, int access, String name, String desc, AsmMethodInjection hook, HookInjectorClassVisitor cv, int ordinal) {
+        protected OrderedVisitor(MethodVisitor mv, int access, String name, String desc, AsmMethodInjection hook, HookInjectorClassVisitor cv, int[] ordinal) {
             super(mv, access, name, desc, hook, cv);
-            this.ordinal = ordinal;
+            this.suitableOrdinal = Arrays.stream(ordinal).boxed().collect(Collectors.toSet());
+            allSuitable = suitableOrdinal.isEmpty() || suitableOrdinal.contains(-1);
         }
 
         protected boolean canVisitOrderedHook() {
-            if (this.ordinal == 0) {
-                this.ordinal = -2;
-                return true;
-            }
-            if (this.ordinal == -1)
-                return true;
-            if (this.ordinal > 0)
-                this.ordinal--;
-            return false;
+            currentOrdinal++;
+            return allSuitable || suitableOrdinal.contains(currentOrdinal);
         }
 
         protected boolean visitOrderedHook() {
@@ -102,7 +98,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     static class ReturnVisitor extends OrderedVisitor {
 
         public ReturnVisitor(MethodVisitor mv, int access, String name, String desc,
-                             AsmMethodInjection hook, HookInjectorClassVisitor cv, int ordinal) {
+                             AsmMethodInjection hook, HookInjectorClassVisitor cv, int[] ordinal) {
             super(mv, access, name, desc, hook, cv, ordinal);
         }
 
@@ -120,7 +116,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         private final Shift shift;
 
         protected MethodCallVisitor(MethodVisitor mv, int access, String name, String desc, AsmMethodInjection hook, HookInjectorClassVisitor cv,
-                                    String methodName, String methodDesc, int ordinal, Shift shift) {
+                                    String methodName, String methodDesc, int[] ordinal, Shift shift) {
             super(mv, access, name, desc, hook, cv, ordinal);
             this.requiredMethodName = methodName;
             this.methodDesc = methodDesc;
@@ -169,19 +165,21 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         private final AsmMethodInjection hook;
         private final HookInjectorClassVisitor cv;
         private final List<AbstractInsnNode> expressionPattern;
-        private final int ordinal;
+        private final Set<Integer> suitableOrdinal;
+        private final boolean allSuitable;
         private final Shift shift;
         private final Type patternType;
 
         public ExpressionVisitor(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions,
                                  AsmMethodInjection hook, HookInjectorClassVisitor cv,
-                                 List<AbstractInsnNode> expressionPattern, int ordinal, Shift shift, Type patternType) {
+                                 List<AbstractInsnNode> expressionPattern, int[] ordinal, Shift shift, Type patternType) {
             super(Opcodes.ASM5, access, name, desc, signature, exceptions);
             targetVisitor = mv;
             this.hook = hook;
             this.cv = cv;
             this.expressionPattern = expressionPattern;
-            this.ordinal = ordinal;
+            this.suitableOrdinal = Arrays.stream(ordinal).boxed().collect(Collectors.toSet());
+            allSuitable = suitableOrdinal.isEmpty() || suitableOrdinal.contains(-1);
             this.shift = shift;
             this.patternType = patternType;
         }
@@ -197,7 +195,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         public void visitEnd() {
             List<Pair<AbstractInsnNode, AbstractInsnNode>> foundNodes = findSimilarCode();
 
-            if (ordinal == -1) {
+            if (allSuitable) {
                 for (Pair<AbstractInsnNode, AbstractInsnNode> e : foundNodes)
                     insertExpressionInjectCall(e);
 
@@ -205,10 +203,15 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                     cv.markInjected(hook);
 
             } else {
-                if (foundNodes.size() > ordinal) {
-                    insertExpressionInjectCall(foundNodes.get(ordinal));
-                    cv.markInjected(hook);
+                boolean allInjected = true;
+                for (Integer ordinal : suitableOrdinal) {
+                    if (foundNodes.size() > ordinal) {
+                        insertExpressionInjectCall(foundNodes.get(ordinal));
+                    } else
+                        allInjected = false;
                 }
+                if (allInjected)
+                    cv.markInjected(hook);
             }
 
             accept(targetVisitor);
@@ -314,7 +317,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
             } else {
                 return current.getType() == currentExpectation.getType() &&
-                        EqualsBuilder.reflectionEquals(current, currentExpectation, "prev", "next", "index", "previousInsn", "nextInsn");
+                    EqualsBuilder.reflectionEquals(current, currentExpectation, "prev", "next", "index", "previousInsn", "nextInsn");
             }
         }
 

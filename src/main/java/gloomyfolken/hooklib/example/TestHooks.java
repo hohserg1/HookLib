@@ -19,6 +19,11 @@ import java.util.Random;
 @HookContainer
 public class TestHooks {
 
+    @Hook
+    @OnMethodCall(value = "println", ordinal = {1, 2})
+    public static void targetMethodFewCalls(TestTarget testTarget) {
+    }
+
     @FieldLens
     public static FieldAccessor<Minecraft, Boolean> actionKeyF3;
 

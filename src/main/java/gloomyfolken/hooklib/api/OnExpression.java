@@ -88,7 +88,9 @@ public @interface OnExpression {
      * <p>
      * 1 for secord expression.
      * <p>
-     * -1 for all expressions.
+     * -1 or {} empty array for all expressions.
+     * <p>
+     * it's possible to specify few points
      */
-    int ordinal() default -1;
+    int[] ordinal() default {};
 }

@@ -25,4 +25,12 @@ public class TestTarget {
     private int targetMethodPrimitive(int a, String b) {
         return 2;
     }
+
+    private void targetMethodFewCalls() {
+        System.out.println("bruh");
+        System.out.println("kek");
+        System.out.println("lol");
+        System.out.println("foo");
+        System.out.println("bar");
+    }
 }
