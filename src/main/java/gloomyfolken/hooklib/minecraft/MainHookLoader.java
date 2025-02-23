@@ -60,7 +60,7 @@ public class MainHookLoader extends HookLoader {
                     throw new IllegalStateException("HookLib was not loaded by LaunchClassLoader");
                 }
             } catch (Throwable e) {
-                throw new RuntimeException("failed to replace transformers list", e);
+                Logger.instance.error("failed to replace transformers list", e);
             }
 
         return new String[]{HookClassTransformer.class.getName()};
