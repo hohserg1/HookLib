@@ -28,10 +28,18 @@ class AnnotationInvocationHandler implements Annotation, InvocationHandler {
         for (Method element : annotationType.getDeclaredMethods()) {
             String elementName = element.getName();
             if (values.containsKey(elementName)) {
-                Class<?> type = element.getReturnType();
+                Class<?> expectedType = element.getReturnType();
                 Object value = values.get(elementName);
-                if (type.isArray()) {
-                    Class<?> componentType = type.getComponentType();
+                Class<?> actualType = value.getClass();
+                if (!expectedType.isAssignableFrom(actualType)) {
+                    if (elementName.equals("ordinal") && expectedType.equals(int[].class) && actualType.equals(Integer.class)) {
+                        value = new int[]{(Integer) value};
+                    } else {
+                        throw new IllegalArgumentException("actual type of " + elementName + " is " + actualType + ", expected " + expectedType);
+                    }
+                }
+                if (expectedType.isArray()) {
+                    Class<?> componentType = expectedType.getComponentType();
                     int length = Array.getLength(value);
                     Object value2 = Array.newInstance(componentType, length);
                     for (int i = 0; i < length; i++)
@@ -120,8 +128,8 @@ class AnnotationInvocationHandler implements Annotation, InvocationHandler {
             String value;
             if (values.get(elementName).getClass().isArray()) {
                 value = Arrays.deepToString(new Object[]{values.get(elementName)})
-                        .replaceAll("^\\[\\[", "[")
-                        .replaceAll("]]$", "]");
+                    .replaceAll("^\\[\\[", "[")
+                    .replaceAll("]]$", "]");
             } else {
                 value = values.get(elementName).toString();
             }
