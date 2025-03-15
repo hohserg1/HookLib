@@ -2,15 +2,18 @@ package gloomyfolken.hooklib.example;
 
 import gloomyfolken.hooklib.api.*;
 import gloomyfolken.hooklib.api.ReturnSolve.Primitive;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.block.BlockTorch;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.ForgeHooks;
 
 import javax.annotation.Nullable;
@@ -18,6 +21,12 @@ import java.util.Random;
 
 @HookContainer
 public class TestHooks {
+
+    @Hook
+    @OnMethodCall(value = "readBytes", shift = Shift.INSTEAD, ordinal = {0, 1})
+    public static ByteBuf read(Chunk chunk, PacketBuffer buf, int availableSections, boolean groundUpContinuous) {
+        return null;
+    }
 
     @Hook
     @OnMethodCall(value = "println", ordinal = {1, 2})
