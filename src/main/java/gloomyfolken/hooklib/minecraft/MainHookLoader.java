@@ -43,25 +43,25 @@ public class MainHookLoader extends HookLoader {
 
     @Override
     public String[] getASMTransformerClass() {
-        if (!transformersListReplaced)
-            try {
-                transformersListReplaced = true;
-                ClassLoader classLoader = MainHookLoader.class.getClassLoader();
-                if (classLoader instanceof LaunchClassLoader) {
+        if (!transformersListReplaced) {
+            transformersListReplaced = true;
+            ClassLoader classLoader = MainHookLoader.class.getClassLoader();
+            if (classLoader instanceof LaunchClassLoader) {
+                try {
                     Field field = LaunchClassLoader.class.getDeclaredField("transformers");
                     field.setAccessible(true);
                     List<IClassTransformer> originalList = (List<IClassTransformer>) field.get(classLoader);
-
                     List<IClassTransformer> replacementList = new KeepHookLibLastList<>(originalList);
-
                     field.set(classLoader, replacementList);
+                } catch (NoSuchFieldException possibleFine) {
 
-                } else {
-                    throw new IllegalStateException("HookLib was not loaded by LaunchClassLoader");
+                } catch (Throwable e) {
+                    throw new RuntimeException("unexpected exception while hooking up transformers collection", e);
                 }
-            } catch (Throwable e) {
-                Logger.instance.error("failed to replace transformers list", e);
+            } else {
+                throw new IllegalStateException("HookLib was not loaded by LaunchClassLoader");
             }
+        }
 
         return new String[]{HookClassTransformer.class.getName()};
     }

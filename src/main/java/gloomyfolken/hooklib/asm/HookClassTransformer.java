@@ -112,5 +112,7 @@ public class HookClassTransformer implements IClassTransformer {
         return new SafeClassWriter(classMetadataReader, flags);
     }
 
-
+    public int getPriority() {
+        return Integer.MAX_VALUE;
+    }
 }
