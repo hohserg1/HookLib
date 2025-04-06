@@ -1,5 +1,8 @@
 package gloomyfolken.hooklib.example;
 
+import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+
+@EventBusSubscriber
 public class TestTarget {
 
     private static void staticTargetMethodVoid(int a, String b) {

@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.example;
 
 import gloomyfolken.hooklib.api.*;
-import gloomyfolken.hooklib.api.ReturnSolve.Primitive;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.BlockTorch;
 import net.minecraft.block.state.IBlockState;
@@ -15,6 +14,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
 import java.util.Random;
@@ -22,6 +23,22 @@ import java.util.Random;
 @HookContainer
 public class TestHooks {
 
+    @FieldLens(createField = true)
+    public static FieldAccessor<TestTarget, @Primitive Integer> testFieldAddition1 = FieldAccessor.defaultValue(1);
+
+    @FieldLens(createField = true)
+    public static FieldAccessor<TestTarget, Integer> testFieldAddition2 = FieldAccessor.defaultValue(1);
+
+    @FieldLens(createField = true)
+    public static FieldAccessor<TestTarget, String> testFieldAddition3 = FieldAccessor.defaultValue("test");
+
+    @FieldLens(createField = true)
+    public static FieldAccessor<TestTarget, Test> testFieldAddition4 = FieldAccessor.defaultValue(new Test());
+
+    @FieldLens(createField = true)
+    public static FieldAccessor<TestTarget, @Primitive Double> testFieldAddition5 = FieldAccessor.defaultValue(2d);
+
+    @SideOnly(Side.CLIENT)
     @Hook
     @OnMethodCall(value = "readBytes", shift = Shift.INSTEAD, ordinal = {0, 1})
     public static ByteBuf read(Chunk chunk, PacketBuffer buf, int availableSections, boolean groundUpContinuous) {
@@ -67,12 +84,14 @@ public class TestHooks {
         return 0;
     }
 
+    @SideOnly(Side.CLIENT)
     @Hook(targetMethod = "randomDisplayTick")
     @OnExpression(expressionPattern = "randomDisplayTickPattern", shift = Shift.INSTEAD)
     public static EnumParticleTypes randomDisplayTick(BlockTorch torch, IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
         return EnumParticleTypes.FLAME;
     }
 
+    @SideOnly(Side.CLIENT)
     public static EnumParticleTypes randomDisplayTickPattern() {
         return EnumParticleTypes.FLAME;
     }
