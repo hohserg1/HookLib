@@ -25,31 +25,31 @@ public class AsmFieldLens implements AsmInjection {
     private final Type boxedType;
 
     private final boolean createField;
-    private final Object defaultValue;
 
     private final String setterDesc;
     private final String getterDesc;
 
     private boolean found = false;
     private boolean isStaticField = false;
+    private String actualFieldName;
     private Type actualFieldType;
 
     public AsmFieldLens(String targetClassName, String targetFieldName, Type expectedTargetFieldType,
-                        boolean isMandatory, boolean createField, Object defaultValue,
+                        boolean isMandatory, boolean createField,
                         String setterDesc, String getterDesc) {
         this.targetClassName = targetClassName;
         this.targetFieldName = targetFieldName;
         this.expectedTargetFieldTypeDescriptors =
-                Stream.of(expectedTargetFieldType, AsmUtils.objectToPrimitive.get(expectedTargetFieldType))
-                        .filter(Objects::nonNull)
-                        .map(Type::getDescriptor)
-                        .collect(Collectors.toSet());
+            Stream.of(expectedTargetFieldType, AsmUtils.objectToPrimitive.get(expectedTargetFieldType))
+                .filter(Objects::nonNull)
+                .map(Type::getDescriptor)
+                .collect(Collectors.toSet());
 
         boxedType = expectedTargetFieldType;
 
         this.isMandatory = isMandatory;
         this.createField = createField;
-        this.defaultValue = defaultValue;
+        actualFieldName = targetFieldName;
         actualFieldType = expectedTargetFieldType;
         this.setterDesc = setterDesc;
         this.getterDesc = getterDesc;
@@ -61,7 +61,7 @@ public class AsmFieldLens implements AsmInjection {
     }
 
     public String getPatchedFieldName() {
-        return targetClassName + '#' + targetFieldName + " " + actualFieldType.getDescriptor();
+        return targetClassName + '#' + targetFieldName + " " + actualFieldType.getDescriptor() + " (actually named " + actualFieldName + ")";
     }
 
     @Override
@@ -74,9 +74,10 @@ public class AsmFieldLens implements AsmInjection {
         return true;
     }
 
-    public void foundExistedField(int access, String desc) {
+    public void foundExistedField(String name, int access, String desc) {
         found = true;
         isStaticField = AsmUtils.isStatic(access);
+        actualFieldName = name;
         actualFieldType = Type.getType(desc);
     }
 
@@ -85,8 +86,8 @@ public class AsmFieldLens implements AsmInjection {
         if (!found) {
             if (createField) {
                 hookInjectorClassVisitor
-                        .visitField(0, targetFieldName, actualFieldType.getDescriptor(), null, defaultValue)
-                        .visitEnd();
+                    .visitField(0, actualFieldName, actualFieldType.getDescriptor(), null, null)
+                    .visitEnd();
             } else {
                 return;
             }
@@ -99,10 +100,10 @@ public class AsmFieldLens implements AsmInjection {
 
             if (!isStaticField)
                 mv.visitVarInsn(ALOAD, 0);
-            mv.visitVarInsn(ALOAD, 1);
+            mv.visitVarInsn(boxedType.getOpcode(ILOAD), 1);
             if (!boxedType.equals(actualFieldType))
                 mv.visitMethodInsn(INVOKEVIRTUAL, boxedType.getInternalName(), AsmUtils.primitiveToUnboxingMethod.get(actualFieldType), Type.getMethodDescriptor(actualFieldType), false);
-            mv.visitFieldInsn(isStaticField ? PUTSTATIC : PUTFIELD, getTargetClassInternalName(), targetFieldName, actualFieldType.getDescriptor());
+            mv.visitFieldInsn(isStaticField ? PUTSTATIC : PUTFIELD, getTargetClassInternalName(), actualFieldName, actualFieldType.getDescriptor());
 
             mv.visitInsn(RETURN);
 
@@ -118,11 +119,11 @@ public class AsmFieldLens implements AsmInjection {
 
             if (!isStaticField)
                 mv.visitVarInsn(ALOAD, 0);
-            mv.visitFieldInsn(isStaticField ? GETSTATIC : GETFIELD, getTargetClassInternalName(), targetFieldName, actualFieldType.getDescriptor());
+            mv.visitFieldInsn(isStaticField ? GETSTATIC : GETFIELD, getTargetClassInternalName(), actualFieldName, actualFieldType.getDescriptor());
             if (!boxedType.equals(actualFieldType))
                 mv.visitMethodInsn(INVOKESTATIC, boxedType.getInternalName(), "valueOf", Type.getMethodDescriptor(boxedType, actualFieldType), false);
 
-            mv.visitInsn(ARETURN);
+            mv.visitInsn(boxedType.getOpcode(IRETURN));
 
 
             mv.visitLabel(new Label());
@@ -153,12 +154,12 @@ public class AsmFieldLens implements AsmInjection {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AsmFieldLens lens = (AsmFieldLens) o;
-        return isMandatory == lens.isMandatory && createField == lens.createField && targetClassName.equals(lens.targetClassName) && targetFieldName.equals(lens.targetFieldName) && boxedType.equals(lens.boxedType) && Objects.equals(defaultValue, lens.defaultValue);
+        return isMandatory == lens.isMandatory && createField == lens.createField && targetClassName.equals(lens.targetClassName) && targetFieldName.equals(lens.targetFieldName) && boxedType.equals(lens.boxedType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(targetClassName, targetFieldName, boxedType, isMandatory, createField, defaultValue);
+        return Objects.hash(targetClassName, targetFieldName, boxedType, isMandatory, createField);
     }
 
 
@@ -171,7 +172,6 @@ public class AsmFieldLens implements AsmInjection {
         sb.append(boxedType);
 
         sb.append(", CreateField = " + createField);
-        sb.append(", defaultValue = " + defaultValue);
 
         return sb.toString();
     }

@@ -6,7 +6,7 @@ import java.lang.annotation.Target;
 /**
  * Possible return type of hook-method, which allows a hook-method to determine whether a target-method needs to do return
  *
- * @param <A> return type of target method, can be marked by {@link Primitive} annotation for strictly primitive type
+ * @param <A> is a return type of target method, can be marked by {@link gloomyfolken.hooklib.api.Primitive} annotation for strictly primitive type
  */
 public interface ReturnSolve<A> {
     static <A> ReturnSolve<A> yes(A value) {
@@ -29,10 +29,9 @@ public interface ReturnSolve<A> {
     };
 
     /**
-     * Type parameter of {@link ReturnSolve} can be marked by this annotation
-     * <p>
-     * Have sense only with {@link Hook#createMethod}, otherwise HookLib will try to find target method with primitive return type anyway
+     * Deprecated: Use {@link gloomyfolken.hooklib.api.Primitive} instead
      */
+    @Deprecated
     @Target(ElementType.TYPE_USE)
     @interface Primitive {
     }

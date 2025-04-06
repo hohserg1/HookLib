@@ -49,7 +49,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
                 if (isTargetField(lens, name, desc)) {
                     access &= ~ACC_FINAL;
 
-                    lens.foundExistedField(access, desc);
+                    lens.foundExistedField(name, access, desc);
 
                     Logger.instance.debug("Patching field " + ((AsmFieldLens) injection).getPatchedFieldName());
 

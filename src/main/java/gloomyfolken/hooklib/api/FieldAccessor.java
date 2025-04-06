@@ -3,6 +3,7 @@ package gloomyfolken.hooklib.api;
 /**
  * Use it to access to private field of some class
  *
+ * @param <TargetFieldType> is a type of target field, can be marked by {@link gloomyfolken.hooklib.api.Primitive} annotation for strictly primitive type
  * @see FieldLens
  */
 public interface FieldAccessor<TargetClass, TargetFieldType> {

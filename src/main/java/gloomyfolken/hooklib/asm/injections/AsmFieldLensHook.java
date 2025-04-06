@@ -130,7 +130,10 @@ public class AsmFieldLensHook implements AsmMethodInjection {
             methodVisitor.visitMaxs(1, 1);
             methodVisitor.visitEnd();
         }
-        String getDescriptor = Type.getMethodDescriptor(targetFieldType, Type.getObjectType(targetClassInternalName));
+
+        Type boxed = AsmUtils.objectToPrimitive.inverse().getOrDefault(targetFieldType, targetFieldType);
+
+        String getDescriptor = Type.getMethodDescriptor(boxed, Type.getObjectType(targetClassInternalName));
         {
             methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "get", getDescriptor, null, null);
             methodVisitor.visitCode();
@@ -139,6 +142,9 @@ public class AsmFieldLensHook implements AsmMethodInjection {
             methodVisitor.visitLineNumber(11, label0);
             methodVisitor.visitVarInsn(ALOAD, 1);
             methodVisitor.visitMethodInsn(INVOKESTATIC, targetClassInternalName, targetFieldName + getterSuffix, getterDesc, false);
+            if (boxed != targetFieldType) {
+                methodVisitor.visitMethodInsn(INVOKESTATIC, boxed.getInternalName(), "valueOf", Type.getMethodDescriptor(boxed, targetFieldType), false);
+            }
             methodVisitor.visitInsn(ARETURN);
             Label label1 = new Label();
             methodVisitor.visitLabel(label1);
@@ -147,7 +153,7 @@ public class AsmFieldLensHook implements AsmMethodInjection {
             methodVisitor.visitMaxs(1, 2);
             methodVisitor.visitEnd();
         }
-        String setDescriptor = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getObjectType(targetClassInternalName), targetFieldType);
+        String setDescriptor = Type.getMethodDescriptor(Type.VOID_TYPE, Type.getObjectType(targetClassInternalName), boxed);
         {
             methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "set", setDescriptor, null, null);
             methodVisitor.visitCode();
@@ -156,6 +162,9 @@ public class AsmFieldLensHook implements AsmMethodInjection {
             methodVisitor.visitLineNumber(16, label0);
             methodVisitor.visitVarInsn(ALOAD, 1);
             methodVisitor.visitVarInsn(ALOAD, 2);
+            if (boxed != targetFieldType) {
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, boxed.getInternalName(), AsmUtils.primitiveToUnboxingMethod.get(targetFieldType), Type.getMethodDescriptor(targetFieldType), false);
+            }
             methodVisitor.visitMethodInsn(INVOKESTATIC, targetClassInternalName, targetFieldName + setterSuffix, setterDesc, false);
             Label label1 = new Label();
             methodVisitor.visitLabel(label1);
@@ -179,7 +188,7 @@ public class AsmFieldLensHook implements AsmMethodInjection {
             methodVisitor.visitVarInsn(ALOAD, 1);
             methodVisitor.visitTypeInsn(CHECKCAST, targetClassInternalName);
             methodVisitor.visitVarInsn(ALOAD, 2);
-            methodVisitor.visitTypeInsn(CHECKCAST, targetFieldType.getInternalName());
+            methodVisitor.visitTypeInsn(CHECKCAST, boxed.getInternalName());
             methodVisitor.visitMethodInsn(INVOKEVIRTUAL, lensClassInternalName, "set", setDescriptor, false);
             methodVisitor.visitInsn(RETURN);
             Label label1 = new Label();
