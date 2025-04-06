@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.helper.annotation;
 
+import com.google.common.collect.ImmutableMap;
 import gloomyfolken.hooklib.helper.Logger;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -32,9 +33,17 @@ class AnnotationInvocationHandler implements Annotation, InvocationHandler {
                 Object value = values.get(elementName);
                 Class<?> actualType = value.getClass();
                 if (!expectedType.isAssignableFrom(actualType)) {
-                    if (elementName.equals("ordinal") && expectedType.equals(int[].class) && actualType.equals(Integer.class)) {
-                        value = new int[]{(Integer) value};
-                    } else {
+                    if (elementName.equals("ordinal") && expectedType.equals(int[].class)) {
+                        if (actualType.equals(Integer.class) || actualType.equals(int.class)) {
+                            value = new int[]{(Integer) value};
+                        } else if (actualType.equals(Object[].class) || actualType.equals(Integer[].class)) {
+                            value = Arrays.stream(((Object[]) value)).mapToInt(i -> (Integer) i).toArray();
+                        } else {
+                            if (isNotBoxedPrimitive(expectedType, actualType)) {
+                                throw new IllegalArgumentException("actual type of " + elementName + " is " + actualType + ", expected " + expectedType);
+                            }
+                        }
+                    } else if (isNotBoxedPrimitive(expectedType, actualType)) {
                         throw new IllegalArgumentException("actual type of " + elementName + " is " + actualType + ", expected " + expectedType);
                     }
                 }
@@ -55,12 +64,31 @@ class AnnotationInvocationHandler implements Annotation, InvocationHandler {
         return valid;
     }
 
+    private static final Map<Class<?>, Class<?>> boxedToPrimitive = ImmutableMap.<Class<?>, Class<?>>builder()
+        .put(Boolean.class, boolean.class)
+        .put(Character.class, char.class)
+        .put(Byte.class, byte.class)
+        .put(Short.class, short.class)
+        .put(Integer.class, int.class)
+        .put(Long.class, long.class)
+        .put(Float.class, float.class)
+        .put(Double.class, double.class)
+        .put(Void.class, void.class)
+        .build();
+
+    private static boolean isNotBoxedPrimitive(Class<?> expectedType, Class<?> actualType) {
+        if (expectedType.isPrimitive()) {
+            return boxedToPrimitive.get(actualType) != expectedType;
+        }
+        return true;
+    }
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (values.containsKey(method.getName()))
             return values.get(method.getName());
         else
-            Logger.instance.error("wtf annotation " + this);
+            Logger.instance.error("wtf annotation " + this + " " + method);
         return method.invoke(this, args);
     }
 
