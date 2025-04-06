@@ -3,7 +3,7 @@
     "modid": "hooklib",
     "name": "HookLib",
     "description": "framework for coremods",
-    "version": "3.15",
+    "version": "3.16",
     "mcversion": "1.12.2",
     "url": "",
     "updateUrl": "",
