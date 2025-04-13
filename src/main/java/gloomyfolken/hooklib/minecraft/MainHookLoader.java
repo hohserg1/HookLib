@@ -3,6 +3,7 @@ package gloomyfolken.hooklib.minecraft;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimaps;
+import gloomyfolken.hooklib.api.FieldLens;
 import gloomyfolken.hooklib.api.HookContainer;
 import gloomyfolken.hooklib.api.OnExpression;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
@@ -169,7 +170,7 @@ public class MainHookLoader extends HookLoader {
         classReader.accept(classNode, SKIP_CODE);
         AnnotationMap annotationMap = AnnotationUtils.annotationOf(classNode);
         if (annotationMap.contains(HookContainer.class) && isValidSide(annotationMap)) {
-            if (haveExpressionHooks(classNode)) {
+            if (needToParseFully(classNode)) {
                 classNode = new ClassNode(ASM5);
                 classReader.accept(classNode, 0);
             }
@@ -179,7 +180,15 @@ public class MainHookLoader extends HookLoader {
         return false;
     }
 
+    private boolean needToParseFully(ClassNode classNode) {
+        return haveExpressionHooks(classNode) || haveCreationFieldLenses(classNode);
+    }
+
     private boolean haveExpressionHooks(ClassNode classNode) {
         return classNode.methods.stream().map(AnnotationUtils::annotationOf).anyMatch(a -> a.contains(OnExpression.class));
+    }
+
+    private boolean haveCreationFieldLenses(ClassNode classNode) {
+        return classNode.fields.stream().map(AnnotationUtils::annotationOf).anyMatch(a -> a.contains(FieldLens.class) && a.get(FieldLens.class).createField());
     }
 }
