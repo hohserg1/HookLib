@@ -1,0 +1,34 @@
+name: Regular build
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4.1.1
+
+    - name: Setup Java JDK
+      uses: actions/setup-java@v4.0.0
+      with:
+        java-version: 8
+        distribution: 'zulu'
+    
+    - name: Show Working directory
+      run: ls
+    
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew -Dorg.gradle.jvmargs=-Xmx3G build
+    - uses: tfc-survival/upload-artifact@v0.9
+      with:
+        name: hooklib.jar
+        path: ./production/hoohlib-*.jar
