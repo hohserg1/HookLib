@@ -31,4 +31,4 @@ jobs:
     - uses: tfc-survival/upload-artifact@v0.9
       with:
         name: hooklib.jar
-        path: ./production/hoohlib-*.jar
+        path: ./production/*
