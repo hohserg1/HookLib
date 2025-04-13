@@ -1,0 +1,23 @@
+name: Remove old artifacts
+
+on:
+  workflow_dispatch:
+  
+  schedule:
+    # Every year at 1am 1 jan
+    - cron: '0 1 1 1 *'
+
+jobs:
+  remove-old-artifacts:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Remove old artifacts
+      uses: c-hive/gha-remove-artifacts@v1
+      with:
+        age: '1 years' # '<number> <unit>', e.g. 5 days, 2 years, 90 seconds, parsed by Moment.js
+        # Optional inputs
+        # skip-tags: true
+        # skip-recent: 5
