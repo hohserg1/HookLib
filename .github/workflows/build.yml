@@ -28,7 +28,11 @@ jobs:
 
     - name: Build with Gradle
       run: ./gradlew -Dorg.gradle.jvmargs=-Xmx3G build
+      
+    - name: Set artifact name
+      run: echo "actualJarName=`ls ./production`" >> $GITHUB_ENV
+    
     - uses: tfc-survival/upload-artifact@v0.9
       with:
-        name: hooklib-${{ env.name }}.jar
+        name: ${{ env.actualJarName }}
         path: ./production/*
