@@ -7,7 +7,10 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 
 public interface AsmMethodInjection extends AsmInjection {
-    boolean isTargetMethod(String name, String desc);
+
+    String getTargetMethodName();
+
+    boolean checkDescription(String desc);
 
     HookInjectorFactory getInjectorFactory();
 

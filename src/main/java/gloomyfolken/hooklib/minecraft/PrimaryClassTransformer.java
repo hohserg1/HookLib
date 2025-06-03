@@ -3,7 +3,6 @@ package gloomyfolken.hooklib.minecraft;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
-import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Type;
@@ -20,8 +19,8 @@ public class PrimaryClassTransformer implements TransformingStage {
     public HookInjectorClassVisitor createInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         return new HookInjectorClassVisitor(transformer, finalizeVisitor, hooks) {
             @Override
-            protected boolean isTargetMethod(AsmMethodInjection hook, String name, String desc) {
-                return super.isTargetMethod(hook, name, mapDesc(desc));
+            protected String deobfDescription(String desc) {
+                return mapDesc(desc);
             }
         };
     }
@@ -40,8 +39,6 @@ public class PrimaryClassTransformer implements TransformingStage {
     }
 
     static Type map(Type type) {
-        if (!HookLibPlugin.getObfuscated()) return type;
-
         // void or primitive
         if (type.getSort() < 9) return type;
 

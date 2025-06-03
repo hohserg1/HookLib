@@ -41,6 +41,16 @@ public class AsmFieldLensHook implements AsmMethodInjection {
     }
 
     @Override
+    public String getTargetMethodName() {
+        return Constants.STATIC_INITIALIZER_NAME;
+    }
+
+    @Override
+    public boolean checkDescription(String desc) {
+        return true;
+    }
+
+    @Override
     public boolean isMandatory() {
         return isMandatory;
     }
@@ -64,10 +74,6 @@ public class AsmFieldLensHook implements AsmMethodInjection {
         } else {
             throw new IllegalArgumentException("Hook injector not created");
         }
-    }
-
-    public boolean isTargetMethod(String name, String desc) {
-        return name.equals(Constants.STATIC_INITIALIZER_NAME);
     }
 
     @Override

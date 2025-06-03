@@ -39,8 +39,13 @@ public class AsmFieldLensInit implements AsmMethodInjection {
     }
 
     @Override
-    public boolean isTargetMethod(String name, String desc) {
-        return name.equals(Constants.CONSTRUCTOR_NAME);
+    public String getTargetMethodName() {
+        return Constants.CONSTRUCTOR_NAME;
+    }
+
+    @Override
+    public boolean checkDescription(String desc) {
+        return true;
     }
 
     @Override

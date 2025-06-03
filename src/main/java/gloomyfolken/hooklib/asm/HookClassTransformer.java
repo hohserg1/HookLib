@@ -101,7 +101,7 @@ public class HookClassTransformer implements IClassTransformer {
     }
 
     private String hooksToString(List<AsmInjection> mandatoryMissed) {
-        return mandatoryMissed.stream().map(AsmInjection::toString).collect(Collectors.joining("\n"));
+        return mandatoryMissed.stream().map(Object::toString).collect(Collectors.joining("\n"));
     }
 
     protected HookInjectorClassVisitor createInjectorClassVisitor(ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {

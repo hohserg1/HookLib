@@ -2,9 +2,7 @@ package gloomyfolken.hooklib.minecraft;
 
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
-import gloomyfolken.hooklib.asm.injections.AsmFieldLens;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
-import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
 import org.objectweb.asm.ClassVisitor;
 
 import java.util.List;
@@ -19,14 +17,15 @@ public class MinecraftClassTransformer implements TransformingStage {
     @Override
     public HookInjectorClassVisitor createInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         return new HookInjectorClassVisitor(transformer, finalizeVisitor, hooks) {
+
             @Override
-            protected boolean isTargetMethod(AsmMethodInjection hook, String name, String desc) {
-                return super.isTargetMethod(hook, Deobfuscation.instance.deobfMethod(name), desc);
+            protected String deobfMethod(String name) {
+                return Deobfuscation.instance.deobfMethod(name);
             }
 
             @Override
-            protected boolean isTargetField(AsmFieldLens lens, String name, String desc) {
-                return super.isTargetField(lens, Deobfuscation.instance.deobfField(name), desc);
+            protected String deobfField(String name) {
+                return Deobfuscation.instance.deobfField(name);
             }
         };
     }

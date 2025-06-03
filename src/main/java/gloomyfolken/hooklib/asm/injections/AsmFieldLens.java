@@ -60,6 +60,14 @@ public class AsmFieldLens implements AsmInjection {
         return targetClassName;
     }
 
+    public String getTargetFieldName() {
+        return targetFieldName;
+    }
+
+    public boolean checkDescription(String desc) {
+        return expectedTargetFieldTypeDescriptors.contains(desc);
+    }
+
     public String getPatchedFieldName() {
         return targetClassName + '#' + targetFieldName + " " + actualFieldType.getDescriptor() + " (actually named " + actualFieldName + ")";
     }
@@ -143,10 +151,6 @@ public class AsmFieldLens implements AsmInjection {
                 return ((AsmFieldLens) o).createField ? 1 : 0;
         }
         return AsmInjection.super.compareTo(o);
-    }
-
-    public boolean isTargetField(String name, String desc) {
-        return name.equals(targetFieldName) && expectedTargetFieldTypeDescriptors.contains(desc);
     }
 
     @Override

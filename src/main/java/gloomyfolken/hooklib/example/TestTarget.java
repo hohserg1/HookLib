@@ -36,4 +36,20 @@ public class TestTarget {
         System.out.println("foo");
         System.out.println("bar");
     }
+
+    public static void triggerInnerClass() {
+        System.out.println(InnerPrivateClass.class);
+    }
+
+    private static class InnerPrivateClass {
+
+        private static void staticTargetMethodVoid(int a, String b) {
+
+        }
+
+        private void targetMethodVoid(int a, String b) {
+
+        }
+
+    }
 }

@@ -29,15 +29,15 @@ public class AnnotationUtils {
         int length = Type.getArgumentTypes(methodNode.desc).length;
         List<AnnotationNode>[] defaultValue = (List<AnnotationNode>[]) new List<?>[length];
         return getAnnotationMap(
-                notNull(methodNode.invisibleParameterAnnotations, defaultValue)[parameter],
-                notNull(methodNode.visibleParameterAnnotations, defaultValue)[parameter]);
+            notNull(methodNode.invisibleParameterAnnotations, defaultValue)[parameter],
+            notNull(methodNode.visibleParameterAnnotations, defaultValue)[parameter]);
     }
 
     private static <A> A notNull(A value, A defaultValue) {
         return Optional.ofNullable(value).orElse(defaultValue);
     }
 
-    private static AnnotationMap getAnnotationMap(List<AnnotationNode> invisibleAnnotations, List<AnnotationNode> visibleAnnotations) {
+    private static AnnotationMap getAnnotationMap(List<? extends AnnotationNode> invisibleAnnotations, List<? extends AnnotationNode> visibleAnnotations) {
         HashMap<String, Supplier<Object>> map = new HashMap<>();
 
         notNullList(invisibleAnnotations).forEach(node -> map.put(node.desc, () -> createInstance(node)));
@@ -48,6 +48,10 @@ public class AnnotationUtils {
 
     private static <A> List<A> notNullList(List<A> list) {
         return notNull(list, Collections.emptyList());
+    }
+
+    public static <A> A annotation(AnnotationNode annotationNode) {
+        return (A) createInstance(annotationNode);
     }
 
     private static Object createInstance(AnnotationNode annotationNode) {
@@ -96,8 +100,8 @@ public class AnnotationUtils {
 
     public static <A extends Annotation> A annotation(Class<A> annotationType, Map<String, Object> values) {
         return (A) Proxy.newProxyInstance(annotationType.getClassLoader(),
-                new Class[]{annotationType},
-                new AnnotationInvocationHandler(annotationType, values));
+            new Class[]{annotationType},
+            new AnnotationInvocationHandler(annotationType, values));
     }
 
 }

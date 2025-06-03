@@ -1,5 +1,8 @@
 package gloomyfolken.hooklib.example;
 
+import com.mojang.authlib.GameProfileRepository;
+import com.mojang.authlib.minecraft.MinecraftSessionService;
+import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import gloomyfolken.hooklib.api.*;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.BlockTorch;
@@ -9,7 +12,9 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketBuffer;
+import net.minecraft.server.management.PlayerProfileCache;
 import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.datafix.DataFixer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -18,13 +23,15 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import javax.annotation.Nullable;
+import java.io.File;
+import java.net.Proxy;
 import java.util.Random;
 
 @HookContainer
 public class TestHooks {
 
     @FieldLens(createField = true)
-    public static FieldAccessor<TestTarget, @Primitive Integer> testFieldAddition1 = FieldAccessor.defaultValue(1);
+    public static FieldAccessor<InnerPrivateClassImage, @Primitive Integer> testFieldAddition1 = FieldAccessor.defaultValue(1);
 
     @FieldLens(createField = true)
     public static FieldAccessor<TestTarget, Integer> testFieldAddition2 = FieldAccessor.defaultValue(1);
@@ -57,7 +64,7 @@ public class TestHooks {
     public static FieldAccessor<Minecraft, Long> debugUpdateTime;
 
     @MethodLens
-    public static void staticTargetMethodVoid(TestTarget testTarget, int a, String b) {
+    public static void staticTargetMethodVoid(InnerPrivateClassImage testTarget, int a, String b) {
     }
 
     @MethodLens
@@ -71,7 +78,7 @@ public class TestHooks {
     }
 
     @MethodLens
-    public static void targetMethodVoid(TestTarget testTarget, int a, String b) {
+    public static void targetMethodVoid(InnerPrivateClassImage testTarget, int a, String b) {
     }
 
     @MethodLens
@@ -94,12 +101,6 @@ public class TestHooks {
     @SideOnly(Side.CLIENT)
     public static EnumParticleTypes randomDisplayTickPattern() {
         return EnumParticleTypes.FLAME;
-    }
-
-    @Hook
-    @OnMethodCall(value = "kek", shift = Shift.INSTEAD, ordinal = -1)
-    public static void testDoubleArgumentPop2(TestHooks self) {
-
     }
 
     public static void testDoubleArgumentPop2() {
@@ -144,5 +145,18 @@ public class TestHooks {
             return ReturnSolve.yes(false);
 
         return ReturnSolve.no();
+    }
+
+    @Hook(targetMethod = Constants.CONSTRUCTOR_NAME)
+    @OnBegin
+    public static void init(InnerPrivateClassImage self) {
+
+    }
+
+    @Hook(targetMethod = Constants.CONSTRUCTOR_NAME)
+    @OnBegin
+    public static void init(@PrivateClass("net.minecraft.server.MinecraftServer") Object server,
+                            File anvilFileIn, Proxy proxyIn, DataFixer dataFixerIn, YggdrasilAuthenticationService authServiceIn, MinecraftSessionService sessionServiceIn, GameProfileRepository profileRepoIn, PlayerProfileCache profileCacheIn) {
+        TestTarget.triggerInnerClass();
     }
 }

@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.asm;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.*;
 import gloomyfolken.hooklib.api.*;
 import gloomyfolken.hooklib.asm.AsmUtils.OpcodeDetails;
 import gloomyfolken.hooklib.asm.SignatureExtractor.FlatTypeRepr;
@@ -18,31 +17,48 @@ import org.objectweb.asm.TypeReference;
 import org.objectweb.asm.tree.*;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.objectweb.asm.Opcodes.*;
 
 public class HookContainerParser {
+    final Map<String, String> classImageNameToPrivateClassName;
 
-    private static Stream<AsmHook> invalidHook(String message, ClassNode classNode, MethodNode methodNode) {
+    public HookContainerParser(Collection<ClassNode> privateClassImages) {
+        this.classImageNameToPrivateClassName = privateClassImages.stream().collect(Collectors.toMap(
+            cn -> cn.name.replace('/', '.'),
+            cn -> AnnotationUtils.annotationOf(cn).get(PrivateClass.class).value()
+        ));
+    }
+
+    public ListMultimap<String, AsmInjection> makePrivateClassImageHooks() {
+        return classImageNameToPrivateClassName.values().stream()
+            .distinct()
+            .collect(Multimaps.toMultimap(Function.identity(), AsmClassAccessFix::new, ArrayListMultimap::create));
+    }
+
+
+    private Stream<AsmInjection> invalidHook(String message, ClassNode classNode, MethodNode methodNode) {
         Logger.instance.warning("Found invalid hook " + classNode.name.replace('/', '.') + "#" + methodNode.name);
         Logger.instance.warning(message);
         return Stream.empty();
     }
 
-    private static Stream<AsmHook> invalidFieldLens(String message, ClassNode classNode, FieldNode fieldNode) {
+    private Stream<AsmHook> invalidFieldLens(String message, ClassNode classNode, FieldNode fieldNode) {
         Logger.instance.warning("Found invalid hook lens " + classNode.name.replace('/', '.') + "#" + fieldNode.name);
         Logger.instance.warning(message);
         return Stream.empty();
     }
 
-    private static Stream<AsmInjection> invalidMethodLens(String message, ClassNode classNode, MethodNode methodNode) {
+    private Stream<AsmInjection> invalidMethodLens(String message, ClassNode classNode, MethodNode methodNode) {
         Logger.instance.warning("Found invalid hook lens " + classNode.name.replace('/', '.') + "#" + methodNode.name);
         Logger.instance.warning(message);
         return Stream.empty();
     }
 
-    private static boolean checkRegularConditions(ClassNode classNode, MethodNode methodNode, Type[] argumentTypes) {
+    private boolean checkRegularConditions(ClassNode classNode, MethodNode methodNode, Type[] argumentTypes) {
         if (!(AsmUtils.isPublic(methodNode) && AsmUtils.isStatic(methodNode))) {
             invalidHook("Hook method must be public and static.", classNode, methodNode);
             return false;
@@ -61,7 +77,7 @@ public class HookContainerParser {
         return true;
     }
 
-    private static boolean checkRegularConditionsMethodLens(ClassNode classNode, MethodNode methodNode, Type[] argumentTypes) {
+    private boolean checkRegularConditionsMethodLens(ClassNode classNode, MethodNode methodNode, Type[] argumentTypes) {
         if (!AsmUtils.isStatic(methodNode)) {
             invalidMethodLens("Hook lens must be static.", classNode, methodNode);
             return false;
@@ -80,7 +96,7 @@ public class HookContainerParser {
         return true;
     }
 
-    public static Stream<AsmInjection> parseHooks(ClassNode classNode) {
+    public Stream<AsmInjection> parseHooks(ClassNode classNode) {
         Optional<MethodNode> maybeClinit = classNode.methods.stream().filter(mn -> mn.name.equals(Constants.STATIC_INITIALIZER_NAME)).findFirst();
         return Stream.concat(
             classNode.methods.stream().flatMap(methodNode -> {
@@ -118,7 +134,7 @@ public class HookContainerParser {
         );
     }
 
-    private static Stream<? extends AsmInjection> parseFieldLens(ClassNode classNode, FieldNode fieldNode, FieldLens lensAnnotation, Optional<MethodNode> maybeClinit) {
+    private Stream<? extends AsmInjection> parseFieldLens(ClassNode classNode, FieldNode fieldNode, FieldLens lensAnnotation, Optional<MethodNode> maybeClinit) {
         if (Type.getType(fieldNode.desc).getClassName().equals(FieldAccessor.class.getCanonicalName())) {
             TypeRepr typeRepr = SignatureExtractor.fromField(fieldNode);
 
@@ -127,14 +143,13 @@ public class HookContainerParser {
 
             List<TypeRepr> parameters = ((ParametrizedTypeRepr) typeRepr).parameters;
             Type targetClassType = parameters.get(0).getRawType();
-            String targetClassName = targetClassType.getClassName();
             Type targetFieldType = parameters.get(1).getRawType();
 
             if (fieldNode.invisibleTypeAnnotations != null)
-                for (TypeAnnotationNode a : fieldNode.invisibleTypeAnnotations)
-                    if (a.desc.equals(Type.getDescriptor(Primitive.class)))
-                        if (new TypeReference(a.typeRef).getSort() == TypeReference.FIELD)
-                            if (a.typePath.getLength() == 1 && a.typePath.getStep(0) == TypePath.TYPE_ARGUMENT)
+                for (TypeAnnotationNode a : fieldNode.invisibleTypeAnnotations) {
+                    if (new TypeReference(a.typeRef).getSort() == TypeReference.FIELD)
+                        if (a.typePath.getLength() == 1 && a.typePath.getStep(0) == TypePath.TYPE_ARGUMENT)
+                            if (a.desc.equals(Type.getDescriptor(Primitive.class))) {
                                 if (a.typePath.getStepArgument(0) == 1) {
                                     Type maybePrimitive = AsmUtils.objectToPrimitive.get(targetFieldType);
                                     if (maybePrimitive == null)
@@ -142,6 +157,16 @@ public class HookContainerParser {
                                     targetFieldType = maybePrimitive;
                                     break;
                                 }
+                            } else if (a.desc.equals(Type.getDescriptor(PrivateClass.class))) {
+                                if (a.typePath.getStepArgument(0) == 0) {
+                                    targetClassType = Type.getObjectType(AnnotationUtils.<PrivateClass>annotation(a).value().replace('.', '/'));
+                                }
+                            }
+                }
+
+            String targetClassName = targetClassType.getClassName();
+            targetClassName = classImageNameToPrivateClassName.getOrDefault(targetClassName, targetClassName);
+            targetClassType = Type.getObjectType(targetClassName.replace('.', '/'));
 
             String targetFieldName = !lensAnnotation.targetField().isEmpty() ? lensAnnotation.targetField() : fieldNode.name;
 
@@ -167,7 +192,7 @@ public class HookContainerParser {
             return invalidFieldLens("field lens type should be FieldAccessor<TargetClass, TargetFieldType>", classNode, fieldNode);
     }
 
-    private static InsnList findDefaultValue(InsnList clinitInstructions, ClassNode classNode, String lensFieldName, Type targetFieldType) {
+    private InsnList findDefaultValue(InsnList clinitInstructions, ClassNode classNode, String lensFieldName, Type targetFieldType) {
         ListIterator<AbstractInsnNode> it = clinitInstructions.iterator();
         while (it.hasNext()) {
             AbstractInsnNode current = it.next();
@@ -209,7 +234,7 @@ public class HookContainerParser {
         return null;
     }
 
-    private static boolean normalizeResultType(ClassNode classNode, String lensFieldName, Type targetFieldType, InsnList valueConstruction) {
+    private boolean normalizeResultType(ClassNode classNode, String lensFieldName, Type targetFieldType, InsnList valueConstruction) {
         AbstractInsnNode last = valueConstruction.getLast();
         Type resultType = getInstructionType(last);
         if (Type.VOID_TYPE.equals(resultType) && last instanceof MethodInsnNode && ((MethodInsnNode) last).name.equals(Constants.CONSTRUCTOR_NAME) && last.getPrevious().getOpcode() == DUP) {
@@ -239,7 +264,7 @@ public class HookContainerParser {
         }
     }
 
-    private static Type getInstructionType(AbstractInsnNode i) {
+    private Type getInstructionType(AbstractInsnNode i) {
         if (i instanceof MethodInsnNode) {
             Type methodType = Type.getMethodType(((MethodInsnNode) i).desc);
             return methodType.getReturnType();
@@ -249,7 +274,7 @@ public class HookContainerParser {
         }
     }
 
-    private static InsnList collectValueConstruction(ListIterator<AbstractInsnNode> it, Type targetFieldType) {
+    private InsnList collectValueConstruction(ListIterator<AbstractInsnNode> it, Type targetFieldType) {
         LinkedList<AbstractInsnNode> collector = new LinkedList<>();
         int stackRequired = -1;
         while (it.hasPrevious() && stackRequired != 0) {
@@ -262,7 +287,7 @@ public class HookContainerParser {
         return r;
     }
 
-    private static Set<Integer> forbiddenDefaultValueOpcodes = ImmutableSet.<Integer>builder()
+    private Set<Integer> forbiddenDefaultValueOpcodes = ImmutableSet.<Integer>builder()
         .add(NOP)
         .add(GOTO)
         .add(JSR)
@@ -300,7 +325,7 @@ public class HookContainerParser {
         .add(IINC)
         .build();
 
-    private static int getStackAffection(AbstractInsnNode prev) {
+    private int getStackAffection(AbstractInsnNode prev) {
         if (prev instanceof MethodInsnNode) {
             Type methodType = Type.getMethodType(((MethodInsnNode) prev).desc);
             int addition = methodType.getReturnType() != Type.VOID_TYPE ? 1 : 0;
@@ -319,7 +344,7 @@ public class HookContainerParser {
         }
     }
 
-    private static Stream<AsmInjection> parseMethodLens(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, MethodLens methodLensAnnotation) {
+    private Stream<AsmInjection> parseMethodLens(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, MethodLens methodLensAnnotation) {
         Type methodType = Type.getMethodType(methodNode.desc);
         Type[] argumentTypes = methodType.getArgumentTypes();
         Type returnType = methodType.getReturnType();
@@ -327,28 +352,45 @@ public class HookContainerParser {
         if (!checkRegularConditionsMethodLens(classNode, methodNode, argumentTypes))
             return Stream.empty();
 
-        String targetClassName = argumentTypes[0].getClassName();
+        String targetClassName = getTargetClassName(methodNode, argumentTypes);
         String targetMethodName = methodLensAnnotation.targetMethod().isEmpty() ? methodNode.name : methodLensAnnotation.targetMethod();
         String targetMethodDesc = Type.getMethodDescriptor(returnType, Arrays.copyOfRange(argumentTypes, 1, argumentTypes.length));
 
+        Type[] fixedArgs = argumentTypes.clone();
+        fixedArgs[0] = Type.getObjectType(targetClassName.replace('.', '/'));
+        String hookMethodLensDescription = Type.getMethodDescriptor(returnType, fixedArgs);
+
         AsmMethodLens targetClassInjection = new AsmMethodLens(
             targetClassName, targetMethodName, targetMethodDesc,
-            methodNode.desc,
+            hookMethodLensDescription,
             methodLensAnnotation.isMandatory()
         );
         AsmMethodLensHook hookClassInjection = new AsmMethodLensHook(
-            classNode.name, methodNode.name, methodNode.desc,
+            classNode.name, methodNode.name, hookMethodLensDescription,
             targetClassName, targetMethodName, targetMethodDesc,
             methodLensAnnotation.isMandatory()
         );
 
-        return Stream.of(
-            targetClassInjection,
-            hookClassInjection
-        );
+
+        if (!targetClassName.equals(argumentTypes[0].getClassName()))
+            return Stream.of(
+                targetClassInjection,
+                hookClassInjection,
+                new AsmFixFirstArgument(
+                    classNode.name.replace('/', '.'),
+                    methodNode.name,
+                    methodNode.desc,
+                    fixedArgs[0],
+                    hookClassInjection.isMandatory()
+                ));
+        else
+            return Stream.of(
+                targetClassInjection,
+                hookClassInjection
+            );
     }
 
-    private static Stream<AsmHook> parseRegularHook(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, Hook hookAnnotation) {
+    private Stream<AsmInjection> parseRegularHook(ClassNode classNode, MethodNode methodNode, AnnotationMap annotationMap, Hook hookAnnotation) {
         AsmHook.Builder builder = AsmHook.newBuilder();
         Type methodType = Type.getMethodType(methodNode.desc);
         Type[] argumentTypes = methodType.getArgumentTypes();
@@ -357,7 +399,7 @@ public class HookContainerParser {
         if (!checkRegularConditions(classNode, methodNode, argumentTypes))
             return Stream.empty();
 
-        builder.setTargetClass(argumentTypes[0].getClassName());
+        builder.setTargetClass(getTargetClassName(methodNode, argumentTypes));
 
         if (!hookAnnotation.targetMethod().isEmpty())
             builder.setTargetMethod(hookAnnotation.targetMethod());
@@ -468,10 +510,35 @@ public class HookContainerParser {
 
         builder.setRequiredPrintLocalVariables(annotationMap.get(PrintLocalVariables.class) != null);
 
-        return Stream.of(builder.build());
+        AsmHook hook = builder.build();
+        if (!hook.getTargetClassName().equals(argumentTypes[0].getClassName()))
+            return Stream.of(hook, new AsmFixFirstArgument(
+                hook.getHookClassName(),
+                methodNode.name,
+                methodNode.desc,
+                Type.getObjectType(hook.getTargetClassName().replace('.', '/')),
+                hook.isMandatory()
+            ));
+        return Stream.of(hook);
     }
 
-    public static class UnexpectedHookParsingError extends RuntimeException {
+    private String getTargetClassName(MethodNode methodNode, Type[] argumentTypes) {
+        return getTargetClassName(AnnotationUtils.annotationOfParameter(methodNode, 0), argumentTypes[0]);
+    }
+
+    private String getTargetClassName(AnnotationMap firstArgAnnotations, Type firstArgType) {
+        String firstArgClassName = firstArgType.getClassName();
+
+        if (firstArgAnnotations.contains(PrivateClass.class))
+            return firstArgAnnotations.get(PrivateClass.class).value();
+
+        else if (classImageNameToPrivateClassName.containsKey(firstArgClassName))
+            return classImageNameToPrivateClassName.get(firstArgClassName);
+
+        return firstArgClassName;
+    }
+
+    public class UnexpectedHookParsingError extends RuntimeException {
         public UnexpectedHookParsingError(String className, String methodName, Throwable cause) {
             super("while processing " + className + "#" + methodName + ". Plz report to https://github.com/hohserg1/HookLib/issues", cause);
         }

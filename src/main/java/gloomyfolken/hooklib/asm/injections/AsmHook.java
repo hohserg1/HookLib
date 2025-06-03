@@ -58,10 +58,25 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
         return hooksClassName.replace('.', '/');
     }
 
-    public boolean isTargetMethod(String name, String desc) {
-        if (!name.equals(targetMethodName))
-            return false;
+    public String getHookClassName() {
+        return hooksClassName;
+    }
 
+    public String getHookMethodName() {
+        return hookMethodName;
+    }
+
+    public String getHookMethodDescription() {
+        return hookMethodDescription;
+    }
+
+    @Override
+    public String getTargetMethodName() {
+        return targetMethodName;
+    }
+
+    @Override
+    public boolean checkDescription(String desc) {
         if (targetMethodReturnType == null)
             return desc.startsWith(targetMethodDescription1);
 

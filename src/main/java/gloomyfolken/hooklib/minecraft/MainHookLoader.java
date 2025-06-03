@@ -1,11 +1,12 @@
 package gloomyfolken.hooklib.minecraft;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import gloomyfolken.hooklib.api.FieldLens;
 import gloomyfolken.hooklib.api.HookContainer;
 import gloomyfolken.hooklib.api.OnExpression;
+import gloomyfolken.hooklib.api.PrivateClass;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookContainerParser;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
@@ -27,6 +28,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.util.*;
@@ -68,18 +70,24 @@ public class MainHookLoader extends HookLoader {
     }
 
     protected void registerHooks() {
-        ListMultimap<String, AsmInjection> hooks = findHookContainers().stream()
-            .flatMap(HookContainerParser::parseHooks)
-            .distinct()
-            .collect(Multimaps.toMultimap(AsmInjection::getTargetClassName, Function.identity(), ArrayListMultimap::create));
-        HookClassTransformer.registerAllHooks(hooks);
+        Multimap<Class<? extends Annotation>, ClassNode> hookAnnotatedClasses = findHookAnnotatedClasses();
+
+        HookContainerParser parser = new HookContainerParser(hookAnnotatedClasses.get(PrivateClass.class));
+
+        HookClassTransformer.registerAllHooks(parser.makePrivateClassImageHooks());
+
+        HookClassTransformer.registerAllHooks(
+            hookAnnotatedClasses.get(HookContainer.class).stream()
+                .flatMap(parser::parseHooks)
+                .distinct()
+                .collect(Multimaps.toMultimap(AsmInjection::getTargetClassName, Function.identity(), ArrayListMultimap::create))
+        );
     }
 
-    private List<ClassNode> findHookContainers() {
-
+    private Multimap<Class<? extends Annotation>, ClassNode> findHookAnnotatedClasses() {
         List<File> jarCandidates = new ArrayList<>(10);
         List<File> classCandidates = new ArrayList<>(100);
-        List<ClassNode> result = new ArrayList<>(1);
+        Multimap<Class<? extends Annotation>, ClassNode> result = Multimaps.newListMultimap(new HashMap<>(), ArrayList::new);
 
         addFromModsDir(jarCandidates, new File("./mods/"));
         addFromModsDir(jarCandidates, new File("./mods/" + ForgeVersion.mcVersion));
@@ -164,7 +172,7 @@ public class MainHookLoader extends HookLoader {
             jarCandidates.addAll(Arrays.asList(jarFiles));
     }
 
-    private boolean findHooksInStream(List<ClassNode> result, InputStream stream) throws IOException {
+    private boolean findHooksInStream(Multimap<Class<? extends Annotation>, ClassNode> result, InputStream stream) throws IOException {
         ClassNode classNode = new ClassNode(ASM5);
         ClassReader classReader = new ClassReader(stream);
         classReader.accept(classNode, SKIP_CODE);
@@ -174,8 +182,11 @@ public class MainHookLoader extends HookLoader {
                 classNode = new ClassNode(ASM5);
                 classReader.accept(classNode, 0);
             }
-            result.add(classNode);
+            result.put(HookContainer.class, classNode);
             return true;
+        }
+        if (annotationMap.contains(PrivateClass.class) && isValidSide(annotationMap)) {
+            result.put(PrivateClass.class, classNode);
         }
         return false;
     }

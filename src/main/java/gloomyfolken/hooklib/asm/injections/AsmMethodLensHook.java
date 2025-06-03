@@ -25,10 +25,10 @@ public class AsmMethodLensHook implements AsmMethodInjection {
 
     private final boolean isMandatory;
 
-    public AsmMethodLensHook(String hookClassName, String hookMethodLensName,
+    public AsmMethodLensHook(String hookClassInternalName, String hookMethodLensName,
                              String hookMethodLensDescription, String targetClassName, String targetMethodName, String targetMethodDescription,
                              boolean isMandatory) {
-        this.hookClassName = hookClassName.replace('/', '.');
+        this.hookClassName = hookClassInternalName.replace('/', '.');
         this.hookMethodLensName = hookMethodLensName;
         this.hookMethodLensDescription = hookMethodLensDescription;
 
@@ -46,13 +46,18 @@ public class AsmMethodLensHook implements AsmMethodInjection {
     }
 
     @Override
-    public boolean isMandatory() {
-        return isMandatory;
+    public String getTargetMethodName() {
+        return hookMethodLensName;
     }
 
     @Override
-    public boolean isTargetMethod(String name, String desc) {
-        return name.equals(hookMethodLensName) && desc.equals(hookMethodLensDescription);
+    public boolean checkDescription(String desc) {
+        return desc.equals(hookMethodLensDescription);
+    }
+
+    @Override
+    public boolean isMandatory() {
+        return isMandatory;
     }
 
     @Override
@@ -113,5 +118,17 @@ public class AsmMethodLensHook implements AsmMethodInjection {
 
     @Override
     public void create(HookInjectorClassVisitor hookInjectorClassVisitor) {
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("AsmMethodLensHook: ");
+
+        sb.append(targetClassInternalName).append('#').append(targetMethodName).append(targetMethodDescription);
+        sb.append(" -> ");
+        sb.append(hookClassName).append('#').append(hookMethodLensName);
+
+        return sb.toString();
     }
 }

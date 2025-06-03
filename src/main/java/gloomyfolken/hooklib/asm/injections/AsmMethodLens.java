@@ -44,13 +44,18 @@ public class AsmMethodLens implements AsmMethodInjectionObserving {
     }
 
     @Override
-    public boolean isMandatory() {
-        return isMandatory;
+    public String getTargetMethodName() {
+        return targetMethodName;
     }
 
     @Override
-    public boolean isTargetMethod(String name, String desc) {
-        return name.equals(targetMethodName) && desc.equals(targetMethodDescription);
+    public boolean checkDescription(String desc) {
+        return desc.equals(targetMethodDescription);
+    }
+
+    @Override
+    public boolean isMandatory() {
+        return isMandatory;
     }
 
     @Override
