@@ -52,4 +52,13 @@ public class TestTarget {
         }
 
     }
+
+    public static Test triggetInnerAnonymousClass() {
+        return new Test() {
+            @Override
+            public String toString() {
+                return "hm";
+            }
+        };
+    }
 }

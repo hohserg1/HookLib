@@ -153,10 +153,17 @@ public class TestHooks {
 
     }
 
+    @Hook
+    @OnBegin
+    public static String toString(@PrivateClass("gloomyfolken.hooklib.example.TestTarget$1") Test self) {
+        return "hmmmmmm";
+    }
+
     @Hook(targetMethod = Constants.CONSTRUCTOR_NAME)
     @OnBegin
     public static void init(@PrivateClass("net.minecraft.server.MinecraftServer") Object server,
                             File anvilFileIn, Proxy proxyIn, DataFixer dataFixerIn, YggdrasilAuthenticationService authServiceIn, MinecraftSessionService sessionServiceIn, GameProfileRepository profileRepoIn, PlayerProfileCache profileCacheIn) {
         TestTarget.triggerInnerClass();
+        System.out.println(TestTarget.triggetInnerAnonymousClass());
     }
 }
