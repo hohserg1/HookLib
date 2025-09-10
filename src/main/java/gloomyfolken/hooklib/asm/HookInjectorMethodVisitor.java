@@ -51,6 +51,14 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         }
     }
 
+    @Override
+    public void visitEnd() {
+        super.visitEnd();
+        clearStateForReuse();
+    }
+
+    protected abstract void clearStateForReuse();
+
     static class OrderedVisitor extends HookInjectorMethodVisitor {
 
         private final Set<Integer> suitableOrdinal;
@@ -75,6 +83,11 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
             } else
                 return false;
         }
+
+        @Override
+        protected void clearStateForReuse() {
+            currentOrdinal = -1;
+        }
     }
 
     static class BeginVisitor extends HookInjectorMethodVisitor {
@@ -87,6 +100,10 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         @Override
         protected void onMethodEnter() {
             visitHook();
+        }
+
+        @Override
+        protected void clearStateForReuse() {
         }
 
     }
