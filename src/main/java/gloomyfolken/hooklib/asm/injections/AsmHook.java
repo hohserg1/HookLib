@@ -1,17 +1,12 @@
 package gloomyfolken.hooklib.asm.injections;
 
-import gloomyfolken.hooklib.api.HookPriority;
-import gloomyfolken.hooklib.api.ReturnSolve;
+import gloomyfolken.hooklib.api.*;
 import gloomyfolken.hooklib.asm.*;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
+import javax.annotation.*;
+import java.util.*;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.DOUBLE;
@@ -106,9 +101,14 @@ public class AsmHook implements AsmMethodInjection, Cloneable {
     public void create(HookInjectorClassVisitor classVisitor) {
         ClassMetadataReader.MethodReference superMethod = classVisitor.transformer.classMetadataReader
             .findVirtualMethod(getTargetClassInternalName(), targetMethodName, targetMethodDescription1);
-        //findVirtualMethod may return other name
-        MethodVisitor mv = classVisitor.visitMethod(Opcodes.ACC_PUBLIC,
-            superMethod == null ? targetMethodName : superMethod.name, targetMethodDescription1, null, null);
+
+        MethodVisitor mv = classVisitor.visitMethod(
+            Opcodes.ACC_PUBLIC,
+            superMethod == null ? targetMethodName : superMethod.name, //findVirtualMethod may return other name
+            targetMethodDescription1,
+            null,
+            null
+        );
         if (mv instanceof HookInjectorMethodVisitor) {
             HookInjectorMethodVisitor inj = (HookInjectorMethodVisitor) mv;
             inj.visitCode();

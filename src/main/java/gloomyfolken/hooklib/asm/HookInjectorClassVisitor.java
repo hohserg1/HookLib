@@ -1,23 +1,17 @@
 package gloomyfolken.hooklib.asm;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
+import com.google.common.collect.*;
 import gloomyfolken.hooklib.asm.injections.*;
-import gloomyfolken.hooklib.helper.Logger;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import gloomyfolken.hooklib.helper.*;
+import gloomyfolken.hooklib.minecraft.*;
+import org.apache.commons.lang3.tuple.*;
+import org.objectweb.asm.*;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Function;
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
 
-import static org.objectweb.asm.Opcodes.ACC_FINAL;
-import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.*;
 
 public class HookInjectorClassVisitor extends ClassVisitor {
 
@@ -35,25 +29,28 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     public HookInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         super(Opcodes.ASM5, finalizeVisitor);
 
-        this.methodPreHooks = hooks.stream()
-            .filter(a -> a instanceof AsmFixFirstArgument)
-            .map(a -> (AsmFixFirstArgument) a)
-            .collect(Multimaps.toMultimap(AsmFixFirstArgument::getTargetMethodName, Function.identity(), ArrayListMultimap::create));
+        this.methodPreHooks = collect(hooks, AsmFixFirstArgument.class, AsmFixFirstArgument::getTargetMethodName, Function.identity());
 
-        this.methodHooks = hooks.stream()
-            .filter(a -> a instanceof AsmMethodInjection)
-            .map(a -> (AsmMethodInjection) a)
-            .collect(Multimaps.toMultimap(AsmMethodInjection::getTargetMethodName, Function.identity(), ArrayListMultimap::create));
+        this.methodHooks = collect(hooks, AsmMethodInjection.class, AsmMethodInjection::getTargetMethodName, Deobfuscation.instance::obfMethod);
 
-        this.fieldHooks = hooks.stream()
-            .filter(a -> a instanceof AsmFieldLens)
-            .map(a -> (AsmFieldLens) a)
-            .collect(Multimaps.toMultimap(AsmFieldLens::getTargetFieldName, Function.identity(), ArrayListMultimap::create));
+        this.fieldHooks = collect(hooks, AsmFieldLens.class, AsmFieldLens::getTargetFieldName, Deobfuscation.instance::obfField);
 
         classAccessFix = hooks.stream().filter(a -> a instanceof AsmClassAccessFix).map(a -> (AsmClassAccessFix) a).findAny();
 
         this.transformer = transformer;
         this.allHooks = hooks;
+    }
+
+    private <Injection> Multimap<String, Injection> collect(List<AsmInjection> hooks, Class<Injection> filter, Function<Injection, String> targetMemberName,
+                                                            Function<String, String> obfuscation) {
+        return hooks.stream()
+            .filter(filter::isInstance)
+            .map(filter::cast)
+            .flatMap(a -> {
+                String deobfName = targetMemberName.apply(a);
+                return Stream.of(deobfName, obfuscation.apply(deobfName)).distinct().map(name -> Pair.of(name, a));
+            })
+            .collect(Multimaps.toMultimap(Pair::getLeft, Pair::getRight, ArrayListMultimap::create));
     }
 
     public void markInjected(AsmInjection injection) {
@@ -73,7 +70,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
 
     @Override
     public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-        for (AsmFieldLens lens : fieldHooks.get(deobfField(name))) {
+        for (AsmFieldLens lens : fieldHooks.get(name)) {
             if (lens.checkDescription(desc)) {
                 access &= ~ACC_FINAL;
 
@@ -99,7 +96,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
 
         String desc1 = deobfDescription(desc);
-        for (AsmMethodInjection hook : methodHooks.get(deobfMethod(name))) {
+        for (AsmMethodInjection hook : methodHooks.get(name)) {
             if (hook.checkDescription(desc1) && !injectedHooks.contains(hook)) {
                 MethodVisitor prevMV = mv;
                 mv = hook.getInjectorFactory().createHookInjector(mv, access, name, desc, signature, exceptions, hook, this);
@@ -123,15 +120,8 @@ public class HookInjectorClassVisitor extends ClassVisitor {
         super.visitEnd();
     }
 
-    protected String deobfMethod(String name) {
-        return name;
-    }
-
     protected String deobfDescription(String desc) {
         return desc;
     }
 
-    protected String deobfField(String name) {
-        return name;
-    }
 }

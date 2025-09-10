@@ -1,14 +1,8 @@
 package gloomyfolken.hooklib.helper;
 
-import org.apache.commons.io.FileUtils;
-
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
+import java.util.zip.*;
 
 /**
  * Generate methods.bin from methods.csv
@@ -16,28 +10,41 @@ import java.util.Map;
 public class DictionaryGenerator {
 
     public static void main(String[] args) throws Exception {
-        prepareNames("methods.csv", "methods.bin");
-        prepareNames("fields.csv", "fields.bin");
-
+        File sourceDirectory = new File(args[0]);
+        prepareNames("methods.bin2", sourceDirectory, "methods.csv", "mcp_snapshot/20171003-1.12", "mcp_stable/39-1.12");
+        prepareNames("fields.bin2", sourceDirectory, "fields.csv", "mcp_snapshot/20171003-1.12", "mcp_stable/39-1.12");
     }
 
-    private static void prepareNames(String sourceFileName, String outputFileName) throws IOException {
-        List<String> lines = FileUtils.readLines(new File(sourceFileName));
-        lines.remove(0);
-        HashMap<Integer, String> map = new HashMap<Integer, String>();
-        for (String str : lines) {
-            String[] splitted = str.split(",");
-            int first = splitted[0].indexOf('_');
-            int second = splitted[0].indexOf('_', first + 1);
-            int id = Integer.parseInt(splitted[0].substring(first + 1, second));
-            map.put(id, splitted[1]);
+    private static void prepareNames(String outputFileName, File sourceDirectory, String sourceFileName, String... sourceMappings) throws IOException {
+        Map<String, String> mcpToSrg = new HashMap<>();
+        for (String mappings : sourceMappings) {
+            String mappingsPath = mappings + "/" + mappings.replace('/', '-') + ".zip";
+            try (ZipFile zipFile = new ZipFile(new File(sourceDirectory, mappingsPath))) {
+                Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+                    if (entry.getName().equals(sourceFileName)) {
+                        try (InputStream inputStream = zipFile.getInputStream(entry);
+                             Scanner scanner = new Scanner(inputStream)) {
+                            if (scanner.hasNextLine())
+                                scanner.nextLine();
+                            while (scanner.hasNextLine()) {
+                                String line = scanner.nextLine();
+                                String[] splitted = line.split(",");
+                                mcpToSrg.put(splitted[1], splitted[0]);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
         }
 
         DataOutputStream out = new DataOutputStream(new FileOutputStream(outputFileName));
-        out.writeInt(map.size());
+        out.writeInt(mcpToSrg.size());
 
-        for (Map.Entry<Integer, String> entry : map.entrySet()) {
-            out.writeInt(entry.getKey());
+        for (Map.Entry<String, String> entry : mcpToSrg.entrySet()) {
+            out.writeUTF(entry.getKey());
             out.writeUTF(entry.getValue());
         }
 

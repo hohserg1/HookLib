@@ -1,12 +1,11 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.ClassMetadataReader;
-import net.minecraft.launchwrapper.Launch;
-import net.minecraft.launchwrapper.LaunchClassLoader;
-import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
+import gloomyfolken.hooklib.asm.*;
+import net.minecraft.launchwrapper.*;
+import net.minecraftforge.fml.common.asm.transformers.deobf.*;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
+import java.io.*;
+import java.lang.reflect.*;
 
 /**
  * ClassMetadataReader with support of Minecraft obfuscation
@@ -18,7 +17,7 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
     static {
         try {
             runTransformers = LaunchClassLoader.class.getDeclaredMethod("runTransformers",
-                    String.class, String.class, byte[].class);
+                String.class, String.class, byte[].class);
             runTransformers.setAccessible(true);
         } catch (Exception e) {
             e.printStackTrace();
@@ -76,7 +75,7 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
     }
 
     private static boolean checkSameMethod(String srgName, String mcpName) {
-        return Deobfuscation.instance.deobfMethod(srgName).equals(mcpName);
+        return Deobfuscation.instance.obfMethod(mcpName).equals(srgName);
     }
 
 }

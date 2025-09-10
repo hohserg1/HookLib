@@ -1,26 +1,22 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.helper.Logger;
+import gloomyfolken.hooklib.helper.*;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 
 public enum Deobfuscation {
     instance;
 
-    private Map<Integer, String> methodNames = new HashMap<>();
-    private Map<Integer, String> fieldNames = new HashMap<>();
+    private Map<String, String> mcpToSrgMethods = new HashMap<>();
+    private Map<String, String> mcpToSrgFields = new HashMap<>();
 
     Deobfuscation() {
         if (HookLibPlugin.getObfuscated()) {
             try {
                 long timeStart = System.currentTimeMillis();
-                methodNames = loadMethodNames("/methods.bin");
-                fieldNames = loadMethodNames("/fields.bin");
+                mcpToSrgMethods = loadMethodNames("/methods.bin2");
+                mcpToSrgFields = loadMethodNames("/fields.bin2");
                 long time = System.currentTimeMillis() - timeStart;
                 Logger.instance.debug("Mappings dictionary loaded in " + time + " ms");
             } catch (IOException e) {
@@ -29,32 +25,22 @@ public enum Deobfuscation {
         }
     }
 
-    public String deobfMethod(String name) {
-        return methodNames.getOrDefault(getMemberId("func_", name), name);
+    public String obfMethod(String deobfName) {
+        return mcpToSrgMethods.getOrDefault(deobfName, deobfName);
     }
 
-    public String deobfField(String name) {
-        return fieldNames.getOrDefault(getMemberId("field_", name), name);
+    public String obfField(String deobfName) {
+        return mcpToSrgFields.getOrDefault(deobfName, deobfName);
     }
 
-    private int getMemberId(String prefix, String srgName) {
-        if (srgName.startsWith(prefix)) {
-            int first = srgName.indexOf('_');
-            int second = srgName.indexOf('_', first + 1);
-            return Integer.valueOf(srgName.substring(first + 1, second));
-        } else {
-            return -1;
-        }
-    }
-
-    private HashMap<Integer, String> loadMethodNames(String fileName) throws IOException {
+    private Map<String, String> loadMethodNames(String fileName) throws IOException {
         InputStream resourceStream = getClass().getResourceAsStream(fileName);
         if (resourceStream == null) throw new IOException("Methods dictionary not found");
         DataInputStream input = new DataInputStream(new BufferedInputStream(resourceStream));
         int numMethods = input.readInt();
-        HashMap<Integer, String> map = new HashMap<Integer, String>(numMethods);
+        Map<String, String> map = new HashMap<>(numMethods);
         for (int i = 0; i < numMethods; i++) {
-            map.put(input.readInt(), input.readUTF());
+            map.put(input.readUTF(), input.readUTF());
         }
         input.close();
         return map;

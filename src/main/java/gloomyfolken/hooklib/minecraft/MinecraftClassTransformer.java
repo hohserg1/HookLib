@@ -1,11 +1,10 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.HookClassTransformer;
-import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
-import gloomyfolken.hooklib.asm.injections.AsmInjection;
-import org.objectweb.asm.ClassVisitor;
+import gloomyfolken.hooklib.asm.*;
+import gloomyfolken.hooklib.asm.injections.*;
+import org.objectweb.asm.*;
 
-import java.util.List;
+import java.util.*;
 
 /**
  * This transformer uses after Minecraft classes have started loading
@@ -16,18 +15,7 @@ public class MinecraftClassTransformer implements TransformingStage {
 
     @Override
     public HookInjectorClassVisitor createInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
-        return new HookInjectorClassVisitor(transformer, finalizeVisitor, hooks) {
-
-            @Override
-            protected String deobfMethod(String name) {
-                return Deobfuscation.instance.deobfMethod(name);
-            }
-
-            @Override
-            protected String deobfField(String name) {
-                return Deobfuscation.instance.deobfField(name);
-            }
-        };
+        return new HookInjectorClassVisitor(transformer, finalizeVisitor, hooks);
     }
 
 }

@@ -1,25 +1,21 @@
 package gloomyfolken.hooklib.asm;
 
-import gloomyfolken.hooklib.api.Shift;
-import gloomyfolken.hooklib.asm.injections.AsmHook;
-import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
-import gloomyfolken.hooklib.helper.Logger;
-import gloomyfolken.hooklib.minecraft.Deobfuscation;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.tuple.Pair;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.AdviceAdapter;
+import gloomyfolken.hooklib.api.*;
+import gloomyfolken.hooklib.asm.injections.*;
+import gloomyfolken.hooklib.helper.*;
+import gloomyfolken.hooklib.minecraft.*;
+import org.apache.commons.lang3.builder.*;
+import org.apache.commons.lang3.tuple.*;
+import org.objectweb.asm.*;
+import org.objectweb.asm.commons.*;
 import org.objectweb.asm.tree.*;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.*;
+import java.util.stream.*;
 
-import static gloomyfolken.hooklib.api.Shift.INSTEAD;
-import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
+import static gloomyfolken.hooklib.api.Shift.*;
+import static gloomyfolken.hooklib.asm.AsmUtils.*;
 
 public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
@@ -112,6 +108,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     static class MethodCallVisitor extends OrderedVisitor {
 
         private final String requiredMethodName;
+        private final String requiredMethodNameObf;
         private final String methodDesc;
         private final Shift shift;
 
@@ -119,13 +116,13 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                                     String methodName, String methodDesc, int[] ordinal, Shift shift) {
             super(mv, access, name, desc, hook, cv, ordinal);
             this.requiredMethodName = methodName;
+            this.requiredMethodNameObf = Deobfuscation.instance.obfMethod(requiredMethodName);
             this.methodDesc = methodDesc;
             this.shift = shift;
         }
 
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            String actualMethodName = Deobfuscation.instance.deobfMethod(name);
-            if (requiredMethodName.equals(actualMethodName) &&
+            if ((name.equals(requiredMethodName) || name.equals(requiredMethodNameObf)) &&
                 (methodDesc.isEmpty() || desc.startsWith(methodDesc)) &&
                 (shift != INSTEAD || !(hook instanceof AsmHook) || Type.getMethodType(desc).getReturnType().equals(((AsmHook) hook).hookMethodReturnType))) {
 
