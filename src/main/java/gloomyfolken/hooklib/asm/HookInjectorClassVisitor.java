@@ -29,7 +29,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     public HookInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         super(Opcodes.ASM5, finalizeVisitor);
 
-        this.methodPreHooks = collect(hooks, AsmFixFirstArgument.class, AsmFixFirstArgument::getTargetMethodName, Function.identity());
+        this.methodPreHooks = collect(hooks, AsmFixFirstArgument.class, AsmFixFirstArgument::getTargetMethodName, __ -> ImmutableSet.of());
 
         this.methodHooks = collect(hooks, AsmMethodInjection.class, AsmMethodInjection::getTargetMethodName, Deobfuscation.instance::obfMethod);
 
@@ -42,13 +42,13 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     }
 
     private <Injection> Multimap<String, Injection> collect(List<AsmInjection> hooks, Class<Injection> filter, Function<Injection, String> targetMemberName,
-                                                            Function<String, String> obfuscation) {
+                                                            Function<String, Set<String>> obfuscation) {
         return hooks.stream()
             .filter(filter::isInstance)
             .map(filter::cast)
             .flatMap(a -> {
                 String deobfName = targetMemberName.apply(a);
-                return Stream.of(deobfName, obfuscation.apply(deobfName)).distinct().map(name -> Pair.of(name, a));
+                return Stream.concat(obfuscation.apply(deobfName).stream(), Stream.of(deobfName)).distinct().map(name -> Pair.of(name, a));
             })
             .collect(Multimaps.toMultimap(Pair::getLeft, Pair::getRight, ArrayListMultimap::create));
     }

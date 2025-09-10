@@ -125,7 +125,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
     static class MethodCallVisitor extends OrderedVisitor {
 
         private final String requiredMethodName;
-        private final String requiredMethodNameObf;
+        private final Set<String> requiredMethodNameObf;
         private final String methodDesc;
         private final Shift shift;
 
@@ -139,7 +139,7 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
         }
 
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
-            if ((name.equals(requiredMethodName) || name.equals(requiredMethodNameObf)) &&
+            if ((name.equals(requiredMethodName) || requiredMethodNameObf.contains(name)) &&
                 (methodDesc.isEmpty() || desc.startsWith(methodDesc)) &&
                 (shift != INSTEAD || !(hook instanceof AsmHook) || Type.getMethodType(desc).getReturnType().equals(((AsmHook) hook).hookMethodReturnType))) {
 

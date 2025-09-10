@@ -1,5 +1,7 @@
 package gloomyfolken.hooklib.helper;
 
+import com.google.common.collect.*;
+
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
@@ -16,7 +18,7 @@ public class DictionaryGenerator {
     }
 
     private static void prepareNames(String outputFileName, File sourceDirectory, String sourceFileName, String... sourceMappings) throws IOException {
-        Map<String, String> mcpToSrg = new HashMap<>();
+        SetMultimap<String, String> mcpToSrg = Multimaps.newSetMultimap(new HashMap<>(), HashSet::new);
         for (String mappings : sourceMappings) {
             String mappingsPath = mappings + "/" + mappings.replace('/', '-') + ".zip";
             try (ZipFile zipFile = new ZipFile(new File(sourceDirectory, mappingsPath))) {
@@ -43,7 +45,7 @@ public class DictionaryGenerator {
         DataOutputStream out = new DataOutputStream(new FileOutputStream(outputFileName));
         out.writeInt(mcpToSrg.size());
 
-        for (Map.Entry<String, String> entry : mcpToSrg.entrySet()) {
+        for (Map.Entry<String, String> entry : mcpToSrg.entries()) {
             out.writeUTF(entry.getKey());
             out.writeUTF(entry.getValue());
         }

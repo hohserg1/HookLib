@@ -75,7 +75,7 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
     }
 
     private static boolean checkSameMethod(String srgName, String mcpName) {
-        return Deobfuscation.instance.obfMethod(mcpName).equals(srgName);
+        return Deobfuscation.instance.obfMethod(mcpName).contains(srgName);
     }
 
 }
