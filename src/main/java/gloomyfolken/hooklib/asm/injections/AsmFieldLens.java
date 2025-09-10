@@ -1,15 +1,10 @@
 package gloomyfolken.hooklib.asm.injections;
 
-import gloomyfolken.hooklib.asm.AsmUtils;
-import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Type;
+import gloomyfolken.hooklib.asm.*;
+import org.objectweb.asm.*;
 
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.*;
+import java.util.stream.*;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -100,6 +95,7 @@ public class AsmFieldLens implements AsmInjection {
                 return;
             }
         }
+        clearStateForMixinTwiceProcessing();
 
         {
             MethodVisitor mv = hookInjectorClassVisitor.visitMethod(ACC_STATIC | ACC_PUBLIC, targetFieldName + setterSuffix, setterDesc, null, null);
@@ -140,6 +136,10 @@ public class AsmFieldLens implements AsmInjection {
         }
 
         hookInjectorClassVisitor.markInjected(this);
+    }
+
+    private void clearStateForMixinTwiceProcessing() {
+        found = false;
     }
 
     @Override
