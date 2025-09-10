@@ -1,10 +1,7 @@
 package gloomyfolken.hooklib.asm.injections;
 
-import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
-import gloomyfolken.hooklib.asm.HookInjectorFactory;
-import gloomyfolken.hooklib.asm.HookInjectorMethodVisitor;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.MethodNode;
+import gloomyfolken.hooklib.asm.*;
+import org.objectweb.asm.tree.*;
 
 public interface AsmMethodInjection extends AsmInjection {
 
@@ -21,6 +18,6 @@ public interface AsmMethodInjection extends AsmInjection {
     InsnList injectNode(MethodNode methodNode, HookInjectorClassVisitor cv);
 
     default String getPatchedMethodName(String actualName, String actualDescription) {
-        return getTargetClassName() + '#' + actualName + actualDescription;
+        return getTargetClassName() + '#' + getTargetMethodName() + actualDescription + " (actually named " + actualName + ")";
     }
 }
