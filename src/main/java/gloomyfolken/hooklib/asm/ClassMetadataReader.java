@@ -1,12 +1,16 @@
 package gloomyfolken.hooklib.asm;
 
-import org.apache.commons.io.IOUtils;
+import com.google.common.cache.*;
+import com.google.common.collect.*;
+import lombok.*;
+import org.apache.commons.io.*;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.*;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.io.*;
+import java.lang.reflect.*;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Allow to fing methods inside still not loaded classes and mutual super-classes.
@@ -15,12 +19,12 @@ import java.util.Collections;
  * @see gloomyfolken.hooklib.minecraft.DeobfuscationMetadataReader
  */
 public class ClassMetadataReader {
-    private static Method m;
+    private static Method findLoadedClass;
 
     static {
         try {
-            m = ClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);
-            m.setAccessible(true);
+            findLoadedClass = ClassLoader.class.getDeclaredMethod("findLoadedClass", String.class);
+            findLoadedClass.setAccessible(true);
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         }
@@ -98,16 +102,68 @@ public class ClassMetadataReader {
         return superclasses;
     }
 
+    /**
+     * @return super-classes and interfaces of `type` argument
+     */
+    public Set<String> getSuperTypes(String type) {
+        Set<String> r = new HashSet<>();
+        r.add(type);
+        for (String name : getSuperTypesStep(type)) {
+            r.addAll(getSuperTypes(name));
+        }
+        return r;
+    }
+
+    @Value
+    private static class ClassHierarchyKey {
+        public String checkedType, requiredParent;
+    }
+
+    private LoadingCache<ClassHierarchyKey, Boolean> checkSuperTypeCache = CacheBuilder.newBuilder()
+        .expireAfterAccess(1, TimeUnit.MINUTES)
+        .build(new CacheLoader<ClassHierarchyKey, Boolean>() {
+            @Override
+            public Boolean load(ClassHierarchyKey key) throws Exception {
+                return checkSuperTypeInternal(key.checkedType, key.requiredParent);
+            }
+        });
+
+    public boolean checkSuperType(String type, String requiredParent) {
+        if (type.equals(requiredParent))
+            return true;
+        return checkSuperTypeCache.getUnchecked(new ClassHierarchyKey(type, requiredParent));
+    }
+
+    private boolean checkSuperTypeInternal(String currentType, String requiredParent) {
+        if (currentType.equals(requiredParent))
+            return true;
+        for (String name : getSuperTypesStep(currentType)) {
+            if (name.equals(requiredParent))
+                return true;
+            if (checkSuperTypeCache.getUnchecked(new ClassHierarchyKey(name, requiredParent)))
+                return true;
+        }
+        return false;
+    }
+
     private Class getLoadedClass(String type) {
-        if (m != null) {
+        if (findLoadedClass != null) {
             try {
                 ClassLoader classLoader = ClassMetadataReader.class.getClassLoader();
-                return (Class) m.invoke(classLoader, type.replace('/', '.'));
+                return (Class) findLoadedClass.invoke(classLoader, type.replace('/', '.'));
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         return null;
+    }
+
+    public Set<String> getSuperTypesStep(String type) {
+        try {
+            return getSuperTypesASM(type);
+        } catch (Exception e) {
+            return getSuperTypesReflect(type);
+        }
     }
 
     public String getSuperClass(String type) {
@@ -118,10 +174,30 @@ public class ClassMetadataReader {
         }
     }
 
+    protected Set<String> getSuperTypesASM(String type) throws IOException {
+        CheckSuperTypesVisitor cv = new CheckSuperTypesVisitor();
+        acceptVisitor(type, cv);
+        return cv.superTypes;
+    }
+
     protected String getSuperClassASM(String type) throws IOException {
         CheckSuperClassVisitor cv = new CheckSuperClassVisitor();
         acceptVisitor(type, cv);
         return cv.superClassName;
+    }
+
+    protected Set<String> getSuperTypesReflect(String type) {
+        Class loadedClass = getLoadedClass(type);
+        if (loadedClass != null) {
+            Set<String> r = new HashSet<>();
+            if (loadedClass.getSuperclass() != null)
+                r.add(loadedClass.getSuperclass().getName().replace('.', '/'));
+            for (Class i : loadedClass.getInterfaces()) {
+                r.add(i.getName().replace('.', '/'));
+            }
+            return r;
+        }
+        return Sets.newHashSet("java/lang/Object");
     }
 
     protected String getSuperClassReflect(String type) {
@@ -145,6 +221,23 @@ public class ClassMetadataReader {
         public void visit(int version, int access, String name, String signature,
                           String superName, String[] interfaces) {
             this.superClassName = superName;
+        }
+    }
+
+    private class CheckSuperTypesVisitor extends ClassVisitor {
+
+        Set<String> superTypes = new HashSet<>();
+
+        public CheckSuperTypesVisitor() {
+            super(Opcodes.ASM5);
+        }
+
+        @Override
+        public void visit(int version, int access, String name, String signature,
+                          String superName, String[] interfaces) {
+            if (superName != null)
+                superTypes.add(superName);
+            Collections.addAll(superTypes, interfaces);
         }
     }
 
@@ -197,11 +290,11 @@ public class ClassMetadataReader {
         @Override
         public String toString() {
             return "MethodReference{" +
-                    "owner='" + owner + '\'' +
-                    ", access='" + access + '\'' +
-                    ", name='" + name + '\'' +
-                    ", desc='" + desc + '\'' +
-                    '}';
+                "owner='" + owner + '\'' +
+                ", access='" + access + '\'' +
+                ", name='" + name + '\'' +
+                ", desc='" + desc + '\'' +
+                '}';
         }
     }
 

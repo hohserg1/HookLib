@@ -2,24 +2,18 @@ package gloomyfolken.hooklib.asm;
 
 import com.google.common.collect.*;
 import gloomyfolken.hooklib.api.*;
-import gloomyfolken.hooklib.asm.AsmUtils.OpcodeDetails;
-import gloomyfolken.hooklib.asm.SignatureExtractor.FlatTypeRepr;
-import gloomyfolken.hooklib.asm.SignatureExtractor.ParametrizedTypeRepr;
-import gloomyfolken.hooklib.asm.SignatureExtractor.TypeRepr;
+import gloomyfolken.hooklib.asm.AsmUtils.*;
+import gloomyfolken.hooklib.asm.SignatureExtractor.*;
 import gloomyfolken.hooklib.asm.injections.*;
-import gloomyfolken.hooklib.helper.Logger;
-import gloomyfolken.hooklib.helper.SideOnlyUtils;
-import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
-import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
-import org.objectweb.asm.Type;
-import org.objectweb.asm.TypePath;
-import org.objectweb.asm.TypeReference;
+import gloomyfolken.hooklib.helper.*;
+import gloomyfolken.hooklib.helper.annotation.*;
+import gloomyfolken.hooklib.minecraft.*;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.*;
+import java.util.stream.*;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -241,7 +235,7 @@ public class HookContainerParser {
             last = last.getPrevious().getPrevious();
             resultType = getInstructionType(last);
         }
-        if (targetFieldType.equals(resultType)) {
+        if (targetFieldType.equals(resultType) || isSubtype(targetFieldType, resultType)) {
             return true;
         } else {
             if (targetFieldType.equals(AsmUtils.objectToPrimitive.get(resultType))) {
@@ -262,6 +256,10 @@ public class HookContainerParser {
                 return false;
             }
         }
+    }
+
+    private boolean isSubtype(Type parent, Type some) {
+        return HookLoader.getDeobfuscationMetadataReader().checkSuperType(some.getInternalName(), parent.getInternalName());
     }
 
     private Type getInstructionType(AbstractInsnNode i) {

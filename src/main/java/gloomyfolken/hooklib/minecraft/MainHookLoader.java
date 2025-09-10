@@ -139,6 +139,7 @@ public class MainHookLoader extends HookLoader {
             Logger.instance.info("Jar contains hooks, adding to classpath: " + jar);
             try {
                 ((LaunchClassLoader) getClass().getClassLoader()).addURL(jar.toURI().toURL());
+                CoreModManager.getReparseableCoremods().add(jar.getName());
             } catch (MalformedURLException e) {
                 e.printStackTrace();
             }
