@@ -6,6 +6,7 @@ import net.minecraftforge.fml.common.asm.transformers.deobf.*;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.*;
 
 /**
  * ClassMetadataReader with support of Minecraft obfuscation
@@ -75,7 +76,7 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
     }
 
     private static boolean checkSameMethod(String srgName, String mcpName) {
-        return Deobfuscation.instance.obfMethod(mcpName).contains(srgName);
+        return srgName.equals(mcpName) || !Collections.disjoint(Deobfuscation.instance.obfMethod(mcpName), Deobfuscation.instance.obfMethod(srgName));
     }
 
 }
