@@ -15,7 +15,7 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
-version = '3.21'
+version = '3.22'
 group = 'io.gitlab.hohserg' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'hooklib'
 
@@ -66,7 +66,6 @@ jar {
     }
     destinationDirectory = file("$rootDir/production")
 }
-
 jar.finalizedBy('reobfJar')
 
 publishing {
