@@ -259,6 +259,9 @@ public class HookContainerParser {
     }
 
     private boolean isSubtype(Type parent, Type some) {
+        System.out.println("isSubtype " + parent + " " + some);
+        if (AsmUtils.allPrimitives.contains(parent) || AsmUtils.allPrimitives.contains(some))
+            return AsmUtils.objectToPrimitive.getOrDefault(parent, parent).equals(AsmUtils.objectToPrimitive.getOrDefault(some, some));
         return HookLoader.getDeobfuscationMetadataReader().checkSuperType(some.getInternalName(), parent.getInternalName());
     }
 

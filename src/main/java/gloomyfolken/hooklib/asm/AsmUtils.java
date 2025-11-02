@@ -1,20 +1,12 @@
 package gloomyfolken.hooklib.asm;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMap;
-import lombok.AllArgsConstructor;
-import lombok.Value;
-import org.objectweb.asm.Handle;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import com.google.common.collect.*;
+import lombok.*;
+import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
+import java.util.*;
+import java.util.function.*;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.*;
@@ -31,6 +23,8 @@ public class AsmUtils {
         .put(Type.getType(Long.class), LONG_TYPE)
         .put(Type.getType(Double.class), DOUBLE_TYPE)
         .build();
+
+    public static Set<Type> allPrimitives = ImmutableSet.of(VOID_TYPE, BOOLEAN_TYPE, CHAR_TYPE, BYTE_TYPE, SHORT_TYPE, INT_TYPE, FLOAT_TYPE, LONG_TYPE, DOUBLE_TYPE);
 
     public static Map<Type, String> primitiveToUnboxingMethod = ImmutableBiMap.<Type, String>builder()
         .put(BOOLEAN_TYPE, "booleanValue")
