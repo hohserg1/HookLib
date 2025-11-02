@@ -1,12 +1,14 @@
 package gloomyfolken.hooklib.minecraft;
 
-import gloomyfolken.hooklib.asm.*;
-import net.minecraft.launchwrapper.*;
-import net.minecraftforge.fml.common.asm.transformers.deobf.*;
+import gloomyfolken.hooklib.asm.ClassMetadataReader;
+import net.minecraft.launchwrapper.Launch;
+import net.minecraft.launchwrapper.LaunchClassLoader;
+import net.minecraftforge.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.util.*;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * ClassMetadataReader with support of Minecraft obfuscation
@@ -75,8 +77,17 @@ public class DeobfuscationMetadataReader extends ClassMetadataReader {
         return type;
     }
 
-    private static boolean checkSameMethod(String srgName, String mcpName) {
-        return srgName.equals(mcpName) || !Collections.disjoint(Deobfuscation.instance.obfMethod(mcpName), Deobfuscation.instance.obfMethod(srgName));
+    private static boolean checkSameMethod(String likelySrgName, String likelyMcpName) {
+        if (likelySrgName.equals(likelyMcpName)) {
+            return true;
+        }
+        Set<String> firstSrg = Deobfuscation.instance.obfMethod(likelySrgName);
+        Set<String> secondSrg = Deobfuscation.instance.obfMethod(likelyMcpName);
+
+        if (secondSrg.contains(likelySrgName) || firstSrg.contains(likelyMcpName))
+            return true;
+
+        return !Collections.disjoint(firstSrg, secondSrg);
     }
 
 }
