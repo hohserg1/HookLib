@@ -1,16 +1,20 @@
 package gloomyfolken.hooklib.asm;
 
-import com.google.common.cache.*;
-import com.google.common.collect.*;
-import lombok.*;
-import org.apache.commons.io.*;
-import org.objectweb.asm.Type;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Sets;
+import lombok.Value;
+import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.*;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Allow to fing methods inside still not loaded classes and mutual super-classes.
@@ -49,7 +53,6 @@ public class ClassMetadataReader {
             String className = superClasses.get(i);
             MethodReference methodReference = getMethodReference(className, name, desc);
             if (methodReference != null) {
-                System.out.println("found virtual method: " + methodReference);
                 return methodReference;
             }
         }
