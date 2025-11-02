@@ -1,30 +1,32 @@
 package gloomyfolken.hooklib.example;
 
-import com.mojang.authlib.*;
-import com.mojang.authlib.minecraft.*;
-import com.mojang.authlib.yggdrasil.*;
+import com.mojang.authlib.GameProfileRepository;
+import com.mojang.authlib.minecraft.MinecraftSessionService;
+import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import gloomyfolken.hooklib.api.*;
-import io.netty.buffer.*;
-import net.minecraft.block.*;
-import net.minecraft.block.state.*;
-import net.minecraft.client.*;
-import net.minecraft.entity.player.*;
-import net.minecraft.item.*;
-import net.minecraft.network.*;
-import net.minecraft.server.management.*;
-import net.minecraft.util.*;
-import net.minecraft.util.datafix.*;
-import net.minecraft.util.math.*;
-import net.minecraft.world.*;
-import net.minecraft.world.chunk.*;
-import net.minecraftforge.common.*;
-import net.minecraftforge.fml.relauncher.*;
-import net.minecraftforge.items.*;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.block.BlockTorch;
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.Minecraft;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.server.management.PlayerProfileCache;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.datafix.DataFixer;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraftforge.common.ForgeHooks;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.SlotItemHandler;
 
-import javax.annotation.*;
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import javax.annotation.Nullable;
+import java.io.File;
+import java.net.Proxy;
+import java.util.Random;
 
 @HookContainer
 public class TestHooks {
