@@ -109,6 +109,16 @@ public class SignatureExtractor {
         }
 
         @Override
+        public SignatureVisitor visitArrayType() {
+            return new ParametrizedVisitor(t -> addParameter.accept(new FlatTypeRepr(Type.getType("[" + t.getRawType().getDescriptor()))));
+        }
+
+        @Override
+        public void visitBaseType(char descriptor) {
+            addParameter.accept(new FlatTypeRepr(Type.getType("" + descriptor)));
+        }
+
+        @Override
         public void visitEnd() {
             if (parameters.isEmpty())
                 addParameter.accept(new FlatTypeRepr(rawType));
