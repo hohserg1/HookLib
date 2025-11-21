@@ -1,21 +1,25 @@
 package gloomyfolken.hooklib.asm;
 
-import gloomyfolken.hooklib.api.*;
-import gloomyfolken.hooklib.asm.injections.*;
-import gloomyfolken.hooklib.helper.*;
-import gloomyfolken.hooklib.minecraft.*;
-import org.apache.commons.lang3.builder.*;
-import org.apache.commons.lang3.tuple.*;
-import org.objectweb.asm.*;
-import org.objectweb.asm.commons.*;
+import gloomyfolken.hooklib.api.Shift;
+import gloomyfolken.hooklib.asm.injections.AsmHook;
+import gloomyfolken.hooklib.asm.injections.AsmMethodInjection;
+import gloomyfolken.hooklib.helper.Logger;
+import gloomyfolken.hooklib.minecraft.Deobfuscation;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.tuple.Pair;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+import org.objectweb.asm.commons.AdviceAdapter;
 import org.objectweb.asm.tree.*;
 
 import java.util.*;
-import java.util.function.*;
-import java.util.stream.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import static gloomyfolken.hooklib.api.Shift.*;
-import static gloomyfolken.hooklib.asm.AsmUtils.*;
+import static gloomyfolken.hooklib.api.Shift.INSTEAD;
+import static gloomyfolken.hooklib.asm.AsmUtils.isPatternSensitive;
 
 public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
 
@@ -241,42 +245,20 @@ public abstract class HookInjectorMethodVisitor extends AdviceAdapter {
                     instructions.insertBefore(found.getLeft(), hook.injectNode(this, cv));
 
                     break;
+
                 case INSTEAD:
+                    instructions.insertBefore(found.getLeft(), hook.injectNode(this, cv));
 
-                    /*
-                    for (Type in : patternType.getArgumentTypes()) {
-                        instructions.insertBefore(found.getLeft(), new InsnNode(getPopOpcode(in)));
-                    }*/
-
-                    instructions.insert(found.getRight(), hook.injectNode(this, cv));
-                    instructions.insert(found.getRight(), new InsnNode(getPopOpcode(patternType.getReturnType())));
-
-                    /*
                     AbstractInsnNode i = found.getLeft();
-                    while (i != found.getRight().getNext()) {
+                    AbstractInsnNode firstNotToRemove = found.getRight().getNext();
+                    while (i != firstNotToRemove) {
                         AbstractInsnNode next = i.getNext();
                         instructions.remove(i);
                         i = next;
                     }
-                    */
-
-                    //N value at stack before instructions
-                    //1 or  0 values at stack after instructions
-                    //need to add N opcodes POP or POP2 instead of instructions
-
-                    /*
-                    InsnList pops = new InsnList();
-                    int stackCount = 0;
-                    for (AbstractInsnNode insn : expressionPattern) {
-                        List<InsnNode> in = getInAmount(insn);
-                        int out = getOutAmount(insn);
-                        for (int i = stackCount; i < in.size(); i++) {
-                            pops.add(in.get(i));
-                        }
-                        stackCount += out;
-                    }*/
 
                     break;
+
                 case AFTER:
                     instructions.insert(found.getRight(), hook.injectNode(this, cv));
 
