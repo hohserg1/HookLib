@@ -96,7 +96,7 @@ public class TestHooks {
     @Hook(targetMethod = "randomDisplayTick")
     @OnExpression(expressionPattern = "randomDisplayTickPattern", shift = Shift.INSTEAD)
     public static EnumParticleTypes randomDisplayTick(BlockTorch torch, IBlockState stateIn, World worldIn, BlockPos pos, Random rand) {
-        return EnumParticleTypes.FLAME;
+        return EnumParticleTypes.FIREWORKS_SPARK;
     }
 
     @SideOnly(Side.CLIENT)
