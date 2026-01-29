@@ -10,6 +10,8 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 
+import java.util.Objects;
+
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.DOUBLE;
 import static org.objectweb.asm.Type.LONG;
@@ -128,5 +130,35 @@ public class AsmMethodLens implements AsmMethodInjectionObserving {
     @Override
     public InsnList injectNode(MethodNode methodNode, HookInjectorClassVisitor cv) {
         return new InsnList();
+    }
+
+    @Override
+    public int compareTo(AsmInjection o) {
+        if (o instanceof AsmMethodLens) {
+            AsmMethodLens other = (AsmMethodLens) o;
+            if (isMandatory) {
+                if (other.isMandatory)
+                    if (this.equals(o))
+                        return 0;
+                return -1;
+            }
+            if (other.isMandatory)
+                return 1;
+        }
+        return AsmMethodInjectionObserving.super.compareTo(o);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof AsmMethodLens) {
+            AsmMethodLens other = (AsmMethodLens) obj;
+            return other.targetClassName.equals(this.targetClassName) && other.targetMethodName.equals(this.targetMethodName) && other.targetMethodDescription.equals(this.targetMethodDescription);
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(targetClassName, targetMethodName, targetMethodDescription);
     }
 }
