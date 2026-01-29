@@ -1,10 +1,15 @@
 package gloomyfolken.hooklib.asm.injections;
 
-import gloomyfolken.hooklib.asm.*;
-import org.objectweb.asm.*;
+import gloomyfolken.hooklib.asm.AsmUtils;
+import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 
-import java.util.*;
-import java.util.stream.*;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -145,10 +150,12 @@ public class AsmFieldLens implements AsmInjection {
     @Override
     public int compareTo(AsmInjection o) {
         if (o instanceof AsmFieldLens) {
-            if (createField)
+            AsmFieldLens other = (AsmFieldLens) o;
+            if (createField || isMandatory)
                 return -1;
-            else
-                return ((AsmFieldLens) o).createField ? 1 : 0;
+            else {
+                return other.createField || other.isMandatory ? 1 : 0;
+            }
         }
         return AsmInjection.super.compareTo(o);
     }
@@ -158,12 +165,12 @@ public class AsmFieldLens implements AsmInjection {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AsmFieldLens lens = (AsmFieldLens) o;
-        return isMandatory == lens.isMandatory && createField == lens.createField && targetClassName.equals(lens.targetClassName) && targetFieldName.equals(lens.targetFieldName) && boxedType.equals(lens.boxedType);
+        return targetClassName.equals(lens.targetClassName) && targetFieldName.equals(lens.targetFieldName) && boxedType.equals(lens.boxedType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(targetClassName, targetFieldName, boxedType, isMandatory, createField);
+        return Objects.hash(targetClassName, targetFieldName, boxedType);
     }
 
 
