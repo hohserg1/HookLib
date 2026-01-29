@@ -23,6 +23,8 @@ import java.lang.annotation.Target;
  * System.out.println(MyHooks.kek.get(bruh));
  * MyHooks.kek.set(bruh, "my kek");}
  * </pre></blockquote>
+ * <p>
+ * note: if it is needing to access to field which added by mixin, set isMandatory=false, because mixin will apply hook before themself for test
  *
  * @see FieldAccessor
  */
