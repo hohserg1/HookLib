@@ -174,10 +174,8 @@ public class HookContainerParser {
             targetClassName = classImageNameToPrivateClassName.getOrDefault(targetClassName, targetClassName);
             targetClassType = Type.getObjectType(targetClassName.replace('.', '/'));
 
-            if (!AsmUtils.allPrimitives.contains(targetFieldType)) {
-                String targetFieldClassName = targetFieldType.getClassName();
-                targetFieldClassName = classImageNameToPrivateClassName.getOrDefault(targetFieldClassName, targetFieldClassName);
-                targetFieldType = Type.getObjectType(targetFieldClassName.replace('.', '/'));
+            if (!AsmUtils.isPrimitive(targetFieldType)) {
+                targetFieldType = AsmUtils.mapBy(targetFieldType, typeName -> classImageNameToPrivateClassName.getOrDefault(typeName.replace('/', '.'), typeName).replace('.', '/'));
             }
 
             String targetFieldName = !lensAnnotation.targetField().isEmpty() ? lensAnnotation.targetField() : fieldNode.name;
