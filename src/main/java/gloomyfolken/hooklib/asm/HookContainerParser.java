@@ -564,7 +564,7 @@ public class HookContainerParser {
 
     private Type getPrivateClassType(MethodNode methodNode, int argumentIndex, Type argumentType) {
         AnnotationMap argumentAnnotation = AnnotationUtils.annotationOfParameter(methodNode, argumentIndex);
-        return AsmUtils.mapBy(argumentType, typeName -> getPrivateClassName(argumentAnnotation, typeName).replace('.', '/'));
+        return AsmUtils.mapBy(argumentType, typeName -> getPrivateClassName(argumentAnnotation, typeName.replace('/', '.')).replace('.', '/'));
     }
 
     private String getPrivateClassName(AnnotationMap argumentAnnotation, String argumentClassName) {
