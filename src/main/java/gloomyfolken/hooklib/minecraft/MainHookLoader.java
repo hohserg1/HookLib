@@ -157,7 +157,9 @@ public class MainHookLoader extends HookLoader {
 
         for (File source : minecraftSources) {
             if (source.isFile()) {
-                jarCandidates.add(source);
+                if (!KnownLibrariesZeroHooks.libsNames.contains(source.getName()) && !source.getAbsolutePath().startsWith(KnownLibrariesZeroHooks.jrePrefix)) {
+                    jarCandidates.add(source);
+                }
             } else if (source.isDirectory()) {
                 Collection<File> classFiles = FileUtils.listFiles(source, new String[]{"class"}, true);
                 classCandidates.addAll(classFiles);
