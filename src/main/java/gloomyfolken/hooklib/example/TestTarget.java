@@ -37,9 +37,14 @@ public class TestTarget {
         System.out.println("bar");
     }
 
+    private void targetMethodWithPrivateClassArg(InnerPrivateClass arg) {
+
+    }
+
     public static void triggerInnerClass() {
         System.out.println(InnerPrivateClass.class);
     }
+
 
     private static class InnerPrivateClass {
 
@@ -61,4 +66,6 @@ public class TestTarget {
             }
         };
     }
+
+    private static InnerPrivateClass privateTypeField = new InnerPrivateClass();
 }
