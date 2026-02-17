@@ -12,6 +12,7 @@ import gloomyfolken.hooklib.helper.SideOnlyUtils;
 import gloomyfolken.hooklib.helper.annotation.AnnotationMap;
 import gloomyfolken.hooklib.helper.annotation.AnnotationUtils;
 import gloomyfolken.hooklib.minecraft.HookLoader;
+import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.TypePath;
 import org.objectweb.asm.TypeReference;
@@ -369,9 +370,25 @@ public class HookContainerParser {
         if (!checkRegularConditionsMethodLens(classNode, methodNode, argumentTypes))
             return Stream.empty();
 
-        String targetClassName = getTargetClassName(methodNode, argumentTypes);
+        List<Pair<Integer, Type>> hookArgsToReplace = new ArrayList<>();
+        Type targetClassType = getPrivateClassType(methodNode, 0, argumentTypes[0]);
+        if (!targetClassType.equals(argumentTypes[0])) {
+            hookArgsToReplace.add(Pair.of(0, targetClassType));
+        }
+        Type[] targetMethodArgumentTypes = Arrays.copyOfRange(argumentTypes, 1, argumentTypes.length);
+        for (int targetMethodArgIndex = 0; targetMethodArgIndex < targetMethodArgumentTypes.length; targetMethodArgIndex++) {
+            int lensArgIndex = targetMethodArgIndex + 1;
+            Type actualArgType = targetMethodArgumentTypes[targetMethodArgIndex];
+            Type fixedArgType = getPrivateClassType(methodNode, lensArgIndex, actualArgType);
+            if (!fixedArgType.equals(actualArgType)) {
+                targetMethodArgumentTypes[targetMethodArgIndex] = fixedArgType;
+                hookArgsToReplace.add(Pair.of(lensArgIndex, fixedArgType));
+            }
+        }
+
+        String targetClassName = targetClassType.getClassName();
         String targetMethodName = methodLensAnnotation.targetMethod().isEmpty() ? methodNode.name : methodLensAnnotation.targetMethod();
-        String targetMethodDesc = Type.getMethodDescriptor(returnType, Arrays.copyOfRange(argumentTypes, 1, argumentTypes.length));
+        String targetMethodDesc = Type.getMethodDescriptor(returnType, targetMethodArgumentTypes);
 
         Type[] fixedArgs = argumentTypes.clone();
         fixedArgs[0] = Type.getObjectType(targetClassName.replace('.', '/'));
@@ -389,15 +406,15 @@ public class HookContainerParser {
         );
 
 
-        if (!targetClassName.equals(argumentTypes[0].getClassName()))
+        if (!hookArgsToReplace.isEmpty())
             return Stream.of(
                 targetClassInjection,
                 hookClassInjection,
-                new AsmFixFirstArgument(
+                new AsmFixPrivateClassArguments(
                     classNode.name.replace('/', '.'),
                     methodNode.name,
                     methodNode.desc,
-                    fixedArgs[0],
+                    hookArgsToReplace,
                     hookClassInjection.isMandatory()
                 ));
         else
@@ -416,7 +433,12 @@ public class HookContainerParser {
         if (!checkRegularConditions(classNode, methodNode, argumentTypes))
             return Stream.empty();
 
-        builder.setTargetClass(getTargetClassName(methodNode, argumentTypes));
+        List<Pair<Integer, Type>> hookArgsToReplace = new ArrayList<>();
+        Type targetClassType = getPrivateClassType(methodNode, 0, argumentTypes[0]);
+        builder.setTargetClass(targetClassType.getClassName());
+        if (!targetClassType.equals(argumentTypes[0])) {
+            hookArgsToReplace.add(Pair.of(0, targetClassType));
+        }
 
         if (!hookAnnotation.targetMethod().isEmpty())
             builder.setTargetMethod(hookAnnotation.targetMethod());
@@ -430,7 +452,10 @@ public class HookContainerParser {
 
         int currentParameterId = 1;
         for (int i = 1; i < argumentTypes.length; i++) {
-            Type argType = argumentTypes[i];
+            Type argType = getPrivateClassType(methodNode, i, argumentTypes[i]);
+            if (!argType.equals(argumentTypes[i])) {
+                hookArgsToReplace.add(Pair.of(i, argType));
+            }
             AnnotationMap parameterAnnotations = AnnotationUtils.annotationOfParameter(methodNode, i);
             ReturnValue returnValue = parameterAnnotations.get(ReturnValue.class);
             LocalVariable localVariable = parameterAnnotations.get(LocalVariable.class);
@@ -528,31 +553,30 @@ public class HookContainerParser {
         builder.setRequiredPrintLocalVariables(annotationMap.get(PrintLocalVariables.class) != null);
 
         AsmHook hook = builder.build();
-        if (!hook.getTargetClassName().equals(argumentTypes[0].getClassName()))
-            return Stream.of(hook, new AsmFixFirstArgument(
+        if (!hookArgsToReplace.isEmpty())
+            return Stream.of(hook, new AsmFixPrivateClassArguments(
                 hook.getHookClassName(),
                 methodNode.name,
                 methodNode.desc,
-                Type.getObjectType(hook.getTargetClassName().replace('.', '/')),
+                hookArgsToReplace,
                 hook.isMandatory()
             ));
         return Stream.of(hook);
     }
 
-    private String getTargetClassName(MethodNode methodNode, Type[] argumentTypes) {
-        return getTargetClassName(AnnotationUtils.annotationOfParameter(methodNode, 0), argumentTypes[0]);
+    private Type getPrivateClassType(MethodNode methodNode, int argumentIndex, Type argumentType) {
+        AnnotationMap argumentAnnotation = AnnotationUtils.annotationOfParameter(methodNode, argumentIndex);
+        return AsmUtils.mapBy(argumentType, typeName -> getPrivateClassName(argumentAnnotation, typeName).replace('.', '/'));
     }
 
-    private String getTargetClassName(AnnotationMap firstArgAnnotations, Type firstArgType) {
-        String firstArgClassName = firstArgType.getClassName();
+    private String getPrivateClassName(AnnotationMap argumentAnnotation, String argumentClassName) {
+        if (argumentAnnotation.contains(PrivateClass.class))
+            return argumentAnnotation.get(PrivateClass.class).value();
 
-        if (firstArgAnnotations.contains(PrivateClass.class))
-            return firstArgAnnotations.get(PrivateClass.class).value();
+        else if (classImageNameToPrivateClassName.containsKey(argumentClassName))
+            return classImageNameToPrivateClassName.get(argumentClassName);
 
-        else if (classImageNameToPrivateClassName.containsKey(firstArgClassName))
-            return classImageNameToPrivateClassName.get(firstArgClassName);
-
-        return firstArgClassName;
+        return argumentClassName;
     }
 
     public class UnexpectedHookParsingError extends RuntimeException {

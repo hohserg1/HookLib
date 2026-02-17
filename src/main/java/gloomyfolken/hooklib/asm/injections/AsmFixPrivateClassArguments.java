@@ -2,14 +2,17 @@ package gloomyfolken.hooklib.asm.injections;
 
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import lombok.Value;
+import org.apache.commons.lang3.tuple.Pair;
 import org.objectweb.asm.Type;
 
+import java.util.List;
+
 @Value
-public class AsmFixFirstArgument implements AsmInjection {
+public class AsmFixPrivateClassArguments implements AsmInjection {
     String targetClassName;
     String targetMethodName;
     String targetMethodDesc;
-    Type actualFirstArgType;
+    List<Pair<Integer, Type>> argsToReplace;
     boolean isMandatory;
 
     @Override
@@ -38,7 +41,11 @@ public class AsmFixFirstArgument implements AsmInjection {
     public String transformDescription(String desc) {
         Type methodType = Type.getMethodType(desc);
         Type[] argumentTypes = methodType.getArgumentTypes();
-        argumentTypes[0] = actualFirstArgType;
+        for (Pair<Integer, Type> e : argsToReplace) {
+            int index = e.getLeft();
+            Type validType = e.getRight();
+            argumentTypes[index] = validType;
+        }
         return Type.getMethodDescriptor(methodType.getReturnType(), argumentTypes);
     }
 

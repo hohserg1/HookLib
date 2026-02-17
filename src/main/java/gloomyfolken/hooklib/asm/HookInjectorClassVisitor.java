@@ -16,7 +16,7 @@ import static org.objectweb.asm.Opcodes.*;
 public class HookInjectorClassVisitor extends ClassVisitor {
 
     final Multimap<String, AsmFieldLens> fieldHooks;
-    final Multimap<String, AsmFixFirstArgument> methodPreHooks;
+    final Multimap<String, AsmFixPrivateClassArguments> methodPreHooks;
     final Multimap<String, AsmMethodInjection> methodHooks;
     final Optional<AsmClassAccessFix> classAccessFix;
     Set<AsmInjection> injectedHooks = new HashSet<>(1);
@@ -29,7 +29,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
     public HookInjectorClassVisitor(HookClassTransformer transformer, ClassVisitor finalizeVisitor, List<AsmInjection> hooks) {
         super(Opcodes.ASM5, finalizeVisitor);
 
-        this.methodPreHooks = collect(hooks, AsmFixFirstArgument.class, AsmFixFirstArgument::getTargetMethodName, __ -> ImmutableSet.of());
+        this.methodPreHooks = collect(hooks, AsmFixPrivateClassArguments.class, AsmFixPrivateClassArguments::getTargetMethodName, __ -> ImmutableSet.of());
 
         this.methodHooks = collect(hooks, AsmMethodInjection.class, AsmMethodInjection::getTargetMethodName, Deobfuscation.instance::obfMethod);
 
@@ -86,7 +86,7 @@ public class HookInjectorClassVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        for (AsmFixFirstArgument preHook : methodPreHooks.get(name)) {
+        for (AsmFixPrivateClassArguments preHook : methodPreHooks.get(name)) {
             if (preHook.checkDescription(deobfDescription(desc))) {
                 markInjected(preHook);
                 desc = preHook.transformDescription(desc);
