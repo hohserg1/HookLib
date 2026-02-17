@@ -87,6 +87,32 @@ public class AsmUtils {
         return type.getSort() == 10;
     }
 
+    public static Type mapBy(Type type, Function<String, String> mappings) {
+        if (AsmUtils.isPrimitive(type)) {
+            return type;
+        }
+
+        if (AsmUtils.isArray(type)) {
+            if (AsmUtils.isPrimitive(type.getElementType())) {
+                return type;
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < type.getDimensions(); i++) {
+                    sb.append("[");
+                }
+                sb.append("L");
+                sb.append(mapBy(type.getElementType(), mappings).getInternalName());
+                sb.append(";");
+                return Type.getType(sb.toString());
+            }
+        } else if (AsmUtils.isObject(type)) {
+            String unmappedName = mappings.apply(type.getInternalName());
+            return Type.getType("L" + unmappedName + ";");
+        } else {
+            throw new IllegalArgumentException("Can not map method type!");
+        }
+    }
+
     @Value
     @AllArgsConstructor
     public static class OpcodeDetails {

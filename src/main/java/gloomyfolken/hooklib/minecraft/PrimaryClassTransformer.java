@@ -30,39 +30,17 @@ public class PrimaryClassTransformer implements TransformingStage {
         if (!HookLibPlugin.getObfuscated()) return desc;
 
         Type methodType = Type.getMethodType(desc);
-        Type mappedReturnType = map(methodType.getReturnType());
+        Type mappedReturnType = mapDeobf(methodType.getReturnType());
         Type[] argTypes = methodType.getArgumentTypes();
         Type[] mappedArgTypes = new Type[argTypes.length];
         for (int i = 0; i < mappedArgTypes.length; i++) {
-            mappedArgTypes[i] = map(argTypes[i]);
+            mappedArgTypes[i] = mapDeobf(argTypes[i]);
         }
         return Type.getMethodDescriptor(mappedReturnType, mappedArgTypes);
     }
 
-    static Type map(Type type) {
-        if (AsmUtils.isPrimitive(type)) {
-            return type;
-        }
-
-        if (AsmUtils.isArray(type)) {
-            if (AsmUtils.isPrimitive(type.getElementType())) {
-                return type;
-            } else {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < type.getDimensions(); i++) {
-                    sb.append("[");
-                }
-                sb.append("L");
-                sb.append(map(type.getElementType()).getInternalName());
-                sb.append(";");
-                return Type.getType(sb.toString());
-            }
-        } else if (AsmUtils.isObject(type)) {
-            String unmappedName = FMLDeobfuscatingRemapper.INSTANCE.map(type.getInternalName());
-            return Type.getType("L" + unmappedName + ";");
-        } else {
-            throw new IllegalArgumentException("Can not map method type!");
-        }
+    static Type mapDeobf(Type type) {
+        return AsmUtils.mapBy(type, FMLDeobfuscatingRemapper.INSTANCE::map);
     }
 
 }
