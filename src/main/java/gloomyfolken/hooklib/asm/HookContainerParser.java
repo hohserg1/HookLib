@@ -159,8 +159,12 @@ public class HookContainerParser {
                                     break;
                                 }
                             } else if (a.desc.equals(Type.getDescriptor(PrivateClass.class))) {
-                                if (a.typePath.getStepArgument(0) == 0) {
-                                    targetClassType = Type.getObjectType(AnnotationUtils.<PrivateClass>annotation(a).value().replace('.', '/'));
+                                Type typeFromAnno = Type.getObjectType(AnnotationUtils.<PrivateClass>annotation(a).value().replace('.', '/'));
+                                int parameterIndex = a.typePath.getStepArgument(0);
+                                if (parameterIndex == 0) {
+                                    targetClassType = typeFromAnno;
+                                } else if (parameterIndex == 1) {
+                                    targetFieldType = typeFromAnno;
                                 }
                             }
                 }
@@ -168,6 +172,12 @@ public class HookContainerParser {
             String targetClassName = targetClassType.getClassName();
             targetClassName = classImageNameToPrivateClassName.getOrDefault(targetClassName, targetClassName);
             targetClassType = Type.getObjectType(targetClassName.replace('.', '/'));
+
+            if (!AsmUtils.allPrimitives.contains(targetFieldType)) {
+                String targetFieldClassName = targetFieldType.getClassName();
+                targetFieldClassName = classImageNameToPrivateClassName.getOrDefault(targetFieldClassName, targetFieldClassName);
+                targetFieldType = Type.getObjectType(targetFieldClassName.replace('.', '/'));
+            }
 
             String targetFieldName = !lensAnnotation.targetField().isEmpty() ? lensAnnotation.targetField() : fieldNode.name;
 
