@@ -27,3 +27,4 @@ forge*changelog.txt
 *.class
 /TestProject/
 /classes/
+.profileconfig.json
