@@ -1,12 +1,21 @@
 package gloomyfolken.hooklib.asm;
 
-import com.google.common.collect.*;
-import lombok.*;
-import org.objectweb.asm.*;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import lombok.AllArgsConstructor;
+import lombok.Value;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.*;
 
-import java.util.*;
-import java.util.function.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 import static org.objectweb.asm.Opcodes.*;
 import static org.objectweb.asm.Type.*;
@@ -25,6 +34,10 @@ public class AsmUtils {
         .build();
 
     public static Set<Type> allPrimitives = ImmutableSet.of(VOID_TYPE, BOOLEAN_TYPE, CHAR_TYPE, BYTE_TYPE, SHORT_TYPE, INT_TYPE, FLOAT_TYPE, LONG_TYPE, DOUBLE_TYPE);
+
+    public static boolean isPrimitive(Type t) {
+        return t.getSort() < 9;
+    }
 
     public static Map<Type, String> primitiveToUnboxingMethod = ImmutableBiMap.<Type, String>builder()
         .put(BOOLEAN_TYPE, "booleanValue")
@@ -64,6 +77,14 @@ public class AsmUtils {
 
     public static boolean isPatternSensitive(AbstractInsnNode n) {
         return !(n instanceof LineNumberNode) && !(n instanceof FrameNode) && !(n instanceof LabelNode);
+    }
+
+    public static boolean isArray(Type type) {
+        return type.getSort() == 9;
+    }
+
+    public static boolean isObject(Type type) {
+        return type.getSort() == 10;
     }
 
     @Value

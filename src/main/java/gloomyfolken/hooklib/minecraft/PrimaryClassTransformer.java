@@ -1,5 +1,6 @@
 package gloomyfolken.hooklib.minecraft;
 
+import gloomyfolken.hooklib.asm.AsmUtils;
 import gloomyfolken.hooklib.asm.HookClassTransformer;
 import gloomyfolken.hooklib.asm.HookInjectorClassVisitor;
 import gloomyfolken.hooklib.asm.injections.AsmInjection;
@@ -39,25 +40,29 @@ public class PrimaryClassTransformer implements TransformingStage {
     }
 
     static Type map(Type type) {
-        // void or primitive
-        if (type.getSort() < 9) return type;
+        if (AsmUtils.isPrimitive(type)) {
+            return type;
+        }
 
-        //array
-        if (type.getSort() == 9) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < type.getDimensions(); i++) {
-                sb.append("[");
+        if (AsmUtils.isArray(type)) {
+            if (AsmUtils.isPrimitive(type.getElementType())) {
+                return type;
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < type.getDimensions(); i++) {
+                    sb.append("[");
+                }
+                sb.append("L");
+                sb.append(map(type.getElementType()).getInternalName());
+                sb.append(";");
+                return Type.getType(sb.toString());
             }
-            boolean isPrimitiveArray = type.getSort() < 9;
-            if (!isPrimitiveArray) sb.append("L");
-            sb.append(map(type.getElementType()).getInternalName());
-            if (!isPrimitiveArray) sb.append(";");
-            return Type.getType(sb.toString());
-        } else if (type.getSort() == 10) {
+        } else if (AsmUtils.isObject(type)) {
             String unmappedName = FMLDeobfuscatingRemapper.INSTANCE.map(type.getInternalName());
             return Type.getType("L" + unmappedName + ";");
         } else {
             throw new IllegalArgumentException("Can not map method type!");
         }
     }
+
 }
