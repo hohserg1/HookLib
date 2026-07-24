@@ -1,14 +1,13 @@
 package gloomyfolken.hooklib.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Type parameter of {@link ReturnSolve}, of {@link FieldAccessor} and argument with type Object of hook-method can be marked by this annotation
  * to refer to some class which can be accessed as is.
  * <p>
  * For example, if target class looks like:
- * <blockquote><pre>{@code package a.b;
+ * <pre>{@code package a.b;
  * public class Bruh {
  *      private static class TargetClass {
  *          public String kek(int arg) {
@@ -17,9 +16,9 @@ import java.lang.annotation.Target;
  *          }
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  * Then hook should be:
- * <blockquote><pre>{@code @HookContainer
+ * <pre>{@code @HookContainer
  * public class MyHooks {
  *      @Hook
  *      @OnBegin
@@ -29,7 +28,7 @@ import java.lang.annotation.Target;
  * }}</pre></blockquote>
  * <p>
  * Class can be marked by this annotation to reuse refer to some private class.
- * <blockquote><pre>{@code @PrivateClass("a.b.Bruh$TargetClass")
+ * <pre>{@code @PrivateClass("a.b.Bruh$TargetClass")
  * public class TargetClassImage{
  * }
  *

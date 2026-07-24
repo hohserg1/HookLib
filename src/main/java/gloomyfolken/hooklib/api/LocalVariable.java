@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Allow capturing local variables.
@@ -9,32 +8,32 @@ import java.lang.annotation.Target;
  * Add additional argument to hook-method and mark with this annotation.
  * <p>
  * For example, if target class looks like:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public String kek(int arg) {
  *          int someVar = arg + 10;
  *          //wanna inject hook here and capture `someVar`
  *          return "lol" + someVar;
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  * Then hook should be:
- * <blockquote><pre>{@code @HookContainer
+ * <pre>{@code @HookContainer
  * public class MyHooks {
  *      @Hook
  *      @OnBegin
- *      public static kek(Bruh self, int arg, @LocalVariable(id=2) int someVar) {
+ *      public static void kek(Bruh self, int arg, @LocalVariable(id=2) int someVar) {
  *          System.out.println("someVar=" + someVar);
  *      }
  * }}</pre></blockquote>
  * And result code of target class in runtime will be:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public String kek(int arg) {
  *          int someVar = arg + 10;
  *          MyHooks.kek(this, arg, someVar);
  *          return "lol" + someVar;
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  *
  * @see PrintLocalVariables
  */

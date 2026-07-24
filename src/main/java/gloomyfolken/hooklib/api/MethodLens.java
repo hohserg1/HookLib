@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * This is WIP feature!
@@ -10,15 +9,15 @@ import java.lang.annotation.Target;
  * <p>
  * <p>
  * For example, if target class looks like:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      private String kek(int arg){
  *          ...
  *      }
  *      ...
  * }}
- * </pre></blockquote>
+ * </pre>
  * Then hook-lens for `kek` method should be:
- * <blockquote><pre>{@code @HookContainer
+ * <pre>{@code @HookContainer
  * public class MyHooks {
  *      @MethodLens
  *      public static String kek(Bruh instance, int arg){
@@ -27,9 +26,9 @@ import java.lang.annotation.Target;
  *      }
  * }}</pre></blockquote>
  * Then you can somewhere in your code:
- * <blockquote><pre>{@code Bruh bruh = ...;
+ * <pre>{@code Bruh bruh = ...;
  * System.out.println(MyHooks.kek(bruh, 10));}
- * </pre></blockquote>
+ * </pre>
  */
 @Target(ElementType.METHOD)
 public @interface MethodLens {

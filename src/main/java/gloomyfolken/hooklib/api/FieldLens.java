@@ -1,28 +1,27 @@
 package gloomyfolken.hooklib.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Use it to access to private field of some class
  * <p>
  * For example, if target class looks like:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      private String kek;
  *      ...
  * }}
- * </pre></blockquote>
+ * </pre>
  * Then hook-lens for `kek` field should be:
- * <blockquote><pre>{@code @HookContainer
+ * <pre>{@code @HookContainer
  * public class MyHooks {
  *      @FieldLens
  *      public static FieldAccessor<Bruh, String> kek;
  * }}</pre></blockquote>
  * Then you can somewhere in your code:
- * <blockquote><pre>{@code Bruh bruh = ...;
+ * <pre>{@code Bruh bruh = ...;
  * System.out.println(MyHooks.kek.get(bruh));
  * MyHooks.kek.set(bruh, "my kek");}
- * </pre></blockquote>
+ * </pre>
  * <p>
  * note: if it is needing to access to field which added by mixin, set isMandatory=false, because mixin will apply hook before themself for test
  *

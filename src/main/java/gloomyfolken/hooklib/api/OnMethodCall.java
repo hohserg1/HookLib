@@ -1,22 +1,21 @@
 package gloomyfolken.hooklib.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Use it with {@link Hook} annotation to insert hook-method call at other method call
  * <p>
  * For example, if target class looks like:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public int kek(int arg) {
  *          ...
  *          someMethod(); //wanna inject hook here
  *          ...
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  * Then hook should be:
- * <blockquote><pre>{@code @HookContainer
+ * <pre>{@code @HookContainer
  * public class MyHooks {
  *      @Hook
  *      @OnMethodCall("someMethod")
@@ -25,7 +24,7 @@ import java.lang.annotation.Target;
  *      }
  * }}</pre></blockquote>
  * And result code of target class in runtime will be:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public int kek(int arg) {
  *          ...
  *          someMethod();
@@ -33,7 +32,7 @@ import java.lang.annotation.Target;
  *          ...
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  */
 @Target(ElementType.METHOD)
 public @interface OnMethodCall {

@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 
 /**
@@ -24,15 +23,15 @@ import java.lang.annotation.Target;
  * Return type of hook-method can be same with target method return type if it always needs to return at injection point. It doesn't work if target method's return type is void.
  * <p>
  * For example, if target class looks like:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public String kek(int arg) {
  *          //wanna inject hook here
  *          return "lol" + arg;
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  * Then hook should be:
- * <blockquote><pre>{@code @HookContainer
+ * <pre>{@code @HookContainer
  * public class MyHooks {
  *      @Hook
  *      @OnBegin
@@ -41,13 +40,13 @@ import java.lang.annotation.Target;
  *      }
  * }}</pre></blockquote>
  * And result code of target class in runtime will be:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public String kek(int arg) {
  *          MyHooks.kek(this, arg); //hook-method call inserted
  *          return "lol" + arg;
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  *
  * @see HookContainer
  * @see OnBegin

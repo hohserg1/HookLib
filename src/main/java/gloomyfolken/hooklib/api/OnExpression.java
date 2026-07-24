@@ -1,7 +1,6 @@
 package gloomyfolken.hooklib.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * Use it with {@link Hook} annotation to insert hook-method call at specific point in code of target method.
@@ -9,7 +8,7 @@ import java.lang.annotation.Target;
  * Specific point determines by code pattern which need to write in separated method in same hook container and specify that method name by {@link #expressionPattern} parameter
  * <p>
  * For example, if target class looks like:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public int kek(int arg) {
  *          ...
  *          String someVar = "lol" + arg; //wanna inject hook here
@@ -17,9 +16,9 @@ import java.lang.annotation.Target;
  *          return someVar.length();
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  * Then hook should be:
- * <blockquote><pre>{@code @HookContainer
+ * <pre>{@code @HookContainer
  * public class MyHooks {
  *      @Hook
  *      @OnExpression(expressionPattern = "someVarCalculation")
@@ -31,7 +30,7 @@ import java.lang.annotation.Target;
  *      }
  * }}</pre></blockquote>
  * And result code of target class in runtime will be:
- * <blockquote><pre>{@code public class Bruh {
+ * <pre>{@code public class Bruh {
  *      public int kek(int arg) {
  *          ...
  *          String someVar = "lol" + arg;
@@ -40,20 +39,20 @@ import java.lang.annotation.Target;
  *          return someVar.length();
  *      }
  * }}
- * </pre></blockquote>
+ * </pre>
  * <p>
  * HookLib will find code in target method which *similar* to code in {@link #expressionPattern}.
  * <p>
  * Similar meaning that local variables may have different id's in pattern, but same linkage.
  * <p>
  * For example, such pattern:
- * <blockquote><pre>{@code
+ * <pre>{@code
  *  public static String somePattern(int a, int b){
  *      return a + b; //sum of two different variables
  *  }
  * }</pre></blockquote>
  * And such target method code:
- * <blockquote><pre>{@code
+ * <pre>{@code
  *  public int kek(int arg) {
  *      ...
  *      int c = arg + arg;  //it will not match, sum two times same variable
@@ -61,7 +60,7 @@ import java.lang.annotation.Target;
  *      ...
  *  }
  * }
- * </pre></blockquote>
+ * </pre>
  */
 @Target(ElementType.METHOD)
 public @interface OnExpression {
